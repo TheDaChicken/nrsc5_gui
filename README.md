@@ -1,0 +1,53 @@
+nrsc5_gui
+=================
+
+A qt gui that uses the nrsc5 decoder to decode hd radio streams.
+
+### Problems with the original gui version
+It was made in Python with dependencies that are linux only or are hard to install on Windows.
+
+### Dependencies
+- CMake
+- Qt6 
+- Qt6Sql (for sqlite3)
+  - I want to remove this in the future. This is a cry for help. 
+- nrsc5 (my fork of the original nrsc5)
+- libusb (through [PortSDR](https://github.com/TheDaChicken/PortSDR/))
+- librtlsdr (through [PortSDR](https://github.com/TheDaChicken/PortSDR/))
+- PortAudio (Cmake automatically downloads)
+- spdlog (used with fmt) (Cmake automatically downloads)
+
+This requires the nrsc5 fork I made with better buffering.
+You can compile it just like the original nrsc5, but with the elastic-buffering branch.
+```bash
+git clone https://github.com/TheDaChicken/nrsc5/
+cd nrsc5
+git checkout elastic-buffering
+mkdir build
+cd build
+cmake ..
+```
+
+### Building on Ubuntu
+
+```bash
+sudo apt-get install cmake qt6-base-dev librtlsdr-dev
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+```
+
+### Building on Windows using MSVC
+
+Add each nrsc5 dependency from the compile to the PATH.
+
+```bash
+sudo pacman -S mingw-w64-x86_64-qt6-base
+mkdir build
+cd build 
+cmake ..
+make
+make install
+```

@@ -1,0 +1,335 @@
+@ThemeMeta {
+    name: 'Dark';
+}
+
+@ThemeVars {
+    --blue1: #718CDC;
+    --blue2: #476BD7;
+    --blue3: #284CB8;
+    --blue4: #213E97;
+    --blue5: #1A3278;
+
+    --red1: #E85E75;
+    --red2: #E33B57;
+    --red3: #C01C37;
+    --red4: #A1172E;
+    --red5: #7D1224;
+
+    --pink1: #E5619A;
+    --pink2: #E03E84;
+    --pink3: #C11F65;
+    --pink4: #9E1A53;
+    --pink5: #7B1441;
+
+    --teal1: #3DBEF5;
+    --teal2: #16B1F3;
+    --teal3: #0981B4;
+    --teal4: #086F9B;
+    --teal5: #065374;
+
+    --purple1: #997FDC;
+    --purple2: #805FD3;
+    --purple3: #5B34BF;
+    --purple4: #4D2CA0;
+    --purple5: #3D2380;
+
+    --green1: #59D966;
+    --green2: #37D247;
+    --green3: #25A231;
+    --green4: #1E8528;
+    --green5: #17641E;
+
+    --yellow1: #EABC48;
+    --yellow2: #E5AF24;
+    --yellow3: #B88A16;
+    --yellow4: #926E11;
+    --yellow5: #6E520D;
+
+    --grey1: #5B6273;
+    --grey2: #4E5566;
+    --grey3: #464B59;
+    --grey4: #3C404D;
+    --grey5: #323540;
+    --grey6: #272A33;
+    --grey7: #1D1F26;
+    --grey8: #13141A;
+
+    --white1: #FFFFFF;
+    --white2: #EBEBEB;
+    --white3: #D6D6D6;
+    --white4: #C2C2C2;
+    --white5: #ADADAD;
+
+    --black1: #0A0A0A;
+    --black2: #1F1F1F;
+    --black3: #333333;
+    --black4: #474747;
+    --black5: #5C5C5C;
+
+    /* Base Theme Colors */
+    --bg_window: var(--grey7);
+    --bg_base: var(--grey6);
+    --bg_preview: var(--grey8);
+
+    --primary: var(--blue3);
+    --primary_light: var(--blue2);
+    --primary_lighter: var(--blue1);
+
+    --text: var(--white1);
+    --text_light: rgb(214,214,214);
+    --text_muted: rgb(153,153,153);
+
+    --text_disabled: var(--text_muted);
+    --text_inactive: rgb(255,254,255);
+
+    --font_base: 18px;
+    --font_small: 16px;
+    --font_medium: 20px;
+    --font_large: 23px;
+    --font_xlarge: 25px;
+
+    /* Inputs / Controls */
+    --border_color: var(--grey4);
+
+    --scrollbar: var(--grey4);
+    --scrollbar_hover: var(--grey3);
+    --scrollbar_down: var(--grey8);
+    --scrollbar_border: var(--grey2);
+
+    --input_bg: var(--grey4);
+
+    --button_bg: var(--input_bg);
+
+    /* Qt Palette variables can be set with the "palette_" prefix */
+    --palette_window: var(--bg_window);
+    --palette_windowText: var(--text);
+    --palette_base: var(--bg_base);
+
+    --palette_light: var(--grey2);
+    --palette_mid: var(--grey8);
+    --palette_dark: var(--grey6);
+
+    --palette_highlight: var(--primary);
+    --palette_highlightedText: var(--text);
+
+    --palette_text: var(--text);
+    --palette_link: var(--blue2);
+    --palette_linkVisited: var(--blue2);
+
+    --palette_button: var(--button_bg);
+    --palette_buttonText: var(--text);
+
+    /* They can be selectively set for palette groups by appending those as well */
+    --palette_text_active: var(--text);
+    --palette_text_disabled: var(--text_disabled);
+    --palette_text_inactive: var(--text_inactive);
+}
+
+/* Default widget style, we override only what is needed. */
+
+QWidget {
+    font-size: var(--font_base);
+    color: var(--text);
+    selection-color: var(--text);
+    font-family: 'Open Sans', 'Segoe UI Variable Display Semib', Helvetica, Arial, 'MS Shell Dlg', sans-serif;
+}
+
+QWidget:disabled {
+    color: var(--text_disabled);
+}
+
+/* Container Widgets */
+
+QDialog,
+QMainWindow,
+QStatusBar,
+QMenuBar,
+QMenu {
+    background-color: var(--bg_window);
+}
+
+QMainWindow::separator {
+    background: transparent;
+    margin: 0px;
+}
+
+QMainWindow::separator:hover {
+    margin: 0px;
+}
+
+/* General Widgets */
+
+QLabel,
+QGroupBox,
+QCheckBox {
+    background: transparent;
+}
+
+* [frameShape="1"], * [frameShape="2"], * [frameShape="3"], * [frameShape="4"], * [frameShape="5"], * [frameShape="6"] {
+    border: 1px solid rgb(243,243,243);
+}
+
+QFrame [frameShadow="48"] {
+    background-color: var(--bg_base);
+}
+
+/* Item Lists */
+
+QListView {
+	padding: 0px;
+	font-size: var(--font_small);
+	font-weight: 600;
+}
+
+QMenu::item:selected,
+QListWidget::item:selected,
+SceneTree::item:selected,
+SourceTree::item:selected {
+   background-color: var(--primary);
+}
+
+QMenu::item:hover,
+QListWidget::item:hover,
+SceneTree::item:hover,
+SourceTree::item:hover,
+QMenu::item:selected:hover,
+QListWidget::item:selected:hover,
+SceneTree::item:selected:hover,
+SourceTree::item:selected:hover {
+    background-color: var(--primary_light);
+    color: var(--text);
+}
+
+QListWidget::item:disabled,
+QListWidget::item:disabled:hover,
+SourceTree::item:disabled,
+SourceTree::item:disabled:hover,
+SceneTree::item:disabled,
+SceneTree::item:disabled:hover {
+    background: transparent;
+    color: var(--text_disabled);
+}
+
+QFrame#StationInfoBar {
+    border: 0px solid transparent;
+    border-top: 1px solid var(--grey7);
+}
+
+/* Headers */
+
+NavigationHeader {
+    font-size: var(--font_large);
+}
+
+FavoritesHeader {
+    font-size: var(--font_small);
+}
+
+LineHeader#FavoritesCubedHeader {
+    font-size: var(--font_large);
+}
+
+/* Scrollbars */
+
+QScrollBar {
+    background-color: var(--grey6);
+    margin: 0px;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+    height: 0px;
+}
+
+QScrollBar::up-arrow:vertical,
+QScrollBar::down-arrow:vertical,
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {
+    border: none;
+    background: none;
+    color: none;
+}
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    border: none;
+    background: none;
+    width: 0px;
+}
+
+QScrollBar::left-arrow:horizontal,
+QScrollBar::right-arrow:horizontal,
+QScrollBar::add-page:horizontal,
+QScrollBar::sub-page:horizontal {
+    border: none;
+    background: none;
+    color: none;
+}
+
+QScrollBar::handle {
+    background-color: var(--scrollbar);
+    margin: 2px;
+    border-radius: 2px;
+    border: 1px solid var(--scrollbar);
+}
+
+QScrollBar::handle:hover {
+    background-color: var(--scrollbar_hover);
+    border-color: var(--scrollbar_border);
+}
+
+QScrollBar::handle:pressed {
+    background-color: var(--scrollbar_down);
+    border-color: var(--scrollbar_down);
+}
+
+QScrollBar::handle:vertical {
+    min-height: 32px;
+}
+
+QScrollBar::handle:horizontal {
+    min-width: 32px;
+}
+
+/* Group box */
+
+QGroupBox {
+    background-color: var(--bg_base);
+    border-radius: 4px;
+    padding-top: 30px;
+    padding-bottom: 2px;
+    font-weight: 700;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    padding: 0 4px;
+}
+
+QGroupBox#ChannelBox {
+    border: 2px solid var(--grey8);
+}
+
+/* Combo Box */
+
+QComboBox {
+   background-color: var(--input_bg);
+   padding-left: 6px;
+}
+
+ImageTextEdit#PrimaryLogo {
+    border-top: 2px solid var(--border_color);
+    border-bottom: 2px solid var(--border_color);
+}
+
+ProgressCircleText {
+    font-size: var(--font_xlarge);
+    font-weight: 600;
+}
+
+QLabel#TuneLabel {
+    font-size: var(--font_xlarge);
+    color: var(--blue3);
+}
