@@ -17,6 +17,8 @@ It was made in Python with dependencies that are linux only or are hard to insta
 - PortAudio (Cmake automatically downloads)
 - spdlog (used with fmt) (Cmake automatically downloads)
 
+### Building nrsc5
+
 This requires the nrsc5 fork I made with better buffering.
 You can compile it just like the original nrsc5, but with the elastic-buffering branch.
 ```bash
