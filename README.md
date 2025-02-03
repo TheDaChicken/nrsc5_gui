@@ -21,13 +21,13 @@ It was made in Python with dependencies that are linux only or are hard to insta
 
 This requires the nrsc5 fork I made with better buffering.
 You can compile it just like the original nrsc5, but with the elastic-buffering branch.
+
 ```bash
+... # Follow the original nrsc5 build instructions
 git clone https://github.com/TheDaChicken/nrsc5/
 cd nrsc5
 git checkout elastic-buffering
-mkdir build
-cd build
-cmake ..
+... # Follow the original nrsc5 build instructions
 ```
 
 ### Building on Ubuntu
@@ -43,7 +43,7 @@ sudo make install
 
 ### Building on Windows using MSVC
 
-Add each nrsc5 dependency from the compile to the PATH.
+Make sure to add nrsc5's dependencies to the PATH.
 
 ```bash
 sudo pacman -S mingw-w64-x86_64-qt6-base
