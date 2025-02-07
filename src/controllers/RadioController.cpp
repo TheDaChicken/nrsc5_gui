@@ -7,7 +7,6 @@
 #include "RadioController.h"
 
 #include <Application.h>
-#include <QtConcurrent>
 
 #include "utils/Log.h"
 #include "utils/Error.h"
