@@ -8,7 +8,8 @@
 #include <Application.h>
 
 TuneWidget::TuneWidget(QWidget *parent)
-	: QWidget(parent), grid_layout_(new QGridLayout(this)),
+	: QWidget(parent),
+	  grid_layout_(new QGridLayout(this)),
 	  tune_label_(new QLabel(this)), digit_buttons{},
 	  tune_button_(new QPushButton(this)), modulation_type(Modulation::Type::MOD_FM)
 {
@@ -65,7 +66,7 @@ TuneWidget::TuneWidget(QWidget *parent)
 
 void TuneWidget::TuneToStation()
 {
-	const Modulation& modulation = GetModulation(modulation_type);
+	const Modulation &modulation = GetModulation(modulation_type);
 	const auto station = tune_number.toFloat();
 
 	emit TuneChanged();
@@ -108,7 +109,7 @@ void TuneWidget::DigitClicked()
  */
 void TuneWidget::UpdateNumbers() const
 {
-	const Modulation& modulation = GetModulation(modulation_type);
+	const Modulation &modulation = GetModulation(modulation_type);
 
 	const QString minStr = QString::number(modulation.min);
 	const QString maxStr = QString::number(modulation.max);
@@ -139,7 +140,7 @@ void TuneWidget::UpdateNumbers() const
  */
 void TuneWidget::UpdateDecimalPoint()
 {
-	const Modulation& modulation = GetModulation(modulation_type);
+	const Modulation &modulation = GetModulation(modulation_type);
 
 	if (QString::number(modulation.min).contains('.'))
 	{

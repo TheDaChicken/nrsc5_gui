@@ -8,8 +8,8 @@
 #include <QListView>
 #include <QStackedWidget>
 
-#include <pages/settings/TunerPage.h>
-#include <pages/settings/AboutPage.h>
+#include <settings/TunerPage.h>
+#include <settings/AboutPage.h>
 
 #include "widgets/dualview/DualViewContainer.h"
 
@@ -21,6 +21,7 @@ class SettingsView : public DualViewContainer
 	private:
 		QStackedWidget *stacked_widget_;
 		QListView *settings_panel_;
+
 		AboutPage *about_page_;
 		TunerPage *tuner_page_;
 	private slots:

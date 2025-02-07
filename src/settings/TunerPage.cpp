@@ -10,7 +10,8 @@
 
 #include "models/TunerDevicesModel.h"
 
-TunerPage::TunerPage(QWidget *parent) : QWidget(parent)
+TunerPage::TunerPage(QWidget *parent)
+	: QWidget(parent)
 {
 	layout_ = new QVBoxLayout(this);
 	layout_->setContentsMargins(18, 18, 18, 18);
@@ -29,10 +30,11 @@ TunerPage::TunerPage(QWidget *parent) : QWidget(parent)
 	device_list_ = new QComboBox(this);
 	device_list_->setModel(dApp->GetTunerDevicesModel());
 
+	device_layout_->addWidget(device_list_);
+
 	//refresh_button_ = new QPushButton(tr("Refresh"), this);
 	//refresh_button_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 
-	device_layout_->addWidget(device_list_);
 	//device_layout_->addWidget(refresh_button_);
 
 	gain_settings = new GainSettings(this);

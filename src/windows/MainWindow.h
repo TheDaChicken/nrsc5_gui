@@ -9,7 +9,7 @@
 #include <QTouchEvent>
 #include <QButtonGroup>
 
-#include "pages/RadioDashboard.h"
+#include "pages/RadioPage.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -31,7 +31,7 @@ class MainWindow : public QMainWindow
   void SwitchToRadioDashboard() const;
   void SwitchToSettingsPage() const;
 
-  [[nodiscard]] RadioDashboard *Dashboard() const;
+  [[nodiscard]] RadioPage *Dashboard() const;
   [[nodiscard]] QWidget *CurrentPage() const;
 
  public slots:

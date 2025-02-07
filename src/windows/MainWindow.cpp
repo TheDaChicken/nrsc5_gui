@@ -104,7 +104,7 @@ bool MainWindow::event(QEvent *event)
 	}
 }
 
-RadioDashboard *MainWindow::Dashboard() const
+RadioPage *MainWindow::Dashboard() const
 {
 	return ui->RadioDash;
 }

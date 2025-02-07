@@ -2,11 +2,11 @@
 // Created by TheDaChicken on 7/29/2024.
 //
 
-#include "RadioDashboard.h"
+#include "RadioPage.h"
 #include "Application.h"
 #include "utils/Error.h"
 
-RadioDashboard::RadioDashboard(QWidget *parent)
+RadioPage::RadioPage(QWidget *parent)
 	: DualViewWidget(parent),
 	  state_(NRSC5_TUNER_NOT_ACTIVE),
 	  main_view(new RadioMainView()),
@@ -19,23 +19,23 @@ RadioDashboard::RadioDashboard(QWidget *parent)
 
 	connect(main_view->Header()->ImageLabel(),
 	        &ImageTextLabel::clicked,
-	        this, &RadioDashboard::ShowControlPanel);
+	        this, &RadioPage::ShowControlPanel);
 	connect(control_panel_view->GetStationInfoPanel(),
 	        &StationInfoPanel::clicked,
-	        this, &RadioDashboard::SwitchToMain);
+	        this, &RadioPage::SwitchToMain);
 	connect(control_panel_view->GetFavoritesTree(),
 	        &QListView::clicked,
-	        this, &RadioDashboard::SwitchToMain);
+	        this, &RadioPage::SwitchToMain);
 	connect(control_panel_view->GetTuneWidget(),
 	        &TuneWidget::TuneChanged,
-	        this, &RadioDashboard::SwitchToMain);
+	        this, &RadioPage::SwitchToMain);
 }
 
-RadioDashboard::~RadioDashboard() = default;
+RadioPage::~RadioPage() = default;
 
-void RadioDashboard::Update() const
+void RadioPage::Update() const
 {
-	// Update current view on RadioDashboard
+	// Update current view on RadioPage
 	if (!IsStatusOk())
 	{
 		// If the tuner isn't loaded, show the status page to the user
@@ -51,7 +51,7 @@ void RadioDashboard::Update() const
 	}
 }
 
-void RadioDashboard::SwitchToMain() const
+void RadioPage::SwitchToMain() const
 {
 	SlideInNext(main_view,
 	            {
@@ -60,12 +60,12 @@ void RadioDashboard::SwitchToMain() const
 	            });
 }
 
-void RadioDashboard::ShowControlPanel() const
+void RadioPage::ShowControlPanel() const
 {
 	SetCurrentWidget(control_panel_view);
 }
 
-QString RadioDashboard::StatusString() const
+QString RadioPage::StatusString() const
 {
 	// Return the status of the tuner as a string
 	switch (state_)
@@ -82,7 +82,7 @@ QString RadioDashboard::StatusString() const
 	}
 }
 
-bool RadioDashboard::IsStatusOk() const
+bool RadioPage::IsStatusOk() const
 {
 	return state_ == NRSC5_TUNER_ACTIVE;
 }

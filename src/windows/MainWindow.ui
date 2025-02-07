@@ -199,7 +199,7 @@ QMainWindow {
        <number>1</number>
       </property>
       <widget class="SettingsPage" name="Settings"/>
-      <widget class="RadioDashboard" name="RadioDash"/>
+      <widget class="RadioPage" name="RadioDash"/>
      </widget>
     </item>
    </layout>
@@ -222,15 +222,15 @@ QMainWindow {
    <header>widgets/RoundButton.h</header>
   </customwidget>
   <customwidget>
-   <class>RadioDashboard</class>
+   <class>RadioPage</class>
    <extends>QWidget</extends>
-   <header>pages/RadioDashboard.h</header>
+   <header>pages/RadioPage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>SettingsPage</class>
    <extends>QWidget</extends>
-   <header>pages/settings/SettingsPage.h</header>
+   <header>pages/SettingsPage.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -7,11 +7,11 @@ qt_add_executable(${APPLICATION}
         windows/MainWindow.ui
 
         pages/LoadingPage.cpp
-        pages/RadioDashboard.cpp
+        pages/RadioPage.cpp
+        pages/SettingsPage.cpp
 
-        pages/settings/TunerPage.cpp
-        pages/settings/SettingsPage.cpp
-        pages/settings/AboutPage.cpp
+        settings/TunerPage.cpp
+        settings/AboutPage.cpp
 
         models/ChannelModel.cpp
         models/LinkedChannelModel.cpp

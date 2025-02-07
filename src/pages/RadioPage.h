@@ -15,13 +15,13 @@
 /**
  * Contains full controllability of all tuner pages.
  */
-class RadioDashboard : public DualViewWidget
+class RadioPage : public DualViewWidget
 {
 		Q_OBJECT
 
 	public:
-		explicit RadioDashboard(QWidget *parent = nullptr);
-		~RadioDashboard() override;
+		explicit RadioPage(QWidget *parent = nullptr);
+		~RadioPage() override;
 
 		/**
 		 * @brief Updates the current view on RadioDashboard
