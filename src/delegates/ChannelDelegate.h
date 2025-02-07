@@ -18,9 +18,11 @@ class ChannelDelegate : public QStyledItemDelegate
  public:
   constexpr static int kChannelIconMargin = 12;
   constexpr static int kChannelMargin = 10;
-  constexpr static int kChannelBoxMargin = 15;
+  constexpr static int kChannelBoxTextMargin = 6;
 
   constexpr static QSize kChannelIconSize = QSize(50, 50);
+  constexpr static QSize kChannelBoxIconSize = QSize(64, 64);
+
   constexpr static QSize kChannelDeleteSize = QSize(24, 24);
 
   enum Styles

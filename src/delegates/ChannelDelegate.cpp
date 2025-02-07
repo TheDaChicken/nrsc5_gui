@@ -89,10 +89,10 @@ QSize ChannelDelegate::sizeHint(const QStyleOptionViewItem &option,
 		// Use the longest text to determine the width of each item
 		const QSize textSize = fontMetrics.size(0, "106.1 HD4");
 
-		// Height: Icon size + text size + margins
+		// Height: Icon size + text size + top and bottom margins + margin between icon and text
 		return {
-			textSize.width(),
-			kChannelIconSize.height() + textSize.height() + kChannelBoxMargin * 2
+			qMax(textSize.width(), kChannelBoxIconSize.width()) + kChannelIconMargin * 2,
+			kChannelBoxIconSize.height() + textSize.height() + kChannelMargin * 2 + kChannelBoxTextMargin
 		};
 	}
 
@@ -147,7 +147,7 @@ QSize ChannelDelegate::MaxIconSize(const QRect &contentRect) const
 	if (style_ == kBoxLayout)
 	{
 		// Use the width of the content rect for the icon size in box layout
-		iconSize = {contentRect.width(), kChannelIconSize.height()};
+		iconSize = {contentRect.width(), kChannelBoxIconSize.height()};
 	}
 
 	return iconSize;
@@ -190,7 +190,7 @@ QRectF ChannelDelegate::CalculateTextRect(const QRect &contentRect, const QRectF
 	{
 		// Text is displayed below the icon
 		return {
-			QPointF(contentRect.x(), iconRect.bottom() + kChannelMargin),
+			QPointF(contentRect.x(), iconRect.bottom() + kChannelBoxTextMargin),
 			contentRect.bottomRight()
 		};
 	}
