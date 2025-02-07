@@ -48,9 +48,13 @@ class ChannelDelegate : public QStyledItemDelegate
                    const QStyleOptionViewItem &option, const QModelIndex &index) override;
 
  private:
+  QPixmap ReadIcon(const QVariant &icon) const;
+  QRect CalculateContentRect(const QRect &rect) const;
+
+  [[nodiscard]] QSize MaxIconSize(const QRect &contentRect) const;
   [[nodiscard]] QRect CalculateDeleteButtonRect(const QRect &contentRect) const;
   [[nodiscard]] QRectF CalculateIconRect(const QRect &contentRect, QSizeF iconSize) const;
-  [[nodiscard]] QRect CalculateTextRect(const QRect &contentRect, const QRectF &iconRect) const;
+  [[nodiscard]] QRectF CalculateTextRect(const QRect &contentRect, const QRectF &iconRect) const;
 
   Styles style_ = kDefault;
 
