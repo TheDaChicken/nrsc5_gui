@@ -141,6 +141,7 @@ void GainSettings::ClearGainSliders()
 	{
 		modes_layout_->removeWidget(slider);
 		gain_sliders_.removeOne(slider);
+
 		slider->deleteLater();
 	}
 }
@@ -155,6 +156,8 @@ void GainSettings::ClearGainModes()
 
 		modes_layout_->removeWidget(button);
 		modes_button->removeButton(button);
+
+		button->deleteLater();
 	}
 }
 
