@@ -9,7 +9,7 @@ TextSlider::TextSlider(const QString &name, const QString &units, int min, int m
 {
 	layout_ = new QVBoxLayout(this);
 	layout_->setObjectName("TextSliderGroupLayout");
-	layout_->setContentsMargins(9, 3, 9, 3);
+	layout_->setContentsMargins(0, 0, 0, 0);
 
 	slider_layout_ = new QVBoxLayout(this);
 	slider_layout_->setObjectName("TextSliderLayout");

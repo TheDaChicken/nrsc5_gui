@@ -14,27 +14,34 @@ GainSettings::GainSettings(QWidget *parent) : QGroupBox(parent)
 	setTitle(tr("Gains:"));
 	setAlignment(Qt::AlignLeft);
 
-	layout_main_ = new QVBoxLayout(this);
-	layout_main_->setObjectName("GainLayout");
-	layout_main_->setContentsMargins(0, 0, 0, 0);
+	main_layout_ = new QVBoxLayout(this);
+	main_layout_->setObjectName("GainLayout");
+	main_layout_->setContentsMargins(9, 3, 9, 3);
 
-	layout_modes_ = new QHBoxLayout(this);
-	layout_modes_->setObjectName("GainModesLayout");
-	layout_modes_->setContentsMargins(0, 0, 0, 0);
+	modes_frame_ = new QFrame(this);
+	modes_frame_->setObjectName("GainModesFrame");
+	modes_frame_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
-	gain_modes_buttons = new QButtonGroup(this);
-	gain_modes_buttons->setExclusive(true);
+	modes_layout_ = new QHBoxLayout(modes_frame_);
+	modes_layout_->setObjectName("GainModesLayout");
+	modes_layout_->setContentsMargins(0, 0, 0, 0);
 
 	// Add a button for free gain. (For all gain stages)
-	free_gain_mode_ = new QRadioButton(this);
-	free_gain_mode_->setText("Free");
-	free_gain_mode_->setCheckable(true);
-	free_gain_mode_->setAutoExclusive(true);
-	free_gain_mode_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	mode_free_gain_ = new QRadioButton(modes_frame_);
+	mode_free_gain_->setText("Free");
+	mode_free_gain_->setCheckable(true);
+	mode_free_gain_->setAutoExclusive(true);
+	mode_free_gain_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
-	gain_modes_buttons->addButton(free_gain_mode_);
+	modes_layout_->addWidget(mode_free_gain_);
 
-	layout_modes_->addWidget(free_gain_mode_);
+	main_layout_->addWidget(modes_frame_);
+
+	modes_button = new QButtonGroup(modes_frame_);
+	modes_button->setExclusive(true);
+	modes_button->addButton(mode_free_gain_);
+
+	modes_frame_->hide();
 }
 
 GainSettings::~GainSettings()
@@ -66,23 +73,23 @@ void GainSettings::UpdateGainModes()
 		button->setAutoExclusive(true);
 		button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-		layout_modes_->addWidget(button);
-		gain_modes_buttons->addButton(button);
+		modes_layout_->addWidget(button);
+		modes_button->addButton(button);
 	}
 
 	// Show free gain mode if there are any gain modes
-	if (stream->GetGainModes().size() > 0)
+	if (!stream->GetGainModes().empty())
 	{
-		free_gain_mode_->show();
+		modes_frame_->show();
 	}
 	else
 	{
-		free_gain_mode_->hide();
+		modes_frame_->hide();
 	}
 
 	// Default option is free gain
 	freely_gain_mode_ = true;
-	free_gain_mode_->setChecked(true);
+	mode_free_gain_->setChecked(true);
 }
 
 void GainSettings::UpdateGainSliders()
@@ -107,28 +114,48 @@ void GainSettings::UpdateGainSliders()
 	}
 }
 
+void GainSettings::CreateGainSlider(const PortSDR::Gain& gain)
+{
+	auto *slider = new TextSlider(QString::fromStdString(gain.stage),
+								  "db",
+								  gain.range.min(),
+								  gain.range.max(),
+								  this);
+
+	gain_sliders_.push_back(slider);
+	main_layout_->addWidget(slider);
+
+	connect(slider->Slider(),
+			&QSlider::valueChanged,
+			this,
+			[this, gain](const int value)
+			{
+				GainFreelyChanged(gain.stage, value);
+			});
+}
+
 void GainSettings::ClearGainSliders()
 {
 	// Clear buttons
 	for (TextSlider *slider : gain_sliders_)
 	{
-		layout_modes_->removeWidget(slider);
+		modes_layout_->removeWidget(slider);
+		gain_sliders_.removeOne(slider);
 		slider->deleteLater();
 	}
-
-	gain_sliders_.clear();
 }
 
 void GainSettings::ClearGainModes()
 {
 	// Clear buttons
-	for (QAbstractButton *button : gain_modes_buttons->buttons())
+	for (QAbstractButton *button : modes_button->buttons())
 	{
-		layout_modes_->removeWidget(button);
-		gain_modes_buttons->removeButton(button);
-	}
+		if (button == mode_free_gain_)
+			continue;
 
-	gain_modes_buttons->buttons().clear();
+		modes_layout_->removeWidget(button);
+		modes_button->removeButton(button);
+	}
 }
 
 void GainSettings::GainFreelyChanged(std::string_view stage, int value)
@@ -152,22 +179,3 @@ void GainSettings::GainChanged(int value)
 	stream->SetGain(value);
 }
 
-void GainSettings::CreateGainSlider(PortSDR::Gain gain)
-{
-	TextSlider *slider = new TextSlider(QString::fromStdString(gain.stage),
-	                                    "db",
-	                                    gain.range.min(),
-	                                    gain.range.max(),
-	                                    this);
-
-	gain_sliders_.push_back(slider);
-	layout_main_->addWidget(slider);
-
-	connect(slider->Slider(),
-	        &QSlider::valueChanged,
-	        this,
-	        [this, gain](const int value)
-	        {
-		        GainFreelyChanged(gain.stage, value);
-	        });
-}
