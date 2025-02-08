@@ -31,7 +31,6 @@ GainSettings::GainSettings(QWidget *parent) : QGroupBox(parent)
 	mode_free_gain_->setText("Free");
 	mode_free_gain_->setCheckable(true);
 	mode_free_gain_->setAutoExclusive(true);
-	mode_free_gain_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
 	modes_layout_->addWidget(mode_free_gain_);
 
@@ -71,7 +70,6 @@ void GainSettings::UpdateGainModes()
 		button->setText(QString::fromStdString(modes));
 		button->setCheckable(true);
 		button->setAutoExclusive(true);
-		button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
 		modes_layout_->addWidget(button);
 		modes_button->addButton(button);
