@@ -19,9 +19,9 @@ class TextSlider : public QWidget
 		Q_OBJECT
 
 	public:
-		TextSlider(const QString &name, const QString &units, int min, int max, QWidget *parent = nullptr);
+		TextSlider(const QString &name, const QString &units, double min, double max, QWidget *parent = nullptr);
 
-		QSlider *Slider() const
+		[[nodiscard]] QSlider *Slider() const
 		{
 			assert(slider_);
 			return slider_;

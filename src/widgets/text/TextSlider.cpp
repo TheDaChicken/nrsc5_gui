@@ -4,8 +4,10 @@
 
 #include "TextSlider.h"
 
-TextSlider::TextSlider(const QString &name, const QString &units, int min, int max, QWidget *parent)
-	: QWidget(parent), units_(units)
+TextSlider::TextSlider(const QString &name, const QString &units,
+                       const double min, const double max, QWidget *parent)
+	: QWidget(parent),
+	  units_(units)
 {
 	layout_ = new QVBoxLayout(this);
 	layout_->setObjectName("TextSliderGroupLayout");

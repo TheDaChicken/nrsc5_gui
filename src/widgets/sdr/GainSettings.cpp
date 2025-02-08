@@ -114,24 +114,24 @@ void GainSettings::UpdateGainSliders()
 	}
 }
 
-void GainSettings::CreateGainSlider(const PortSDR::Gain& gain)
+void GainSettings::CreateGainSlider(const PortSDR::Gain &gain)
 {
 	auto *slider = new TextSlider(QString::fromStdString(gain.stage),
-								  "db",
-								  gain.range.min(),
-								  gain.range.max(),
-								  this);
+	                              "db",
+	                              gain.range.min(),
+	                              gain.range.max(),
+	                              this);
 
 	gain_sliders_.push_back(slider);
 	main_layout_->addWidget(slider);
 
 	connect(slider->Slider(),
-			&QSlider::valueChanged,
-			this,
-			[this, gain](const int value)
-			{
-				GainFreelyChanged(gain.stage, value);
-			});
+	        &QSlider::valueChanged,
+	        this,
+	        [this, gain](const int value)
+	        {
+		        GainFreelyChanged(gain.stage, value);
+	        });
 }
 
 void GainSettings::ClearGainSliders()
