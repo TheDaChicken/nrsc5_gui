@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(SPDLOG_FMT_EXTERNAL ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-option(ENABLE_TESTS "Enable tests" ON)
+option(ENABLE_TESTS "Enable tests" OFF)
 
 include(FetchContent)
 include(ExternalProject)
