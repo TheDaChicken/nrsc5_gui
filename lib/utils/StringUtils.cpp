@@ -21,12 +21,12 @@ T NumberFromSS(std::string_view str, T fallback) noexcept
   return result;
 }
 
-uint32_t StringUtils::ToUint32(std::string_view str, uint32_t fallback /* = 0 */)
+uint32_t UTILS::ToUint32(std::string_view str, uint32_t fallback /* = 0 */)
 {
   return NumberFromSS(str, fallback);
 }
 
-std::string StringUtils::Strip(const std::string &str)
+std::string UTILS::Strip(const std::string &str)
 {
   if (str.empty())
 	return "";

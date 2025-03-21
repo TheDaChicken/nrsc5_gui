@@ -9,13 +9,11 @@
 #include <utils/StylingText.h>
 
 #include "windows/MainWindow.h"
-#include "db/ConnectionManager.h"
 #include "controllers/StationInfoManager.h"
-#include "themes/ThemeManager.h"
 #include "controllers/RadioController.h"
+#include "themes/ThemeManager.h"
 #include "models/TunerDevicesModel.h"
-
-#define dApp Application::GetInstance()
+#include "sql/Database.h"
 
 class Application : public QApplication
 {
@@ -27,8 +25,9 @@ class Application : public QApplication
 
 		Q_DISABLE_COPY_MOVE(Application)
 
-		void Initialize();
+		bool Initialize();
 		int Run();
+		static QString GetStatusMessage(UTILS::StatusCodes status);
 
 		RadioController &GetRadioController()
 		{
@@ -52,15 +51,15 @@ class Application : public QApplication
 			return *this->image_provider_;
 		}
 
-		ConnectionManager &GetSQLManager()
+		SQLite::Database &GetSQLManager()
 		{
 			return sql_manager;
 		}
 
 		PortAudio::System &GetAudioSystem()
 		{
-			assert(this->audio_system);
-			return *this->audio_system;
+			assert(this->port_audio);
+			return *this->port_audio;
 		}
 
 		PortSDR::PortSDR &GetSDRSystem()
@@ -69,7 +68,7 @@ class Application : public QApplication
 			return *this->sdr_system;
 		}
 
-		LinkedChannelModel *GetFavoritesModel() const
+		FavoriteModel *GetFavoritesModel() const
 		{
 			assert(this->favorites_model_);
 			return this->favorites_model_.get();
@@ -81,35 +80,31 @@ class Application : public QApplication
 			return this->tuner_devices_model_.get();
 		}
 
-		static Application *GetInstance()
-		{
-			assert(instance());
-			return dynamic_cast<Application *>(instance());
-		}
-
 	private slots:
 		void OnAudioSyncUpdate(const std::shared_ptr<GuiSyncEvent> &event);
 
 	private:
 		void PrintStartupInformation() const;
-		void HDReceivedLot(const RadioChannel &channel,
+		void HDReceivedLot(const NRSC5::StationInfo &station,
 		                   const NRSC5::DataService &component, const NRSC5::Lot &lot) const;
 
-		RadioController radio_controller;
-
-		ConnectionManager sql_manager;
+		SQLite::Database sql_manager;
 		LotManager lot_manager_;
 		ThemeManager theme_manager;
 
-		std::shared_ptr<PortAudio::System> audio_system;
+		std::shared_ptr<PortAudio::System> port_audio;
 		std::shared_ptr<PortSDR::PortSDR> sdr_system;
 
 		std::shared_ptr<StationImageProvider> image_provider_;
 		std::unique_ptr<StationInfoManager> info_manager;
 
-		std::shared_ptr<LinkedChannelModel> favorites_model_;
+		RadioController radio_controller;
+
+		std::shared_ptr<FavoriteModel> favorites_model_;
 		std::shared_ptr<TunerDevicesModel> tuner_devices_model_;
 		std::unique_ptr<MainWindow> window;
 };
+
+Application *getApp();
 
 #endif //NRSC5_GUI_SRC_UI_NRSC5APPLICATION_H_

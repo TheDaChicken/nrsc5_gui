@@ -5,7 +5,7 @@
 #include "FavoritesHeader.h"
 #include "utils/Log.h"
 
-#include "models/ChannelModel.h"
+#include "models/FavoriteModel.h"
 #include "delegates/ChannelDelegate.h"
 
 #include <QPainter>
@@ -23,7 +23,7 @@ void FavoritesHeader::paintEvent(QPaintEvent *event)
 	const QVariant editable = favorites_list_->model()->headerData(
 		0,
 		Qt::Horizontal,
-		ChannelModel::kIsMoveable);
+		FavoriteModel::kIsMoveable);
 
 	if (editable.isValid() && editable.toBool())
 	{

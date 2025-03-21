@@ -24,7 +24,7 @@ class TokenParser
   }
 
   TokenParser(QString content, QList<QString> delims)
-	  : pos(0), content_(std::move(content)), delims_(std::move(delims))
+	  : content_(std::move(content)), delims_(std::move(delims)), pos(0)
   {
 
   }

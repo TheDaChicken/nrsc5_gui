@@ -5,6 +5,8 @@
 #ifndef NRSC5_GUI_SRC_PAGES_RADIODASHBOARD_H_
 #define NRSC5_GUI_SRC_PAGES_RADIODASHBOARD_H_
 
+#include <controllers/RadioController.h>
+
 #include "RadioChannel.h"
 #include "LoadingPage.h"
 
@@ -23,22 +25,10 @@ class RadioPage : public DualViewWidget
 		explicit RadioPage(QWidget *parent = nullptr);
 		~RadioPage() override;
 
-		/**
-		 * @brief Updates the current view on RadioDashboard
-		 */
-		void Update() const;
-
-		/**
-		 * @brief Set the status of the radio tuner
-		 * @param state
-		 */
-		void SetStatus(const int state)
-		{
-			state_ = state;
-		}
+		void UpdateTunerStatus(const TunerAction& action, const UTILS::StatusCodes& state) const;
 
 		void SwitchToMain() const;
-	    void ShowControlPanel() const;
+		void ShowControlPanel() const;
 
 		[[nodiscard]] RadioMainView *RadioMain() const
 		{
@@ -56,10 +46,8 @@ class RadioPage : public DualViewWidget
 		}
 
 	private:
-		[[nodiscard]] bool IsStatusOk() const;
-		[[nodiscard]] QString StatusString() const;
+		[[nodiscard]] QString ActionString(const TunerAction& action) const;
 
-		int state_;
 		RadioMainView *main_view;
 		RadioControlPanelView *control_panel_view;
 		DualViewContainer *status_view;

@@ -8,9 +8,8 @@ It was made in Python with dependencies that are linux only or are hard to insta
 
 ### Dependencies
 - CMake
-- Qt6 
-- Qt6Sql (for sqlite3)
-  - I want to remove this in the future. This is a cry for help. 
+- Qt6
+- SQLite (embedded into the project)
 - nrsc5 (my fork of the original nrsc5)
 - libusb (from [PortSDR](https://github.com/TheDaChicken/PortSDR/))
 - librtlsdr (from [PortSDR](https://github.com/TheDaChicken/PortSDR/))

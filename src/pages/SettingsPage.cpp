@@ -4,9 +4,14 @@
 
 #include "SettingsPage.h"
 
-#include "views/SettingsView.h"
-
 SettingsPage::SettingsPage(QWidget *parent): DualViewWidget(parent)
 {
-	AddWidget(new SettingsView());
+	settings_view_ = new SettingsView();
+
+	AddWidget(settings_view_);
+}
+
+SettingsView * SettingsPage::GetSettingsView() const
+{
+	return settings_view_;
 }

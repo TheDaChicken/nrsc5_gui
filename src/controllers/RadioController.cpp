@@ -12,141 +12,111 @@
 #include "utils/Error.h"
 #include "audio/PortAudioCpp.h"
 
-PaTime RadioController::GuiDelegate::GetWrittenTime() const
-{
-	if (this->stream_)
-	{
-		return this->stream_->GetWrittenTime();
-	}
-
-	return 0;
-}
-
 RadioController::RadioController(QObject *parent)
 	: QObject(parent),
 	  delegate_(this, &sync_thread),
 	  radio_(&delegate_)
 {
-	connect(&sync_thread,
-	        &GuiSyncThread::SyncEvent,
-	        this,
-	        &RadioController::TunerSyncEvent);
-	connect(&tuner_watcher,
-			&QFutureWatcher<int>::finished,
-			this,
-			[this]
-			{
-				emit TunerStatus(tuner_switch_future.result());
-			});
+	connect(&sync_thread, &GuiSyncThread::SyncEvent, this, &RadioController::TunerSyncEvent);
 
 	sync_thread.start();
 }
 
-int RadioController::StartTuner()
+UTILS::StatusCodes RadioController::StartTuner()
 {
-	if (tuner_switch_future.isRunning())
-	{
-		Logger::Log(warn, "Tuner thread is already running");
-		return NRSC5_DEFAULT_ERROR;
-	}
+	const QFuture future = QtConcurrent::run(
+				[this](const Channel &radio_channel)
+				{
+					UTILS::StatusCodes ret = SetupDevices();
+					if (ret != UTILS::StatusCodes::Ok)
+						return ret;
 
-	tuner_switch_future = QtConcurrent::run(
-		[this](const Modulation::Type type, const double freq)
-		{
-			return SetupTuner(type, freq);
-		},
-		Modulation::Type::MOD_FM,
-		88.5);
-	tuner_watcher.setFuture(tuner_switch_future);
+					ret = radio_.SetChannel(radio_channel);
+					if (ret != UTILS::StatusCodes::Ok)
+						return ret;
 
-	emit TunerStatus(NRSC5_TUNER_STARTING);
-	return 0;
+					ret = radio_.Start();
+					if (ret != UTILS::StatusCodes::Ok)
+						return ret;
+
+					return UTILS::StatusCodes::Ok;
+				},
+				current_channel_)
+			.then(QtFuture::Launch::Inherit,
+			      [this](const UTILS::StatusCodes ret)
+			      {
+				      emit TunerStatus(TunerAction::Started, ret);
+			      });
+
+	emit TunerStatus(TunerAction::Starting, UTILS::StatusCodes::Ok);
+	return UTILS::StatusCodes::Ok;
 }
 
-int RadioController::StopTuner()
+UTILS::StatusCodes RadioController::StopTuner()
 {
-	if (tuner_switch_future.isRunning())
-	{
-		Logger::Log(warn, "Tuner thread is already running");
-		return NRSC5_DEFAULT_ERROR;
-	}
+	QFuture future = QtConcurrent::run([this] { return radio_.Stop(); })
+			.then(QtFuture::Launch::Inherit,
+			      [this](const UTILS::StatusCodes ret)
+			      {
+				      emit TunerStatus(TunerAction::Stopped, ret);
+			      });
 
-	tuner_switch_future = QtConcurrent::run([this]
-	{
-		radio_.Stop();
-		return NRSC5_TUNER_NOT_ACTIVE;
-	});
-	tuner_watcher.setFuture(tuner_switch_future);
-
-	emit TunerStatus(NRSC5_TUNER_STOPPING);
-	return 0;
+	emit TunerStatus(TunerAction::Stopping, UTILS::StatusCodes::Ok);
+	return UTILS::StatusCodes::Ok;
 }
 
-QFuture<int> RadioController::SetSDRDevice(const std::shared_ptr<PortSDR::Device> &device)
+UTILS::StatusCodes RadioController::SetSDRDevice(const std::shared_ptr<PortSDR::Device> &device)
 {
-	QFuture<int> device_set_future = QtConcurrent::run([this, device]
+	ClearSDRDevice();
+
+	QFuture future = QtConcurrent::run([this, device]
 	{
 		return radio_.SetSDRDevice(device);
-	});
-
-	QFutureWatcher<int> device_pending_watcher;
-	device_pending_watcher.setFuture(device_set_future);
-
-	connect(&device_pending_watcher,
-	        &QFutureWatcher<int>::finished,
-	        this,
-	        [this]
+	}).then(QtFuture::Launch::Inherit,
+	        [this](const UTILS::StatusCodes ret)
 	        {
-		        emit TunerStatus(NRSC5_TUNER_NOT_ACTIVE);
+		        emit TunerStatus(TunerAction::Stopped, ret);
+		        emit TunerStream(radio_.GetSDRStream());
 	        });
 
-	emit TunerStatus(NRSC5_TUNER_DEVICE_PENDING);
-	return device_set_future;
+	emit TunerStatus(TunerAction::Starting, UTILS::StatusCodes::Ok);
+	return UTILS::StatusCodes::Ok;
 }
 
-int RadioController::SetupDevices()
+UTILS::StatusCodes RadioController::ClearSDRDevice()
 {
+	radio_.ClearSDRDevice();
+	emit TunerStatus(TunerAction::Stopped, UTILS::StatusCodes::Ok);
+	emit TunerStream(nullptr);
+	return UTILS::StatusCodes::Ok;
+}
+
+UTILS::StatusCodes RadioController::SetupDevices()
+{
+	if (!radio_.IsSDROpened())
+		return UTILS::StatusCodes::NoDevice;
+
+	// TODO: Implement a way to select the default audio device.
+	//  That way, this function isn't needed. This is a temporary solution.
 	std::shared_ptr<PortAudio::Device> audioDefaultDevice;
 
-	if (!radio_.IsOpened())
-	{
-		return NRSC5_SDR_NO_DEVICE;
-	}
-
 	/* select audio device if not chosen */
-	dApp->GetAudioSystem().DefaultOutputDevice(audioDefaultDevice);
+	getApp()->GetAudioSystem().DefaultOutputDevice(audioDefaultDevice);
 
-	int ret = radio_.SetAudioDevice(audioDefaultDevice);
-	if (ret < 0)
+	UTILS::StatusCodes ret = radio_.SetAudioDevice(audioDefaultDevice);
+	if (ret != UTILS::StatusCodes::Ok)
 		return ret;
 
 	Logger::Log(info,
 	            "Selected Audio Device Automatically: {}",
 	            audioDefaultDevice->Name());
-	return 0;
-}
-
-int RadioController::SetupTuner(const Modulation::Type type, const double freq)
-{
-	// Setup devices
-	int ret = SetupDevices();
-	if (ret < 0)
-	{
-		return ret;
-	}
-
-	ret = radio_.SetChannel(type, freq);
-	if (ret < 0)
-	{
-		return ret;
-	}
-
-	return radio_.Start();
+	return UTILS::StatusCodes::Ok;
 }
 
 void RadioController::Close()
 {
-	radio_.Stop();
+	if (radio_.IsAudioActive())
+		radio_.Stop();
 	sync_thread.Stop();
 }
 
@@ -160,12 +130,20 @@ void RadioController::GuiDelegate::SetAudioStream(const PortAudio::StreamLiveOut
 	stream_ = &stream;
 }
 
+PaTime RadioController::GuiDelegate::GetWrittenTime() const
+{
+	if (!this->stream_)
+		return 0;
+
+	return this->stream_->GetWrittenTime();
+}
+
 /**
  * @brief Automatically ran when the radio channel is updated
  * This is not ran from the gui thread
  * @param channel
  */
-void RadioController::GuiDelegate::RadioStationUpdate(const RadioChannel &channel)
+void RadioController::GuiDelegate::RadioStationUpdate(const ActiveChannel &channel)
 {
 	sync_thread->Put(std::make_unique<GuiStationUpdate>(GetWrittenTime(), channel));
 }
@@ -185,7 +163,7 @@ void RadioController::GuiDelegate::HDSignalStrengthUpdate(float lower, float upp
 	emit controller_->HDSignalStrength(lower, upper);
 }
 
-void RadioController::GuiDelegate::HDReceivedLot(const RadioChannel &channel,
+void RadioController::GuiDelegate::HDReceivedLot(const NRSC5::StationInfo &channel,
                                                  const NRSC5::DataService &component,
                                                  const NRSC5::Lot &lot)
 {

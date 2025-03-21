@@ -24,7 +24,7 @@ RadioControlPanelView::RadioControlPanelView()
 	stacked_widget_->setFrameShape(QFrame::NoFrame);
 
 	favorites_proxy_model_ = new QSortFilterProxyModel(this);
-	favorites_proxy_model_->setSourceModel(dApp->GetFavoritesModel());
+	favorites_proxy_model_->setSourceModel(getApp()->GetFavoritesModel());
 
 	favorites_tree_ = new FavoritesList(nullptr, ChannelDelegate::kBoxLayout);
 	favorites_tree_->setObjectName("FavoritesCubed");
@@ -57,7 +57,7 @@ RadioControlPanelView::RadioControlPanelView()
 
 	// Header
 	header_ = new NavigationWidget();
-	header_->ImageLabel()->setPixmap(dApp->GetImageProvider().DefaultRadio());
+	header_->ImageLabel()->setPixmap(getApp()->GetImageProvider().DefaultRadio());
 	header_->ViewLabel()->setText(tr("Radio"));
 
 	SetLeftWidget(radio_panel_);

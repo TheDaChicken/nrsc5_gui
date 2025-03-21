@@ -104,6 +104,7 @@
     --palette_window: var(--bg_window);
     --palette_windowText: var(--text);
     --palette_base: var(--bg_base);
+    --palette_alternateBase: var(--blue2);
 
     --palette_light: var(--grey2);
     --palette_mid: var(--grey8);

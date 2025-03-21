@@ -18,11 +18,11 @@ RadioInfoDisplay::RadioInfoDisplay(QWidget *parent)
   : QFrame(parent), ui(new Ui::RadioCoverLayout)
 {
   ui->setupUi(this);
-  ui->PrimaryLogo->setPixmap(dApp->GetImageProvider().DefaultImage());
+  ui->PrimaryLogo->setPixmap(getApp()->GetImageProvider().DefaultImage());
   ui->PrimaryLogo->setAlignment(ImageText::TextRight | ImageText::CenterX);
   ui->PrimaryLogo->clear();
 
-  ui->RadioLogo->setPixmap(dApp->GetImageProvider().DefaultRadio());
+  ui->RadioLogo->setPixmap(getApp()->GetImageProvider().DefaultRadio());
   ui->RadioLogo->setAlignment(ImageText::TextRight | ImageText::CenterX);
   ui->RadioLogo->clear();
 
@@ -39,38 +39,38 @@ RadioInfoDisplay::RadioInfoDisplay(QWidget *parent)
   connect(ui->FavoriteButton, &QPushButton::clicked, this, &RadioInfoDisplay::OnFavoriteButton);
 
   // Connect this class to the StationInfoManager
-  connect(&dApp->GetStationInfoManager(),
-          &StationInfoManager::UpdateChannel,
+  connect(&getApp()->GetStationInfoManager(),
+          &StationInfoManager::UpdateActiveChannel,
           this,
           &RadioInfoDisplay::DisplayChannel);
-  connect(&dApp->GetStationInfoManager(),
+  connect(&getApp()->GetStationInfoManager(),
           &StationInfoManager::UpdateStationLogo,
           this,
           &RadioInfoDisplay::DisplayStationLogo);
-  connect(&dApp->GetStationInfoManager(),
-        &StationInfoManager::UpdatePrimaryImage,
-        this,
-        &RadioInfoDisplay::DisplayPrimaryImage);
-  connect(&dApp->GetStationInfoManager(),
+  connect(&getApp()->GetStationInfoManager(),
+          &StationInfoManager::UpdatePrimaryImage,
+          this,
+          &RadioInfoDisplay::DisplayPrimaryImage);
+  connect(&getApp()->GetStationInfoManager(),
           &StationInfoManager::UpdateHDSync,
           this,
           &RadioInfoDisplay::DisplayHDSync);
-  connect(&dApp->GetStationInfoManager(),
+  connect(&getApp()->GetStationInfoManager(),
           &StationInfoManager::UpdateID3,
           this,
           &RadioInfoDisplay::DisplayHDID3);
-  connect(&dApp->GetStationInfoManager(),
+  connect(&getApp()->GetStationInfoManager(),
           &StationInfoManager::UpdateFavorite,
           this,
           &RadioInfoDisplay::DisplayFavorite);
-  connect(&dApp->GetStationInfoManager(),
+  connect(&getApp()->GetStationInfoManager(),
           &StationInfoManager::ClearId3,
           this,
           &RadioInfoDisplay::ClearID3);
-  connect(&dApp->GetRadioController(),
-        &RadioController::HDSignalStrength,
-        this,
-        &RadioInfoDisplay::DisplaySignalMeter);
+  connect(&getApp()->GetRadioController(),
+          &RadioController::HDSignalStrength,
+          this,
+          &RadioInfoDisplay::DisplaySignalMeter);
 }
 
 RadioInfoDisplay::~RadioInfoDisplay()
@@ -83,16 +83,14 @@ void RadioInfoDisplay::DisplayStationLogo(const QPixmap &logo) const
   ui->RadioLogo->setPixmap(logo);
 }
 
-void RadioInfoDisplay::DisplayChannel(const RadioChannel &channel) const
+void RadioInfoDisplay::DisplayChannel(const ActiveChannel &channel) const
 {
-  const NRSC5::Station &station = channel.hd_station_;
-
   StylingText::DisplayStation(ui->RadioLogo->document(),
                               channel,
                               StylingText::Direction::LONG);
   StylingText::GenerateChannelList(ui->HDLogo->document(),
-                                   station.programs,
-                                   station.current_program);
+                                   channel.hd_details.programs,
+                                   channel.station_info.current_program);
 }
 
 void RadioInfoDisplay::DisplayHDID3(const NRSC5::ID3 &id3) const
@@ -144,17 +142,16 @@ void RadioInfoDisplay::OnPlusButton()
 {
   Q_UNUSED(this)
 
-  const RadioChannel &kRadioChannel = dApp->GetRadioController().GetChannel();
+  const ActiveChannel &channel = getApp()->GetRadioController().GetActiveChannel();
+  const unsigned int nextProgram = channel.station_info.current_program + 1;
 
-  unsigned int nextProgram = kRadioChannel.hd_station_.current_program + 1;
-
-  if (nextProgram >= kRadioChannel.hd_station_.programs.size())
+  if (nextProgram >= channel.hd_details.programs.size())
   {
     // TODO: Scan for next Station
   }
   else
   {
-    dApp->GetRadioController().SetProgram(nextProgram);
+    getApp()->GetRadioController().SetProgram(nextProgram);
   }
 }
 
@@ -162,26 +159,26 @@ void RadioInfoDisplay::OnMinusButton()
 {
   Q_UNUSED(this)
 
-  const RadioChannel &kRadioChannel = dApp->GetRadioController().GetChannel();
+  const ActiveChannel &channel = getApp()->GetRadioController().GetActiveChannel();
 
-  if (kRadioChannel.hd_station_.current_program <= 0)
+  if (channel.station_info.current_program <= 0)
   {
     // TODO: Scan for next Station
   }
   else
   {
-    unsigned int nextProgram = kRadioChannel.hd_station_.current_program - 1;
-    dApp->GetRadioController().SetProgram(nextProgram);
+    unsigned int nextProgram = channel.station_info.current_program - 1;
+    getApp()->GetRadioController().SetProgram(nextProgram);
   }
 }
 
 void RadioInfoDisplay::OnFavoriteButton(bool status)
 {
-  const RadioChannel &kRadioChannel = dApp->GetRadioController().GetChannel();
+  const ActiveChannel &channel = getApp()->GetRadioController().GetActiveChannel();
 
   if (status)
   {
-    if (!dApp->GetFavoritesModel()->AddChannel(kRadioChannel))
+    if (!getApp()->GetFavoritesModel()->Add(channel))
     {
       // Failed to add channel
       ui->FavoriteButton->setChecked(false);
@@ -189,7 +186,7 @@ void RadioInfoDisplay::OnFavoriteButton(bool status)
   }
   else
   {
-    dApp->GetFavoritesModel()->RemoveChannel(kRadioChannel);
+    getApp()->GetFavoritesModel()->Remove(channel);
   }
 }
 
@@ -205,7 +202,7 @@ void RadioInfoDisplay::OnFavoriteButton(bool status)
 //
 //  for (int i = first; i <= last; i++)
 //  {
-//	if (dApp->GetRadioChannel() == favorites_->GetChannel(i))
+//	if (dApp->GetRadioChannel() == favorites_->GetActiveChannel(i))
 //	{
 //	  // The current channel was removed from favorites
 //	  // Uncheck the favorite button
@@ -226,8 +223,8 @@ void RadioInfoDisplay::OnFavoriteButton(bool status)
 //
 //  for (int i = first; i <= last; i++)
 //  {
-//	Logger::Log(info, "Checking favorite button for channel: {}", favorites_->GetChannel(i).GetDisplayChannel());
-//	if (dApp->GetRadioChannel() == favorites_->GetChannel(i))
+//	Logger::Log(info, "Checking favorite button for channel: {}", favorites_->GetActiveChannel(i).GetDisplayChannel());
+//	if (dApp->GetRadioChannel() == favorites_->GetActiveChannel(i))
 //	{
 //	  // The current channel was added to favorites
 //	  // Check the favorite button

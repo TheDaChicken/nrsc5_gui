@@ -4,11 +4,9 @@
 
 #include "RadioPage.h"
 #include "Application.h"
-#include "utils/Error.h"
 
 RadioPage::RadioPage(QWidget *parent)
 	: DualViewWidget(parent),
-	  state_(NRSC5_TUNER_NOT_ACTIVE),
 	  main_view(new RadioMainView()),
 	  control_panel_view(new RadioControlPanelView()),
 	  status_view(new DualViewContainer(new LoadingPage(this), nullptr, nullptr))
@@ -19,34 +17,45 @@ RadioPage::RadioPage(QWidget *parent)
 
 	connect(main_view->Header()->ImageLabel(),
 	        &ImageTextLabel::clicked,
-	        this, &RadioPage::ShowControlPanel);
+	        this,
+	        &RadioPage::ShowControlPanel);
 	connect(control_panel_view->GetStationInfoPanel(),
 	        &StationInfoPanel::clicked,
-	        this, &RadioPage::SwitchToMain);
+	        this,
+	        &RadioPage::SwitchToMain);
 	connect(control_panel_view->GetFavoritesTree(),
 	        &QListView::clicked,
-	        this, &RadioPage::SwitchToMain);
+	        this,
+	        &RadioPage::SwitchToMain);
 	connect(control_panel_view->GetTuneWidget(),
 	        &TuneWidget::TuneChanged,
-	        this, &RadioPage::SwitchToMain);
+	        this,
+	        &RadioPage::SwitchToMain);
+
+	UpdateTunerStatus(TunerAction::Stopped, UTILS::StatusCodes::Ok);
 }
 
 RadioPage::~RadioPage() = default;
 
-void RadioPage::Update() const
+void RadioPage::UpdateTunerStatus(const TunerAction &action, const UTILS::StatusCodes &state) const
 {
-	// Update current view on RadioPage
-	if (!IsStatusOk())
+	if (state != UTILS::StatusCodes::Ok)
 	{
-		// If the tuner isn't loaded, show the status page to the user
-		StatusPage()->SetStatus(StatusString(),
-		                        NRSC5_TUNER_STARTING == state_ || NRSC5_TUNER_STOPPING == state_);
+		// If there was an error, show the error to the user
+		StatusPage()->SetStatus(Application::GetStatusMessage(state), true);
+		SetCurrentWidget(status_view);
+		return;
+	}
+
+	if (action != TunerAction::Started)
+	{
+		StatusPage()->SetStatus(ActionString(action),
+		                        TunerAction::Starting == action || TunerAction::Stopping == action);
 		SetCurrentWidget(status_view);
 	}
 	else
 	{
-		// If the tuner is loaded, show the main view to the user
-		StatusPage()->SetStatus(StatusString(), false);
+		StatusPage()->SetStatus(ActionString(action), false);
 		SetCurrentWidget(main_view);
 	}
 }
@@ -65,24 +74,19 @@ void RadioPage::ShowControlPanel() const
 	SetCurrentWidget(control_panel_view);
 }
 
-QString RadioPage::StatusString() const
+QString RadioPage::ActionString(const TunerAction &action) const
 {
-	// Return the status of the tuner as a string
-	switch (state_)
+	switch (action)
 	{
-		/* not used */
-		case NRSC5_TUNER_ACTIVE: return tr("Tuner is active");
-		case NRSC5_TUNER_NOT_ACTIVE: return tr("Tuner is currently off");
-		case NRSC5_TUNER_STARTING: return tr("Starting tuner");
-		case NRSC5_TUNER_STOPPING: return tr("Stopping tuner");
-		case NRSC5_SDR_NO_DEVICE: return tr("No SDR device found");
-		case NRSC5_SDR_BAD_COMMUNICATION: return tr("Bad communication with SDR device");
+		case TunerAction::Started:
+			return tr("Tuner is active");
+		case TunerAction::Stopped:
+			return tr("Tuner is currently off");
+		case TunerAction::Starting:
+			return tr("Starting tuner");
+		case TunerAction::Stopping:
+			return tr("Stopping tuner");
 		default:
-		case NRSC5_DEFAULT_ERROR: return tr("Tuner encountered an error");
+			return "";
 	}
-}
-
-bool RadioPage::IsStatusOk() const
-{
-	return state_ == NRSC5_TUNER_ACTIVE;
 }

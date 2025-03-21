@@ -7,14 +7,34 @@
 #include <QPainter>
 #include <QSize>
 
+#include "utils/Image.h"
+
 ImageText::ImageText(QWidget *parent)
 	: QFrame(parent),
 	  alignment_(TextRight | ImageCenterX),
 	  spacing_(20),
-	  text_width_(0)
+	  text_width_(0),
+	  extra_spacing_(5)
 {
 	setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 	setContentsMargins(0, 0, 0, 0);
+}
+void ImageText::setPixmap(const QPixmap &pixmap)
+{
+	if (image_.cacheKey() != pixmap.cacheKey())
+		setImage(pixmap.toImage());
+}
+
+void ImageText::setImage(const QImage &image)
+{
+	if (image_ != image)
+	{
+		image_ = UTILS::Image::CreateBestOptionalBackground(image,
+		                                                    palette().color(backgroundRole()),
+		                                                    palette().color(QPalette::AlternateBase));
+		scaled_pixmap_ = QPixmap();
+		update();
+	}
 }
 
 void ImageText::paintEvent(QPaintEvent *)
@@ -41,8 +61,7 @@ void ImageText::EnsureScaledPixmap()
 
 	const QSize kWidgetSize = contentsRect().size();
 	const QSize maximumSize = MaximumImageSize(kWidgetSize);
-	const qreal pixelRatio = devicePixelRatioF();;
-
+	const qreal pixelRatio = devicePixelRatioF();
 	const QSize bestSize = image_.size().scaled(maximumSize * pixelRatio,
 	                                            Qt::KeepAspectRatio);
 
@@ -66,8 +85,8 @@ void ImageText::DrawItems(QPainter &painter, const QRect &layoutRect, const QPix
 
 	AlignWidgetRect(widgetRect, kMinimumSize);
 
-	QRectF pixmapRect = CalculatePixmapRect(widgetRect, kMinimumSize, pixmapSize);
-	QRectF textRect = CalculateTextRect(widgetRect, kMinimumSize, pixmapRect);
+	const QRectF pixmapRect = CalculatePixmapRect(widgetRect, kMinimumSize, pixmapSize);
+	const QRectF textRect = CalculateTextRect(widgetRect, kMinimumSize, pixmapRect);
 
 	// Paint the image & move the text rect
 	painter.drawPixmap(pixmapRect.topLeft(), pixmap);
@@ -199,7 +218,7 @@ int ImageText::heightForWidth(const int width) const
 	const QSizeF textSize = TextSize();
 	int height_max = image().isNull()
 		                 ? 0
-		                 : static_cast<int>((static_cast<qreal>(image().height()) * width) / image().width());
+		                 : static_cast<int>(static_cast<qreal>(image().height()) * width / image().width());
 
 	if (alignment_ & TextLeft || alignment_ & TextRight)
 	{

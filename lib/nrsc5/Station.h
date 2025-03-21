@@ -11,8 +11,8 @@
 #include <vector>
 #include <map>
 #include <filesystem>
-#include <memory>
 #include <optional>
+#include <unordered_map>
 
 #include "utils/Types.h"
 
@@ -58,7 +58,7 @@ struct Lot
 
 	unsigned int id{0};
 	unsigned int port{100};
-	unsigned int mime{0};
+	uint32_t mime{0};
 
 	std::string name;
 	std::filesystem::path path;
@@ -101,14 +101,14 @@ struct ID3
 		uint32_t mime = {NRSC5_MIME_PRIMARY_IMAGE};
 		int lot = -1;
 
-		[[nodiscard]] std::string_view ParamName() const;
-
 		void Clear()
 		{
 			param = EMPTY;
 			mime = NRSC5_MIME_PRIMARY_IMAGE;
 			lot = -1;
 		}
+
+		[[nodiscard]] std::string_view ParamName() const;
 
 		[[nodiscard]] bool Empty() const
 		{
@@ -162,34 +162,26 @@ struct DataService
 	uint32_t mime{0};
 	uint16_t port{100};
 
+	unsigned int channel;
 	std::optional<unsigned int> program;
 };
 
-struct Station
+struct StationInfo
 {
 	unsigned int id{0};
 	std::string country_code;
 	std::string name;
-	std::string message;
-	std::string slogan;
 
 	/**
-	 * @brief Chosen program for the station (0 = MPS) 2-8 are HD Radio programs
-	 */
+	* @brief Chosen program for the station (0 = MPS) 2-8 are HD Radio programs
+	*/
 	unsigned int current_program{0};
-
-	std::map<unsigned int, Program> programs;
-
-	// port -> data service
-	std::unordered_map<int, DataService> services;
 
 	void Reset()
 	{
 		name.clear();
-		message.clear();
-		slogan.clear();
-		programs.clear();
-		services.clear();
+		country_code.clear();
+		current_program = 0;
 	}
 
 	/**
@@ -199,13 +191,37 @@ struct Station
 	 * @param station The station to compare
 	 * @return true if the stations are similar
 	 */
-	[[nodiscard]] bool IsSimilar(const Station &station) const
+	bool operator==(const StationInfo &station) const
 	{
 		return name == station.name && current_program == station.current_program;
 	}
+	bool operator!=(const StationInfo &station_info) const
+	{
+		return !(station_info == *this);
+	}
 
 	private:
-		NLOHMANN_DEFINE_TYPE_INTRUSIVE(Station, id, country_code, name, current_program)
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(StationInfo, id, country_code, name, current_program)
+};
+
+struct StationDetails
+{
+	std::string message;
+	std::string slogan;
+
+	// program ID -> program
+	std::map<unsigned int, Program> programs;
+
+	// port -> data service
+	std::unordered_map<int, DataService> services;
+
+	void Reset()
+	{
+		message.clear();
+		slogan.clear();
+		programs.clear();
+		services.clear();
+	}
 };
 
 std::string_view DescribeMime(uint32_t mime);
@@ -214,7 +230,6 @@ inline unsigned int FriendlyProgramId(const unsigned int program)
 	// Program ID is 0-based. Friendly would be to display it as 1-based
 	return program + 1;
 }
-
 } // namespace NRSC5
 
 #endif //NRSC5_GUI_SRC_LIB_NRSC5_STATION_H_

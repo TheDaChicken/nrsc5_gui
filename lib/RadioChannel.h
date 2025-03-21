@@ -6,93 +6,93 @@
 #define NRSC5_GUI_STATIONITEM_H
 
 #include <utility>
-#include <QString>
 
-#include "nrsc5/Decoder.h"
 #include "nrsc5/Station.h"
 #include "Modulation.h"
 
 #include <nlohmann/json.hpp>
 #include <utils/Log.h>
 
-struct TunerOptions
+struct TunerOpts
 {
-	Modulation::Type modulation_type = Modulation::Type::MOD_FM;
-	uint32_t frequency_ = 0;
-
-	[[nodiscard]] double GetScaledFrequency() const
+	TunerOpts() = default;
+	TunerOpts(const Modulation::Type &type, const uint32_t frequency)
+		: type(type), freq(frequency)
 	{
-		const Modulation &modulation = GetModulation(modulation_type);
-		return static_cast<double>(frequency_) / modulation.scale;
 	}
-
-	/** Set the frequency using the scaled value */
-	void SetScaledFrequency(const double frequency)
+	TunerOpts(const Modulation::Type type, const double frequency)
+		: type(type)
 	{
-		const Modulation &modulation = GetModulation(modulation_type);
+		const Modulation &modulation = GetModulation(type);
+		const int pow = modulation.decimal_places * 10;
+
 		assert(frequency > modulation.min && frequency < modulation.max);
-
-		frequency_ = static_cast<uint32_t>(round(frequency * (modulation.decimal_places * 10)))
-				* modulation.scale / (modulation.decimal_places * 10);
+		freq = static_cast<uint32_t>(round(frequency * pow)) * modulation.scale / pow;
 	}
 
-	bool operator==(const TunerOptions &other) const
+	Modulation::Type type{Modulation::Type::MOD_FM};
+	uint32_t freq{0};
+
+	[[nodiscard]] double GetFrequencyInShort() const
 	{
-		return frequency_ == other.frequency_;
+		const Modulation &modulation = GetModulation(type);
+		return static_cast<double>(freq) / modulation.scale;
+	}
+
+	bool operator==(const TunerOpts &other) const
+	{
+		return type == other.type && freq == other.freq;
 	}
 
 	private:
-		NLOHMANN_DEFINE_TYPE_INTRUSIVE(TunerOptions, modulation_type, frequency_)
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(TunerOpts, type, freq)
 };
 
-/**
- * @brief RadioChannel
- * @details RadioChannel is a struct that holds the information of a radio channel.
- */
-struct RadioChannel
+struct Channel
 {
-	RadioChannel() = default;
-	~RadioChannel() = default;
+	Channel() = default;
 
-	RadioChannel(const Modulation::Type type,
-	             const double frequency, const unsigned int programId)
+	Channel(
+		const TunerOpts tunerData,
+		const unsigned int programId)
+		: tuner_opts(tunerData)
 	{
-		tuner_options.modulation_type = type;
-		tuner_options.SetScaledFrequency(frequency);
-		hd_station_.current_program = programId;
+		station_info.current_program = programId;
 	}
 
-	RadioChannel(TunerOptions tunerData, NRSC5::Station station)
-		: tuner_options(tunerData), hd_station_(std::move(station))
+	Channel(const TunerOpts tunerData,
+	        NRSC5::StationInfo stationInfo)
+		: tuner_opts(std::move(tunerData)),
+		  station_info(std::move(stationInfo))
 	{
 	}
 
-	TunerOptions tuner_options;
+	TunerOpts tuner_opts;
+	NRSC5::StationInfo station_info;
 
-	// HD Radio station data (optional)
-	NRSC5::Station hd_station_;
-
-	[[nodiscard]] QString GetDisplayChannel() const
+	bool operator==(const Channel &other) const
 	{
-		QString station_freq = QString::number(tuner_options.GetScaledFrequency(), 'g', 5);
-
-		if (hd_station_.current_program > NRSC5_MPS_PROGRAM)
-		{
-			station_freq += QString(" HD%1").arg(NRSC5::FriendlyProgramId(hd_station_.current_program));
-		}
-
-		return station_freq;
+		return tuner_opts == other.tuner_opts && station_info == other.station_info;
 	}
 
-	bool operator==(const RadioChannel &other) const
+	private:
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(Channel, tuner_opts, station_info)
+};
+
+struct ActiveChannel : Channel
+{
+	ActiveChannel() = default;
+
+	ActiveChannel(
+		TunerOpts tunerData,
+		NRSC5::StationInfo stationInfo,
+		NRSC5::StationDetails stationDetails)
+		: Channel(tunerData, std::move(stationInfo)),
+		  hd_details(std::move(stationDetails))
 	{
-		return tuner_options == other.tuner_options
-				// Not everything may be set for HD Radio
-				// We only compare the current program and station ID
-				&& hd_station_.IsSimilar(other.hd_station_);
 	}
 
-	NLOHMANN_DEFINE_TYPE_INTRUSIVE(RadioChannel, tuner_options, hd_station_)
+	NRSC5::StationDetails hd_details;
 };
 
 #endif //NRSC5_GUI_STATIONITEM_H

@@ -22,25 +22,25 @@ class StylingText
 			LONG = 1
 		};
 
-		static void DisplayStation(QTextDocument *document,
-		                           const RadioChannel &channel, const Direction &direction);
+		static QString GetDisplayChannel(const Channel& channel);
+		static void DisplayStation(QTextDocument *document, const ActiveChannel &channel, const Direction &direction);
 		static void GenerateChannelList(QTextDocument *document,
 		                                const std::map<unsigned int, NRSC5::Program> &channels,
 		                                unsigned int current_program);
 		static void DisplayID3(QTextDocument *document, const NRSC5::ID3 &id3);
 
 		static void DisplaySignalStrength(QTextDocument *document, double level);
+
 	private:
+		static QColor SignalColor(double level);
+
 		static QFont SmallFont(const QFont &original);
 		static QFont MediumFont(const QFont &original);
 		static QFont BaseFont(const QFont &original);
 		static QFont LargeFont(const QFont &original);
-
-		static QColor SignalColor(double level);
-
 		static QFont GetFont(const QFont &defaultFont,
-		                          const QString &fontSizeVar,
-		                          const QString &defaultValue = "20px");
+		                     const QString &fontSizeVar,
+		                     const QString &defaultValue = "20px");
 
 		static QTextCharFormat HDSelectedFormat(const QTextCharFormat &original);
 

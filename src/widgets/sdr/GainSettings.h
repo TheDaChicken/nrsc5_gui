@@ -14,34 +14,40 @@
 
 class GainSettings : public QGroupBox
 {
-	Q_OBJECT
+		Q_OBJECT
+
 	public:
 		explicit GainSettings(QWidget *parent = nullptr);
 		~GainSettings() override;
 
-		void UpdateGainSettings();
+		Q_DISABLE_COPY_MOVE(GainSettings)
 
-	    void UpdateGainSliders();
-	    void UpdateGainModes();
+		void UpdateTunerStream(PortSDR::Stream *stream);
 
-	    void ClearGainSliders();
+		void ClearGainSliders();
 		void ClearGainModes();
+
 	private slots:
-	    void GainFreelyChanged(std::string_view stage, int value);
-		void GainChanged(int value);
+		void GainFreelyChanged(std::string_view stage, int value) const;
+		void GainChanged(int value) const;
+
 	private:
-		void CreateGainSlider(const PortSDR::Gain& gain);
+		void UpdateGainSliders();
+		void UpdateGainModes();
 
-		bool freely_gain_mode_ = false;
+		void CreateGainSlider(const PortSDR::Gain &gain);
 
-		QVBoxLayout	*main_layout_;
+		QVBoxLayout *main_layout_;
 
 		QWidget *modes_frame_;
 		QHBoxLayout *modes_layout_;
 		QRadioButton *mode_free_gain_;
 
 		QButtonGroup *modes_button;
-		QList<TextSlider*> gain_sliders_;
+		QList<TextSlider *> gain_sliders_;
+		bool freely_gain_mode_ = false;
+
+		PortSDR::Stream *stream_{nullptr};
 };
 
 #endif //GAINSETTINGS_H

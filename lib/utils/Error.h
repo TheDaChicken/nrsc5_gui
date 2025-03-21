@@ -5,21 +5,23 @@
 #ifndef NRSC5_GUI_LIB_UTILS_ERROR_H_
 #define NRSC5_GUI_LIB_UTILS_ERROR_H_
 
-#define NRSC5_TUNER_ACTIVE (0)
-#define NRSC5_TUNER_STARTING (1)
-#define NRSC5_TUNER_STOPPING (2)
-#define NRSC5_TUNER_NOT_ACTIVE (3)
-#define NRSC5_TUNER_DEVICE_PENDING (4)
+namespace UTILS
+{
+enum class StatusCodes
+{
+	Empty,
+	Ok, // No error
 
-#define NRSC5_DEFAULT_ERROR (-1)
+	NoDevice, // No device found
+	NoStream, // No stream found
 
-#define NRSC5_SDR_NO_DEVICE (-2)
-#define NRSC5_SDR_BAD_COMMUNICATION (-3)
-#define NRSC5_SDR_BAD_SAMPLE_RATE (-4)
-#define NRSC5_SDR_BAD_GAIN (-8)
-#define NRSC5_SDR_BAD_FREQUENCY (-16)
-#define NRSC5_SDR_BAD_BANDWIDTH (-32)
+	SQLBusy, // SQL busy
 
-#define NRSC5_AUDIO_NO_DEVICE (-1)
+	TunerError, // Generic tuner error
+	DatabaseError, // Generic Database error
+	UnknownError, // Generic error
+};
+
+} // namespace UTILS
 
 #endif //NRSC5_GUI_LIB_UTILS_ERROR_H_

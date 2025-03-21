@@ -5,7 +5,6 @@
 #ifndef TUNERPAGE_H
 #define TUNERPAGE_H
 
-
 #include <QComboBox>
 #include <QFuture>
 #include <QGroupBox>
@@ -22,6 +21,7 @@ class TunerPage : public QWidget
 		explicit TunerPage(QWidget *parent = nullptr);
 		~TunerPage() override;
 
+		void UpdateTunerStream(PortSDR::Stream *stream) const;
 	private:
 		QVBoxLayout *layout_;
 
@@ -31,10 +31,6 @@ class TunerPage : public QWidget
 		QVBoxLayout *device_layout_;
 
 		GainSettings *gain_settings;
-
-		QFuture<int> set_device_future_;
-
-		void DeviceChangedCallback(const std::shared_ptr<PortSDR::Device> &shared, int ret);
 
 	private slots:
 		void DeviceChanged(int index);

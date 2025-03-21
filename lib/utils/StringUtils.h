@@ -10,14 +10,13 @@
 #include <string_view>
 #include <cstdint>
 
-namespace StringUtils
+namespace UTILS
 {
 
 uint32_t ToUint32(std::string_view str, uint32_t fallback = 0);
-QString GetDisplayFrequency();
 std::string Strip(const std::string& str);
 
-inline QString PathToStr(const std::filesystem::path &path)
+inline QString PathToQStr(const std::filesystem::path &path)
 {
 #ifdef _WIN32
   return QString::fromStdWString(path.native());
@@ -26,7 +25,7 @@ inline QString PathToStr(const std::filesystem::path &path)
 #endif
 }
 
-inline std::filesystem::path StrToPath(const QString &path)
+inline std::filesystem::path QStrToPath(const QString &path)
 {
 #ifdef _WIN32
   return {path.toStdWString()};
@@ -35,6 +34,6 @@ inline std::filesystem::path StrToPath(const QString &path)
 #endif
 }
 
-};
+} // namespace StringUtils
 
 #endif //NRSC5_GUI_STRINGUTILS_H

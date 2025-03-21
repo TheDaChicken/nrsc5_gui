@@ -23,7 +23,7 @@ class StationInfoPanel : public QFrame
  public:
   explicit StationInfoPanel(QWidget *parent = nullptr);
 
-  void DisplayStation(const RadioChannel &channel) const;
+  void DisplayStation(const ActiveChannel &channel) const;
  signals:
   void clicked();
 

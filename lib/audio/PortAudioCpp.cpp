@@ -62,6 +62,11 @@ int PortAudio::System::Initialize()
   return paNoError;
 }
 
+std::string_view PortAudio::System::ErrorText(int error)
+{
+  return Pa_GetErrorText(error);
+}
+
 PortAudio::System::~System()
 {
   m_hostApis.clear();

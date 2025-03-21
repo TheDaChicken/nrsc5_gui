@@ -5,30 +5,35 @@
 #ifndef MODULATION_H
 #define MODULATION_H
 
-class Modulation
+struct Modulation
 {
-	public:
-		enum Type
-		{
-			MOD_AM = 0,
-			MOD_FM = 1,
-		} type;
+	enum Type
+	{
+		MOD_AM = 0,
+		MOD_FM = 1,
+	} type;
 
-		double min;
-		double max;
-		double step;
+	constexpr Modulation(
+		const Type type,
+		const double min,
+		const double max,
+		const double step,
+		const short decimal_places,
+		const int scale)
+		: type(type), min(min), max(max), step(step), scale(scale), decimal_places(decimal_places)
+	{
+	}
 
-		// Scale to convert to Hz
-		uint32_t scale;
-		short decimal_places;
+	Modulation(const Modulation &other) = delete;
+	Modulation &operator=(const Modulation &other) = delete;
 
-		constexpr Modulation(const Type type, double min, double max, double step, int decimal_places, int scale)
-			: type(type), min(min), max(max), step(step), scale(scale), decimal_places(decimal_places)
-		{
-		}
+	double min;
+	double max;
+	double step;
 
-		Modulation(const Modulation &other) = delete;
-		Modulation &operator=(const Modulation &other) = delete;
+	// Scale to convert to Hz
+	uint32_t scale;
+	short decimal_places;
 };
 
 constexpr static auto MOD_FM = Modulation(Modulation::Type::MOD_FM, 87.5, 108.0, 0.2, 1, 1e6);

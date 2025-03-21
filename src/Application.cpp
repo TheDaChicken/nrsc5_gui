@@ -10,34 +10,37 @@
 #include <QtConcurrentRun>
 #include <QFontDatabase>
 #include <QFile>
+#include <QMessageBox>
+
+Application *instance_ = nullptr;
 
 Application::Application(int &argc, char **argv, int flags)
 	: QApplication(argc, argv, flags),
-	  radio_controller(this),
-	  lot_manager_(&sql_manager)
+	  lot_manager_(sql_manager),
+	  radio_controller(this)
 {
+	instance_ = this;
+
 	QFontDatabase::addApplicationFont(":/fonts/OpenSans-VariableFont.ttf");
 
 	setApplicationName("NRSC5 GUI");
 	setOrganizationName("TheDaChicken");
 
 	sdr_system = std::make_unique<PortSDR::PortSDR>();
-	audio_system = std::make_shared<PortAudio::System>();
+	port_audio = std::make_shared<PortAudio::System>();
 	image_provider_ = std::make_shared<StationImageProvider>();
 
-	sql_manager.SetDatabaseName("database.db");
-	sql_manager.DebugLogging();
-
 	tuner_devices_model_ = std::make_unique<TunerDevicesModel>(sdr_system, this);
-	favorites_model_ = std::make_unique<LinkedChannelModel>(this,
-	                                                        sql_manager.GetConnection(),
-	                                                        image_provider_);
+	favorites_model_ = std::make_unique<FavoriteModel>(sql_manager, image_provider_, this);
 	info_manager = std::make_unique<StationInfoManager>(image_provider_, favorites_model_);
 
 	PrintStartupInformation();
 }
 
-Application::~Application() = default;
+Application::~Application()
+{
+	instance_ = nullptr;
+}
 
 void Application::PrintStartupInformation() const
 {
@@ -45,25 +48,42 @@ void Application::PrintStartupInformation() const
 	Logger::Log(debug, "NRSC5 Version: {}", NRSC5::Decoder::VersionText());
 }
 
-void Application::Initialize()
+bool Application::Initialize()
 {
-	int ret;
-
 	// TODO: Add error message dialog for failed initialization
-	ret = audio_system->Initialize();
+	int ret = port_audio->Initialize();
 	if (ret < 0)
 	{
-		return;
+		QMessageBox msgBox;
+		msgBox.setText("Failed to Open NRSC5 GUI");
+		msgBox.setInformativeText("Failed to initialize PortAudio: " +
+			QString::fromUtf8(PortAudio::System::ErrorText(ret)));
+		msgBox.exec();
+		return false;
 	}
 
-	lot_manager_.Open();
-	// TODO make this configurable in the settings
-	lot_manager_.SetImageFolder("HDImages");
+	UTILS::StatusCodes error = sql_manager.Open("database.db");
+	if (error != UTILS::StatusCodes::Ok)
+	{
+		QMessageBox msgBox;
+		msgBox.setText("Failed to Open NRSC5 GUI");
+		msgBox.setInformativeText("Failed to open database: " + GetStatusMessage(error));
+		msgBox.exec();
+		return false;
+	}
 
-	// TODO Remove Literal Strings and use a constant.
-	//  This is from an underlying problem with how we are using QtSQL for the database and the class
-	//  Move to a more robust database system like SQLite. No ORM is needed.
-	favorites_model_->SetTable(QStringLiteral("FAVORITES"));
+	favorites_model_->update();
+
+	// TODO make this configurable in the settings
+	ret = lot_manager_.SetImageFolder("HDImages");
+	if (ret < 0)
+	{
+		QMessageBox msgBox;
+		msgBox.setText("Failed to Open NRSC5 GUI");
+		msgBox.setInformativeText("Failed to open image folder: " + QString::number(ret));
+		msgBox.exec();
+		return false;
+	}
 
 	image_provider_->ProviderManager()->AddProvider(
 		std::make_shared<LotImageProvider>(&lot_manager_),
@@ -76,22 +96,19 @@ void Application::Initialize()
 
 	window = std::make_unique<MainWindow>();
 	window->show();
+	return true;
 }
 
 int Application::Run()
 {
 	connect(&radio_controller,
-	        &RadioController::TunerStatus,
+	        &RadioController::HDReceivedLot,
 	        this,
-	        [this](const int status)
-	        {
-		        Logger::Log(debug, "Tuner status: {}", status);
-		        window->Dashboard()->SetStatus(status);
-		        window->OnSwitchPage();
-	        });
-	connect(&radio_controller, &RadioController::HDReceivedLot, this, &Application::HDReceivedLot);
-	connect(&radio_controller, &RadioController::TunerSyncEvent, this, &Application::OnAudioSyncUpdate);
-
+	        &Application::HDReceivedLot);
+	connect(&radio_controller,
+	        &RadioController::TunerSyncEvent,
+	        this,
+	        &Application::OnAudioSyncUpdate);
 	return exec();
 }
 
@@ -131,11 +148,11 @@ void Application::OnAudioSyncUpdate(const std::shared_ptr<GuiSyncEvent> &event)
 
 /**
  * This is not run from the gui thread
- * @param channel The channel that received the lot
+ * @param station The channel that received the lot
  * @param component The component that received the lot
  * @param lot The lot that was received
  */
-void Application::HDReceivedLot(const RadioChannel &channel,
+void Application::HDReceivedLot(const NRSC5::StationInfo &station,
                                 const NRSC5::DataService &component,
                                 const NRSC5::Lot &lot) const
 {
@@ -143,8 +160,35 @@ void Application::HDReceivedLot(const RadioChannel &channel,
 	info_manager->ReceiveLot(component, lot);
 
 	// Save the lot to the database
-	QFuture<void> future = QtConcurrent::run([this, component, lot, channel]()
+	QFuture<void> future = QtConcurrent::run([this, component, lot, station]
 	{
-		lot_manager_.LotReceived(channel.hd_station_, component, lot);
+		lot_manager_.LotReceived(station, component, lot);
 	});
+}
+
+Application *getApp()
+{
+	assert(instance_ != nullptr);
+
+	return instance_;
+}
+
+QString Application::GetStatusMessage(const UTILS::StatusCodes status)
+{
+	switch (status)
+	{
+		case UTILS::StatusCodes::NoDevice:
+			return tr("No SDR device found");
+		case UTILS::StatusCodes::TunerError:
+			return tr("Bad communication with SDR device");
+		case UTILS::StatusCodes::SQLBusy:
+			return tr("SQL database is busy");
+		case UTILS::StatusCodes::DatabaseError:
+			return tr("Database error");
+		case UTILS::StatusCodes::UnknownError:
+		default:
+		{
+			return tr("Unknown error");
+		}
+	}
 }

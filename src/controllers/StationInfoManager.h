@@ -5,7 +5,9 @@
 #ifndef NRSC5_GUI_SRC_STATIONINFOMANAGER_H_
 #define NRSC5_GUI_SRC_STATIONINFOMANAGER_H_
 
-#include "models/LinkedChannelModel.h"
+#include <QFuture>
+
+#include "models/FavoriteModel.h"
 #include "images/StationImageProvider.h"
 #include "nrsc5/Station.h"
 #include "RadioChannel.h"
@@ -20,15 +22,15 @@ class StationInfoManager : public QObject
 
  public:
   explicit StationInfoManager(const std::weak_ptr<StationImageProvider> &image_provider,
-                              const std::weak_ptr<LinkedChannelModel> &favorites);
+                              const std::weak_ptr<FavoriteModel> &favorites);
 
   void ReceiveLot(const NRSC5::DataService &component, const NRSC5::Lot &lot);
 
-  void StyleAndDisplayStation(const RadioChannel &channel);
+  void StyleAndDisplayStation(const ActiveChannel &channel);
   void StyleAndDisplayID3(const NRSC5::ID3 &id3);
 
   void DisplayPrimaryImage(const ImageData &image);
-  void DisplayFavorite(const RadioChannel &channel);
+  void DisplayFavorite(const Channel &channel);
 
   /**
    * @brief Display the station logo for primary or fallback primary
@@ -51,7 +53,7 @@ class StationInfoManager : public QObject
    * @brief Update the channel information.
    * @param channel The radio channel.
    */
-  void UpdateChannel(const RadioChannel &channel);
+  void UpdateActiveChannel(const ActiveChannel &channel);
   /**
    * @brief Provides new station logo.
    * This runs on every station change.
@@ -83,18 +85,18 @@ class StationInfoManager : public QObject
  private:
   void FetchPrimaryImage(const NRSC5::ID3 &id3);
 
-  QFuture<ImageData> FetchPrimaryImage(const RadioChannel &channel, const NRSC5::ID3 &id3) const;
+  QFuture<ImageData> FetchPrimaryImage(const Channel &channel, const NRSC5::ID3 &id3) const;
   [[nodiscard]] ImageData FallbackPrimaryImage() const;
 
   // Station information
-  NRSC5::Station station_;
+  NRSC5::StationInfo station_;
   NRSC5::ID3 station_id3_;
 
   ImageData station_logo_;
   ImageData primary_image_;
 
   std::weak_ptr<StationImageProvider> image_provider_;
-  std::weak_ptr<LinkedChannelModel> favorites_;
+  std::weak_ptr<FavoriteModel> favorites_;
 
   QFuture<ImageData> primary_image_future_;
 };

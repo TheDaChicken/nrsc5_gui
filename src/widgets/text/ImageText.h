@@ -7,10 +7,14 @@
 
 #include <QFrame>
 #include <QTextDocument>
+#include <utils/Log.h>
 
 /**
 * @brief A widget that displays an image with a description.
-* Keeps aspect-ratio of the image.
+*
+* Special features:
+* - Keeps aspect-ratio of the image.
+* - Also handles dynamic changing image background color to prevent image from being invisible.
 */
 class ImageText : public QFrame
 {
@@ -37,25 +41,8 @@ class ImageText : public QFrame
 			CenterY = 0x80 // Center based on the widget size
 		};
 
-		void setPixmap(const QPixmap &pixmap)
-		{
-			if (image_.cacheKey() != pixmap.cacheKey())
-			{
-				image_ = pixmap.toImage();
-				scaled_pixmap_ = QPixmap();
-				update();
-			}
-		}
-
-		void setImage(const QImage &image)
-		{
-			if (image_ != image)
-			{
-				image_ = image;
-				scaled_pixmap_ = QPixmap();
-				update();
-			}
-		}
+		void setPixmap(const QPixmap &pixmap);
+		void setImage(const QImage &image);
 
 		[[nodiscard]] QImage image() const
 		{
@@ -74,11 +61,6 @@ class ImageText : public QFrame
 			}
 		}
 
-		void clear() const
-		{
-			text_document_.clear();
-		}
-
 		/**
 		 * @brief Sets the spacing between the image and the text.
 		 * @param spacing
@@ -92,6 +74,11 @@ class ImageText : public QFrame
 			}
 		}
 
+		void clear() const
+		{
+			text_document_.clear();
+		}
+
 		[[nodiscard]] int alignment() const
 		{
 			return alignment_;
@@ -101,16 +88,16 @@ class ImageText : public QFrame
 			return spacing_;
 		}
 
+		[[nodiscard]] int textWidth() const
+		{
+			return text_width_;
+		}
+
 		/**
 		 * @brief Sets the width of the line that will be drawn around the image.
 		 * @param width
 		 */
 		virtual void setTextWidth(int width) = 0;
-
-		[[nodiscard]] int textWidth() const
-		{
-			return text_width_;
-		}
 
 		void DrawItems(QPainter &painter, const QRect &layoutRect, const QPixmap &pixmap) const;
 
@@ -118,11 +105,12 @@ class ImageText : public QFrame
 		int alignment_;
 		int spacing_;
 		int text_width_;
+		int extra_spacing_;
 
 	protected:
-		void AlignWidgetRect(QRectF &widgetRect, const QSizeF &widgetSize) const;
+		void AlignWidgetRect(QRectF &widgetRect, const QSizeF &minimumSize) const;
 
-		QRectF CalculatePixmapRect(const QRectF &widgetRect, const QSizeF &widgetSize, const QSizeF &pixmapSize) const;
+		QRectF CalculatePixmapRect(const QRectF &widgetRect, const QSizeF &minimumSize, const QSizeF &pixmapSize) const;
 		QRectF CalculateTextRect(const QRectF &widgetRect, const QSizeF &minimumSize, const QRectF &pixmapRect) const;
 
 		QSizeF MinimumWidgetSize(const QSizeF &pixmap) const;
@@ -144,8 +132,8 @@ class ImageText : public QFrame
 		virtual void EnsureScaledPixmap();
 		QPixmap ScalePixmap(QSize size) const;
 
-		QPixmap scaled_pixmap_;
 		QImage image_;
+		QPixmap scaled_pixmap_;
 		mutable QTextDocument text_document_;
 };
 

@@ -2,7 +2,7 @@
 // Created by TheDaChicken on 9/26/2023.
 //
 
-#include "models/ChannelModel.h"
+#include "models/FavoriteModel.h"
 #include "ChannelDelegate.h"
 #include "utils/Log.h"
 
@@ -22,7 +22,7 @@ void ChannelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
 	const QRect contentRect(CalculateContentRect(option.rect));
 	const QString text = index.data(Qt::DisplayRole).toString();
 	const QPixmap icon = ReadIcon(index.data(Qt::DecorationRole));
-	const bool deletable = index.data(ChannelModel::kIsDeletable).toBool();
+	const bool deletable = index.data(FavoriteModel::kIsDeletable).toBool();
 
 	painter->save();
 	painter->setClipRect(option.rect);

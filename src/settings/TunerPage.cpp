@@ -28,14 +28,11 @@ TunerPage::TunerPage(QWidget *parent)
 	device_layout_->setObjectName("DeviceLayout");
 
 	device_list_ = new QComboBox(this);
-	device_list_->setModel(dApp->GetTunerDevicesModel());
-
 	device_layout_->addWidget(device_list_);
 
-	//refresh_button_ = new QPushButton(tr("Refresh"), this);
-	//refresh_button_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-
-	//device_layout_->addWidget(refresh_button_);
+	refresh_button_ = new QPushButton(tr("Refresh"), this);
+	refresh_button_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+	device_layout_->addWidget(refresh_button_);
 
 	gain_settings = new GainSettings(this);
 
@@ -43,54 +40,50 @@ TunerPage::TunerPage(QWidget *parent)
 	layout_->addWidget(gain_settings);
 	layout_->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
 
+	connect(&getApp()->GetRadioController(),
+	        &RadioController::TunerStream,
+	        this,
+	        &TunerPage::UpdateTunerStream);
 	connect(device_list_,
 	        &QComboBox::currentIndexChanged,
 	        this,
 	        &TunerPage::DeviceChanged);
-	// connect(refresh_button_,
-	//         &QPushButton::clicked,
-	//         this, &TunerPage::RefreshDevices);
+	connect(refresh_button_,
+	        &QPushButton::clicked,
+	        this,
+	        &TunerPage::RefreshDevices);
 
-	if (device_list_->count() > 0)
-		DeviceChanged(0);
+	device_list_->setModel(getApp()->GetTunerDevicesModel());
 }
 
 TunerPage::~TunerPage()
+= default;
+
+void TunerPage::UpdateTunerStream(PortSDR::Stream *stream) const
 {
+	gain_settings->UpdateTunerStream(stream);
 }
 
-void TunerPage::DeviceChanged(int index)
+void TunerPage::DeviceChanged(const int index)
 {
 	if (index < 0)
-		return;
-
-	const QModelIndex modelIndex = device_list_->model()->index(index, 0);
-	const std::shared_ptr<PortSDR::Device> device = dApp->GetTunerDevicesModel()->GetDevice(modelIndex);
-
-	set_device_future_.cancel();
-	set_device_future_ = dApp->GetRadioController().SetSDRDevice(device);
-	set_device_future_.then(this, [this, device](int ret)
 	{
-		DeviceChangedCallback(device, ret);
-	});
-}
-
-void TunerPage::DeviceChangedCallback(const std::shared_ptr<PortSDR::Device> &device, int ret)
-{
-	if (ret != 0)
-	{
-		// TODO: Show error message
-		Logger::Log(err, "Failed to change Tuner device to: {}", device->name.c_str());
+		getApp()->GetRadioController().ClearSDRDevice();
 	}
 	else
 	{
-		Logger::Log(info, "Changed Tuner device to: {}", device->name.c_str());
-	}
+		const QModelIndex modelIndex = device_list_->model()->index(index, 0);
+		const std::shared_ptr<PortSDR::Device> device = getApp()->GetTunerDevicesModel()->GetDevice(modelIndex);
 
-	gain_settings->UpdateGainSettings();
+		getApp()->GetRadioController().SetSDRDevice(device);
+
+		Logger::Log(debug, "Device changed to: {}", device->name);
+	}
 }
 
 void TunerPage::RefreshDevices()
 {
-	dApp->GetTunerDevicesModel()->BuildDevices(true);
+	getApp()->GetRadioController().ClearSDRDevice();
+	getApp()->GetTunerDevicesModel()->BuildDevices(true);
 }
+

@@ -52,6 +52,13 @@ SettingsView::SettingsView()
 	connect(settings_panel_, &QListView::clicked, this, &SettingsView::SwitchPage);
 }
 
+TunerPage * SettingsView::GetTunerPage() const
+{
+	assert(tuner_page_);
+
+	return tuner_page_;
+}
+
 void SettingsView::SwitchPage(const QModelIndex &index) const
 {
 	switch (index.row())

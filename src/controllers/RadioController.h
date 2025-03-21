@@ -13,6 +13,15 @@
 #include "HybridRadio.h"
 #include "threads/GuiEvent.h"
 #include "threads/GuiSyncThread.h"
+#include "utils/Error.h"
+
+enum class TunerAction
+{
+	Stopped = 0,
+	Starting = 1,
+	Stopping = 2,
+	Started = 3
+};
 
 /**
  * @brief Controller for the radio tuner and the audio stream
@@ -35,12 +44,12 @@ class RadioController : public QObject
 				[[nodiscard]] PaTime GetWrittenTime() const;
 
 				void SetAudioStream(const PortAudio::StreamLiveOutputPush &stream) override;
-				void RadioStationUpdate(const RadioChannel &channel) override;
+				void RadioStationUpdate(const ActiveChannel &channel) override;
 
 				void HDSyncUpdate(bool sync) override;
 				void HDSignalStrengthUpdate(float lower, float upper) override;
 				void HDID3Update(const NRSC5::ID3 &id3) override;
-				void HDReceivedLot(const RadioChannel &channel,
+				void HDReceivedLot(const NRSC5::StationInfo &channel,
 				                   const NRSC5::DataService &component,
 				                   const NRSC5::Lot &lot) override;
 
@@ -62,56 +71,67 @@ class RadioController : public QObject
 		/**
 		 * @brief Tries to start the tuner on a separate thread
 		 */
-		int StartTuner();
-		int StopTuner();
+		UTILS::StatusCodes StartTuner();
+		UTILS::StatusCodes StopTuner();
 
-		QFuture<int> SetSDRDevice(const std::shared_ptr<PortSDR::Device> &device);
+		UTILS::StatusCodes SetSDRDevice(const std::shared_ptr<PortSDR::Device> &device);
+		UTILS::StatusCodes ClearSDRDevice();
 
-		int SetChannel(const RadioChannel &channel)
+		UTILS::StatusCodes SetChannel(const Channel &channel)
 		{
-			return radio_.SetRadioChannel(channel);
+			return radio_.SetChannel(channel);
 		}
-
-		void SetProgram(unsigned int programId)
+		UTILS::StatusCodes SetChannel(const Modulation::Type type, const double freq)
+		{
+			return radio_.SetChannel(type, freq);
+		}
+		void SetProgram(const unsigned int programId)
 		{
 			radio_.SetProgram(programId);
-		}
-
-		HybridRadio &GetRadio()
-		{
-			return radio_;
 		}
 
 		/**
 		 * @brief Get the current radio channel
 		 * @return The current radio channel
 		 */
-		RadioChannel GetChannel() const
+		ActiveChannel GetActiveChannel() const
 		{
 			return radio_.GetChannel();
 		}
 
+		HybridRadio &GetRadio()
+		{
+			// TODO: Get rid of this function
+			return radio_;
+		}
+
 	signals:
 		// Tuner signals for GUI
-		void TunerStatus(int status);
+		void TunerStatus(TunerAction action, UTILS::StatusCodes ret);
+		void TunerStream(PortSDR::Stream *stream);
 
-		void TunerStationUpdate(const RadioChannel &channel);
+		void TunerStationUpdate(const ActiveChannel &channel);
 		void TunerSyncEvent(const std::shared_ptr<GuiSyncEvent> &event);
 
-		void HDReceivedLot(const RadioChannel &channel, const NRSC5::DataService &component,
+		void HDReceivedLot(const NRSC5::StationInfo &station, const NRSC5::DataService &component,
 		                   const NRSC5::Lot &lot);
 		void HDSignalStrength(float lower, float upper);
 
 	private:
-		int SetupDevices();
-		int SetupTuner(Modulation::Type type, double freq);
+		UTILS::StatusCodes SetupDevices();
 
 		GuiDelegate delegate_;
+		GuiSyncThread sync_thread;
 		HybridRadio radio_;
 
-		GuiSyncThread sync_thread;
-		QFuture<int> tuner_switch_future;
-		QFutureWatcher<int> tuner_watcher;
+		Channel current_channel_
+		{
+			{
+				Modulation::Type::MOD_FM,
+				88.5
+			},
+			0
+		};
 };
 
 #endif //NRSC5_GUI_SRC_RADIOCONTROLLER_H_

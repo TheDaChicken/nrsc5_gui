@@ -8,7 +8,22 @@
 #include <QTextCharFormat>
 #include <QTextCursor>
 
-auto HDColor = QColor(255, 165, 0);
+static constexpr auto HDColor = QColor(255, 165, 0);
+
+[[nodiscard]] QString StylingText::GetDisplayChannel(const Channel& channel)
+{
+	const auto& tuner_opts = channel.tuner_opts;
+	const auto& station = channel.station_info;
+
+	QString text = QString::number(tuner_opts.GetFrequencyInShort(), 'g', 5);
+
+	if (station.current_program > NRSC5_MPS_PROGRAM)
+	{
+		text += QString(" HD%1").arg(NRSC5::FriendlyProgramId(station.current_program));
+	}
+
+	return text;
+}
 
 /**
  * @brief Generates the String styled list of channels.
@@ -54,7 +69,7 @@ void StylingText::GenerateChannelList(QTextDocument *document,
 	{
 		const unsigned int channel = NRSC5::FriendlyProgramId(id);
 
-		assert(program.id == id); // Sanity check
+		assert(program.id == id);
 
 		if (current_program == id)
 			cursor.insertText(QString::number(channel), selectedFormat);
@@ -67,10 +82,10 @@ void StylingText::GenerateChannelList(QTextDocument *document,
 	}
 }
 
-void StylingText::DisplayStation(QTextDocument *document, const RadioChannel &channel, const Direction &direction)
+void StylingText::DisplayStation(QTextDocument *document, const ActiveChannel &channel, const Direction &direction)
 {
-	const NRSC5::Station &station = channel.hd_station_;
-	const QString channelText = channel.GetDisplayChannel();
+	const NRSC5::StationInfo &station = channel.station_info;
+	const QString channelText = GetDisplayChannel(channel);
 
 	document->clear();
 
@@ -119,7 +134,7 @@ void StylingText::DisplayStation(QTextDocument *document, const RadioChannel &ch
 				cursor.insertText("-HD");
 
 				// Display Channel Number if there are multiple programs
-				if (station.programs.size() > 1)
+				if (channel.hd_details.programs.size() > 1)
 				{
 					cursor.insertText(QString::number(NRSC5::FriendlyProgramId(station.current_program)));
 				}
@@ -127,8 +142,8 @@ void StylingText::DisplayStation(QTextDocument *document, const RadioChannel &ch
 				cursor.insertBlock();
 			}
 
-			if (const auto iter = station.programs.find(station.current_program);
-				iter != station.programs.end())
+			if (const auto iter = channel.hd_details.programs.find(station.current_program);
+				iter != channel.hd_details.programs.end())
 			{
 				NRSC5::Program program = iter->second;
 
@@ -190,18 +205,6 @@ void StylingText::DisplayID3(QTextDocument *document, const NRSC5::ID3 &id3)
 	}
 }
 
- QColor StylingText::SignalColor(double level)
-{
-	if (level > 15)
-		return QColor(0, 186, 0);
-	if (level > 9)
-		return QColor(0, 128, 0);
-	if (level > 5)
-		return QColor(255, 165, 0);
-	// Red color for low signal strength
-	return QColor(220, 20, 60);
-}
-
 void StylingText::DisplaySignalStrength(QTextDocument *document, const double level)
 {
 	document->clear();
@@ -222,19 +225,26 @@ void StylingText::DisplaySignalStrength(QTextDocument *document, const double le
 	cursor.insertText(QString("%1 dB").arg(level, 3, 'f', 1), format);
 }
 
+QColor StylingText::SignalColor(const double level)
+{
+	if (level > 15)
+		return {0, 186, 0};
+	if (level > 9)
+		return {0, 128, 0};
+	if (level > 5)
+		return {255, 165, 0};
+	return {220, 20, 60};
+}
+
 QFont StylingText::GetFont(const QFont &defaultFont,
                            const QString &fontSizeVar,
                            const QString &defaultValue)
 {
-	const QString fontSize = dApp->GetThemeManager().GetValue(
-		fontSizeVar,
-		defaultValue).toString();
-
+	const QString fontSize = getApp()->GetThemeManager().GetValue(fontSizeVar, defaultValue).toString();
 	QFont font(ParseFontSize(defaultFont, fontSize));
 
 	// This stupid shit is required for the text to not look ugly
 	font.setHintingPreference(QFont::HintingPreference::PreferNoHinting);
-
 	return font;
 }
 

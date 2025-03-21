@@ -42,8 +42,8 @@ StationInfoPanel::StationInfoPanel(QWidget *parent) : QFrame(parent)
   layout_->addWidget(hd_small_icon_);
 
   // Connect the StationInfoPanel to the StationInfoManager
-  connect(&dApp->GetStationInfoManager(),
-          &StationInfoManager::UpdateChannel,
+  connect(&getApp()->GetStationInfoManager(),
+          &StationInfoManager::UpdateActiveChannel,
           this,
           &StationInfoPanel::DisplayStation);
 }
@@ -52,7 +52,7 @@ StationInfoPanel::StationInfoPanel(QWidget *parent) : QFrame(parent)
  * @brief Displays Channel by styling text from RadioChannel
  * @param channel RadioChannel to display
  */
-void StationInfoPanel::DisplayStation(const RadioChannel &channel) const
+void StationInfoPanel::DisplayStation(const ActiveChannel &channel) const
 {
   StylingText::DisplayStation(
     station_info_label_->document(),

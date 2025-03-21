@@ -14,7 +14,7 @@ RadioMainView::RadioMainView()
 	favorites_ = new FavoritesList(nullptr,
 	                               ChannelDelegate::kDefault);
 	favorites_->setObjectName("FavoritesMainView");
-	favorites_->setModel(dApp->GetFavoritesModel());
+	favorites_->setModel(getApp()->GetFavoritesModel());
 
 	favorites_header_ = new FavoritesHeader(favorites_,
 	                                        nullptr);

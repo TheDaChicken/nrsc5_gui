@@ -13,8 +13,20 @@ qt_add_executable(${APPLICATION}
         settings/TunerPage.cpp
         settings/AboutPage.cpp
 
-        models/ChannelModel.cpp
-        models/LinkedChannelModel.cpp
+        sql/Connection.cpp
+        sql/ConnectionPool.cpp
+        sql/Database.cpp
+        sql/sqlite/sqlite3.c
+
+        nrsc5/LotManager.cpp
+
+        threads/GuiSyncThread.cpp
+
+        images/StationImageProvider.cpp
+        images/ImageProviderPriorityManager.cpp
+        images/providers/LotImageProvider.cpp
+
+        models/FavoriteModel.cpp
         models/TunerDevicesModel.cpp
 
         delegates/ChannelDelegate.cpp
@@ -59,6 +71,7 @@ qt_add_executable(${APPLICATION}
         themes/ThemeManager.cpp
 
         utils/StylingText.cpp
+        utils/Image.cpp
 
         Application.cpp
         Main.cpp
@@ -84,10 +97,6 @@ set_target_properties(${APPLICATION} PROPERTIES
         AUTORCC ON
         AUTOMOC ON
 )
-
-if (TARGET Qt6::QSQLiteDriverPlugin)
-    target_link_libraries(${APPLICATION} PRIVATE Qt6::QSQLiteDriverPlugin)
-endif ()
 
 target_include_directories(${APPLICATION} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}

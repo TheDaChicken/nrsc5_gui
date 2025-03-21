@@ -8,6 +8,7 @@
 #include <QMainWindow>
 #include <QTouchEvent>
 #include <QButtonGroup>
+#include <ui_MainWindow.h>
 
 #include "pages/RadioPage.h"
 
@@ -32,10 +33,11 @@ class MainWindow : public QMainWindow
   void SwitchToSettingsPage() const;
 
   [[nodiscard]] RadioPage *Dashboard() const;
+  [[nodiscard]] SettingsPage *SettingsPage() const;
   [[nodiscard]] QWidget *CurrentPage() const;
 
  public slots:
-  void OnSwitchPage() const;
+  void UpdateCurrentPage() const;
 
  private slots:
   void OnPlayButton(bool target) const;

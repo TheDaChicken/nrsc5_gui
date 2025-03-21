@@ -9,8 +9,9 @@
 
 #include <QtConcurrentRun>
 
-StationInfoManager::StationInfoManager(const std::weak_ptr<StationImageProvider> &image_provider,
-                                       const std::weak_ptr<LinkedChannelModel> &favorites)
+StationInfoManager::StationInfoManager(
+	const std::weak_ptr<StationImageProvider> &image_provider,
+	const std::weak_ptr<FavoriteModel> &favorites)
 	: image_provider_(image_provider),
 	  favorites_(favorites)
 
@@ -29,19 +30,20 @@ StationInfoManager::StationInfoManager(const std::weak_ptr<StationImageProvider>
  * This is run every single time the station information is updated.
  * @param channel The radio channel.
  */
-void StationInfoManager::StyleAndDisplayStation(const RadioChannel &channel)
+void StationInfoManager::StyleAndDisplayStation(
+	const ActiveChannel &channel)
 {
-	const NRSC5::Station &station = channel.hd_station_;
+	const NRSC5::StationInfo &stationInfo = channel.station_info;
 
 	// If the station is not similar, update the station information.
-	if (!station_.IsSimilar(channel.hd_station_))
+	if (station_ != stationInfo)
 	{
-		station_ = station;
+		station_ = stationInfo;
 		station_logo_ = image_provider_.lock()->FetchStationImage(channel);
 		ClearID3();
 	}
 
-	emit UpdateChannel(channel);
+	emit UpdateActiveChannel(channel);
 	emit UpdateStationLogo(station_logo_.image);
 
 	DisplayFavorite(channel);
@@ -52,16 +54,16 @@ void StationInfoManager::StyleAndDisplayStation(const RadioChannel &channel)
 * @param component The component that sent the lot.
 * @param lot The lot that was received.
 */
-void StationInfoManager::ReceiveLot(const NRSC5::DataService &component,
-                                    const NRSC5::Lot &lot)
+void StationInfoManager::ReceiveLot(
+	const NRSC5::DataService &component,
+	const NRSC5::Lot &lot)
 {
 	if (component.mime == NRSC5_MIME_PRIMARY_IMAGE
 		&& station_id3_.xhdr.lot == lot.id)
 	{
 		// If we received an image for the current lot, update the primary image.
 		Logger::Log(debug,
-		            "StationInfoManager: Received Primary Image "
-		            "LOT ID={}",
+		            "StationInfoManager: Received Primary Image LOT ID={}",
 		            lot.id);
 
 		const ImageData imageLot = LotImageProvider::LoadLotImage(lot);
@@ -77,15 +79,12 @@ void StationInfoManager::ReceiveLot(const NRSC5::DataService &component,
 	{
 		// We received a new station logo. Update the station logo.
 		Logger::Log(debug,
-		            "StationInfoManager: Received Station Logo "
-		            "LOT ID={}",
+		            "StationInfoManager: Received Station Logo LOT ID={}",
 		            lot.id);
 
 		const ImageData stationLogo = LotImageProvider::LoadLotImage(lot);
 		if (stationLogo.IsEmpty())
-		{
 			return;
-		}
 
 		station_logo_ = stationLogo;
 		emit UpdateStationLogo(station_logo_.image);
@@ -102,9 +101,23 @@ void StationInfoManager::ReceiveLot(const NRSC5::DataService &component,
  * @brief Display the favorite status of the channel.
  * @param channel The radio channel.
  */
-void StationInfoManager::DisplayFavorite(const RadioChannel &channel)
+void StationInfoManager::DisplayFavorite(
+	const Channel &channel)
 {
-	emit UpdateFavorite(favorites_.lock()->FindChannel(channel));
+	const QModelIndex index = favorites_.lock()->Find(channel);
+	if (index.isValid() && !station_.name.empty())
+	{
+		// Update the favorite if it exists with the new channel
+		if (const Channel &favorite = favorites_.lock()->Get(index.row());
+			favorite.station_info.name != station_.name)
+		{
+			// If the station name is different, update the favorite.
+			// This is to prevent the favorite from being out of sync.
+			favorites_.lock()->Set(index.row(), channel);
+		}
+	}
+
+	emit UpdateFavorite(index);
 }
 
 void StationInfoManager::DisplayFallbackPrimaryImage()
@@ -112,7 +125,8 @@ void StationInfoManager::DisplayFallbackPrimaryImage()
 	DisplayPrimaryImage(FallbackPrimaryImage());
 }
 
-void StationInfoManager::DisplayPrimaryImage(const ImageData &image)
+void StationInfoManager::DisplayPrimaryImage(
+	const ImageData &image)
 {
 	emit UpdatePrimaryImage(image.image);
 	primary_image_ = image;
@@ -123,7 +137,8 @@ void StationInfoManager::DisplayPrimaryImage(const ImageData &image)
  * This is run every single time the ID3 information is updated.
  * @param id3 The ID3 information to display.
  */
-void StationInfoManager::StyleAndDisplayID3(const NRSC5::ID3 &id3)
+void StationInfoManager::StyleAndDisplayID3(
+	const NRSC5::ID3 &id3)
 {
 	if (station_id3_ != id3)
 	{
@@ -144,9 +159,10 @@ void StationInfoManager::ClearID3()
  * @brief Fetch the supplementary image for the ID3.
  * @param id3 The ID3 information.
  */
-void StationInfoManager::FetchPrimaryImage(const NRSC5::ID3 &id3)
+void StationInfoManager::FetchPrimaryImage(
+	const NRSC5::ID3 &id3)
 {
-	const RadioChannel &channel = dApp->GetRadioController().GetChannel();
+	const ActiveChannel &channel = getApp()->GetRadioController().GetActiveChannel();
 
 	// HDRadio alerted us that we display primary image
 	// This is to prevent non-primary images from being displayed.
@@ -156,8 +172,7 @@ void StationInfoManager::FetchPrimaryImage(const NRSC5::ID3 &id3)
 	if (id3.xhdr.mime == NRSC5_MIME_PRIMARY_IMAGE)
 	{
 		Logger::Log(debug,
-		            "StationInfoManager: Fetching Primary Image "
-		            "LOT ID={}",
+		            "StationInfoManager: Fetching Primary Image LOT ID={}",
 		            id3.xhdr.lot);
 
 		// We don't want the current primary image anymore.
@@ -170,17 +185,14 @@ void StationInfoManager::FetchPrimaryImage(const NRSC5::ID3 &id3)
 			if (image.IsMissing())
 			{
 				// If the result is default, display the default primary image.
-				Logger::Log(warn,
-				            "StationInfoManager: Fetched empty. "
-				            "Fallback to Default Primary Image.");
+				Logger::Log(warn, "StationInfoManager: Fetched empty. Fallback to Default Primary Image.");
 
 				DisplayPrimaryImage(FallbackPrimaryImage());
 			}
 			else
 			{
 				Logger::Log(debug,
-				            "StationInfoManager: Fetching Primary Image Result: "
-				            "{}",
+				            "StationInfoManager: Fetching Primary Image Result: {}",
 				            image.uri);
 
 				// Display the primary image.
@@ -190,8 +202,9 @@ void StationInfoManager::FetchPrimaryImage(const NRSC5::ID3 &id3)
 	}
 }
 
-QFuture<ImageData> StationInfoManager::FetchPrimaryImage(const RadioChannel &channel,
-                                                         const NRSC5::ID3 &id3) const
+QFuture<ImageData> StationInfoManager::FetchPrimaryImage(
+	const Channel &channel,
+	const NRSC5::ID3 &id3) const
 {
 	return QtConcurrent::run([this, channel, id3]
 	{

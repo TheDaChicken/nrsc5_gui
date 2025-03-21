@@ -39,7 +39,7 @@ NRSC5::Lot::Lot(const nrsc5_event_t *event)
 
 	// Discard time is in UTC time
 	discard_utc  = *event->lot.expiry_utc;
-	expire_point = std::chrono::system_clock::from_time_t(TimeUtils::timegm(discard_utc));
+	expire_point = std::chrono::system_clock::from_time_t(UTILS::timegm(discard_utc));
 
 	// Copy data
 	data.resize(event->lot.size);

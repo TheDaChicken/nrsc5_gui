@@ -8,7 +8,9 @@
 #include "Application.h"
 
 MainWindow::MainWindow(QWidget *parent)
-	: QMainWindow(parent), ui(new Ui::MainWindow), button_group_(this)
+	: QMainWindow(parent),
+	  ui(new Ui::MainWindow),
+	  button_group_(this)
 {
 	ui->setupUi(this);
 
@@ -19,7 +21,19 @@ MainWindow::MainWindow(QWidget *parent)
 	button_group_.addButton(ui->settingsButton, 3);
 
 	connect(ui->OnButton, &QPushButton::clicked, this, &MainWindow::OnPlayButton);
-	connect(&button_group_, &QButtonGroup::buttonClicked, this, &MainWindow::OnSwitchPage);
+	connect(&button_group_, &QButtonGroup::buttonClicked, this, &MainWindow::UpdateCurrentPage);
+	connect(&getApp()->GetRadioController(),
+	        &RadioController::TunerStatus,
+	        this,
+	        [this](const TunerAction action, const UTILS::StatusCodes ret)
+	        {
+	        	if (action == TunerAction::Stopped)
+	        		ui->OnButton->setChecked(false);
+	        	if (action == TunerAction::Started)
+	        		ui->OnButton->setChecked(true);
+
+		        Dashboard()->UpdateTunerStatus(action, ret);
+	        });
 
 	ui->radioButton->animateClick();
 }
@@ -29,7 +43,7 @@ MainWindow::~MainWindow()
 	delete ui;
 }
 
-void MainWindow::OnSwitchPage() const
+void MainWindow::UpdateCurrentPage() const
 {
 	switch (button_group_.checkedId())
 	{
@@ -50,9 +64,6 @@ void MainWindow::OnSwitchPage() const
 
 void MainWindow::SwitchToRadioDashboard() const
 {
-	// Update the RadioDashboard
-	ui->RadioDash->Update();
-
 	// Update the current widget to the new widget
 	ui->Navigation->setCurrentWidget(ui->RadioDash);
 }
@@ -66,18 +77,18 @@ void MainWindow::OnPlayButton(const bool target) const
 {
 	Q_UNUSED(this)
 
-	int ret;
+	UTILS::StatusCodes ret;
 
 	if (target)
 	{
-		ret = dApp->GetRadioController().StartTuner();
+		ret = getApp()->GetRadioController().StartTuner();
 	}
 	else
 	{
-		ret = dApp->GetRadioController().StopTuner();
+		ret = getApp()->GetRadioController().StopTuner();
 	}
 
-	if (ret < 0)
+	if (ret != UTILS::StatusCodes::Ok)
 	{
 		// failed: back to the previous state
 		ui->OnButton->setChecked(!target);
@@ -107,6 +118,11 @@ bool MainWindow::event(QEvent *event)
 RadioPage *MainWindow::Dashboard() const
 {
 	return ui->RadioDash;
+}
+
+SettingsPage *MainWindow::SettingsPage() const
+{
+	return ui->Settings;
 }
 
 QWidget *MainWindow::CurrentPage() const

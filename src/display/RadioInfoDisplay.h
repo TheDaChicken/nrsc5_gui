@@ -33,7 +33,7 @@ class RadioInfoDisplay : public QFrame
   void ClearID3() const;
 
   void DisplayHDSync(bool sync) const;
-  void DisplayChannel(const RadioChannel &channel) const;
+  void DisplayChannel(const ActiveChannel &channel) const;
   void DisplayHDID3(const NRSC5::ID3 &id3) const;
 
  private slots:

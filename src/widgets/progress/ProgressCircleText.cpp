@@ -145,10 +145,7 @@ void ProgressCircleText::setCircleHidden(const bool hidden)
 void ProgressCircleText::setMoving(const bool start)
 {
 	if (mValueAnimation.state() == QAbstractAnimation::Running && start)
-	{
-		Logger::Log(debug, "ProgressCircleText::setMoving: Animation is already running");
 		return;
-	}
 
 	if (start)
 	{

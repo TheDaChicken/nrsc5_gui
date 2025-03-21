@@ -26,15 +26,8 @@ set(SOURCE_FILES
         dsp/filter/Window.cc
         dsp/filter/IirFilter.cpp
 
-        images/StationImageProvider.cpp
-        images/ImageProviderPriorityManager.cpp
-        images/providers/LotImageProvider.cpp
-
-        threads/GuiSyncThread.cpp
-
         nrsc5/Decoder.cpp
         nrsc5/Station.cpp
-        nrsc5/LotManager.cpp
 
         utils/Log.cpp
         utils/StringUtils.cpp
@@ -45,8 +38,6 @@ set(SOURCE_FILES
 
         HybridRadio.cpp
 
-        db/AsyncQuery.cpp
-        db/ConnectionManager.cpp
         audio/stream/StreamBuffer.cpp
         audio/stream/StreamBuffer.h
 )
@@ -58,7 +49,6 @@ add_library(nrsc5_lib OBJECT
 target_link_libraries(nrsc5_lib PUBLIC
         Qt6::Core
         Qt6::Widgets
-        Qt6::Sql
 
         nrsc5::nrsc5
 

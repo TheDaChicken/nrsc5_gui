@@ -18,37 +18,104 @@
 #define HYBRID_RADIO_OUTPUT_BUFFER_LENGTH (1204)
 #define HYBRID_RADIO_OUTPUT_DELAY_FRAMES (size_t)(1942 * 2)
 
-HybridRadio::HybridRadio(Delegate *delegate) : delegate_(delegate)
+HybridRadio::HybridRadio(Delegate *delegate)
+	: delegate_(delegate)
 {
 	assert(this->delegate_);
 
 	int ret = nrsc5_decoder_.OpenPipe();
-
-	if (ret < 0) // This won't happen. The function always returns 0.
+	// This won't happen. The function always returns 0.
+	if (ret < 0)
 		throw std::runtime_error("Failed to open NRSC5 pipe");
 
 	nrsc5_decoder_.SetCallback(NRSC5Callback, this);
 }
 
-int HybridRadio::SetSDRDevice(const std::shared_ptr<PortSDR::Device> &device)
+UTILS::StatusCodes HybridRadio::Start()
 {
-	if (!device)
-		return NRSC5_DEFAULT_ERROR;
+	if (!sdr_stream_)
+		return UTILS::StatusCodes::UnknownError;
 
-	if (sdr_stream_)
+	int ret = sdr_stream_->Start();
+	if (ret < 0)
+	{
+		Logger::Log(err, "Failed to start SDR stream");
+		return UTILS::StatusCodes::TunerError;
+	}
+
+	// Start audio output
+	if (!audio_disabled)
+	{
+		ret = audio_stream_.Start();
+		if (ret < 0)
+		{
+			sdr_stream_->Stop();
+
+			Logger::Log(err, "Failed to start audio output");
+			return UTILS::StatusCodes::UnknownError;
+		}
+	}
+
+	return UTILS::StatusCodes::Ok;
+}
+
+UTILS::StatusCodes HybridRadio::Stop()
+{
+	if (!sdr_stream_)
+		return UTILS::StatusCodes::UnknownError;
+
+	int ret = sdr_stream_->Stop();
+	if (ret < 0)
+	{
+		Logger::Log(err, "Failed to stop SDR stream");
+		return UTILS::StatusCodes::TunerError;
+	}
+
+	// Reset libnrsc5
+	nrsc5_decoder_.SetFrequency(-1);
+
+	if (!audio_disabled)
+	{
+		// Stop audio output
+		ret = audio_stream_.Stop();
+		if (ret < 0)
+		{
+			Logger::Log(err, "Failed to stop audio output");
+			return UTILS::StatusCodes::UnknownError;
+		}
+	}
+
+	return UTILS::StatusCodes::Ok;
+}
+
+UTILS::StatusCodes HybridRadio::ClearSDRDevice()
+{
+	if (!sdr_stream_)
+		return UTILS::StatusCodes::Ok;
+
+	if (IsAudioActive())
 	{
 		Stop();
-		sdr_stream_.reset();
 	}
+
+	sdr_stream_.reset();
+	return UTILS::StatusCodes::Ok;
+}
+
+UTILS::StatusCodes HybridRadio::SetSDRDevice(
+	const std::shared_ptr<PortSDR::Device> &device)
+{
+	if (!device)
+		return UTILS::StatusCodes::UnknownError;
 
 	int ret = device->CreateStream(sdr_stream_);
 	if (ret < 0)
 	{
 		Logger::Log(warn, "Failed to create SDR stream");
-		return ret;
+		return UTILS::StatusCodes::TunerError;
 	}
 
-	sdr_stream_->SetCallback([this](const void* data, const std::size_t elementSize)
+	sdr_stream_->SetCallback([this](const void *data, const std::size_t elementSize)
 	{
 		SDRCallback(static_cast<const int16_t *>(data), elementSize);
 	});
@@ -58,23 +125,24 @@ int HybridRadio::SetSDRDevice(const std::shared_ptr<PortSDR::Device> &device)
 	if (ret < 0)
 	{
 		Logger::Log(err, "Failed to set SDR sample rate {}", ret);
-		return ret;
+		return UTILS::StatusCodes::TunerError;
 	}
 
 	sdr_stream_->SetSampleFormat(PortSDR::SAMPLE_FORMAT_INT16);
-	return 0;
+	return UTILS::StatusCodes::Ok;
 }
 
-int HybridRadio::SetAudioDevice(const std::shared_ptr<PortAudio::Device> &device)
+UTILS::StatusCodes HybridRadio::SetAudioDevice(
+	const std::shared_ptr<PortAudio::Device> &device)
 {
 	if (!device)
-		return NRSC5_DEFAULT_ERROR;
+		return UTILS::StatusCodes::UnknownError;
 
 	if (device->isNull())
 	{
 		Logger::Log(warn, "Selected Device: Disabled");
 		audio_disabled = true;
-		return 0;
+		return UTILS::StatusCodes::Ok;
 	}
 
 	PortAudio::StreamParametersRingBuffer params;
@@ -88,147 +156,100 @@ int HybridRadio::SetAudioDevice(const std::shared_ptr<PortAudio::Device> &device
 	params.bufferSize = HYBRID_RADIO_OUTPUT_BUFFER_LENGTH;
 	// TODO: Maybe make this a user controllable setting
 	params.bufferLatency = HYBRID_RADIO_OUTPUT_DELAY_FRAMES;
-
 	params.sampleRate = NRSC5_SAMPLE_RATE_AUDIO;
 
-	const int ret = audio_stream_.Open(params);
-	if (ret < 0)
+	if (int ret = audio_stream_.Open(params); ret < 0)
 	{
 		Logger::Log(err, "Failed to open audio output: {}", Pa_GetErrorText(ret));
-		return ret;
+		return UTILS::StatusCodes::UnknownError;
 	}
 
 	delegate_->SetAudioStream(audio_stream_);
 	audio_disabled = false;
-	return 0;
+	return UTILS::StatusCodes::Ok;
 }
 
-int HybridRadio::Start()
-{
-	if (!sdr_stream_)
-		return NRSC5_DEFAULT_ERROR;
-
-	int ret = sdr_stream_->Start();
-	if (ret < 0)
-	{
-		Logger::Log(err, "Failed to start SDR stream");
-		return ret;
-	}
-
-	// Start audio output
-	if (!audio_disabled)
-	{
-		ret = audio_stream_.Start();
-		if (ret < 0)
-		{
-			Logger::Log(err, "Failed to start audio output");
-			sdr_stream_->Stop();
-			return ret;
-		}
-	}
-	return 0;
-}
-
-int HybridRadio::Stop()
-{
-	if (!sdr_stream_)
-		return NRSC5_DEFAULT_ERROR;
-
-	int ret = sdr_stream_->Stop();
-	if (ret < 0)
-	{
-		Logger::Log(err, "Failed to stop SDR stream");
-		return ret;
-	}
-
-	// Reset libnrsc5
-	nrsc5_decoder_.SetFrequency(-1);
-
-	// Stop audio output
-	ret = audio_stream_.Stop();
-	if (ret < 0)
-	{
-		Logger::Log(err, "Failed to stop audio output");
-		return ret;
-	}
-	return 0;
-}
-
-int HybridRadio::SetChannel(Modulation::Type type, double frequency, unsigned int programId)
+UTILS::StatusCodes HybridRadio::SetChannel(
+	const Modulation::Type type,
+	const double frequency,
+	unsigned int programId)
 {
 	if (!this->sdr_stream_)
-		return NRSC5_DEFAULT_ERROR;
+		return UTILS::StatusCodes::UnknownError;
 
-	return SetRadioChannel({type, frequency, programId});
+	return SetChannel({TunerOpts{type, frequency}, programId});
 }
 
-int HybridRadio::SetRadioChannel(const RadioChannel &channel)
+UTILS::StatusCodes HybridRadio::SetChannel(
+	const Channel &channel)
 {
 	if (!this->sdr_stream_)
-		return NRSC5_DEFAULT_ERROR;
+		return UTILS::StatusCodes::UnknownError;
 
-	int ret = SetTunerData(channel.tuner_options);
-	if (ret < 0)
+	if (const UTILS::StatusCodes ret = SetTunerConfiguration(channel.tuner_opts);
+		ret == UTILS::StatusCodes::Ok)
 	{
-		Logger::Log(err, "Failed to set tuner data");
-		return NRSC5_DEFAULT_ERROR;
+		audio_stream_.Reset();
+		station_info_ = channel.station_info;
 	}
-
-	std::lock_guard lock(station_mutex_);
-
-	// Reset NRSC5::Station when frequency changes to avoid wrong information
-	// Set station information to HD station data if we have data available
-	if (ret != 1)
+	else if (ret != UTILS::StatusCodes::Empty)
 	{
-		station_.Reset();
-		station_.name = channel.hd_station_.name;
-	}
-
-	station_.current_program = channel.hd_station_.current_program;
-	audio_stream_.Reset();
-
-	delegate_->RadioStationUpdate(CreateChannel());
-	return 0;
-}
-
-int HybridRadio::SetTunerData(const TunerOptions &tunerData)
-{
-	if (!this->sdr_stream_)
-		return NRSC5_DEFAULT_ERROR;
-
-	if (sdr_stream_->GetCenterFrequency() == tunerData.frequency_)
-	{
-		return 1;
-	}
-
-	int ret = sdr_stream_->SetCenterFrequency(tunerData.frequency_, 0);
-	if (ret < 0)
-	{
-		Logger::Log(err, "Failed to set SDR frequency {}: {}", ret, tunerData.frequency_);
 		return ret;
 	}
 
-	// Reset libnrsc5 decoder when frequency changes
-	ret = nrsc5_decoder_.SetFrequency(static_cast<float>(tunerData.frequency_));
-	if (ret < 0)
+	SetProgram(channel.station_info.current_program);
+	return UTILS::StatusCodes::Ok;
+}
+
+UTILS::StatusCodes HybridRadio::SetTunerConfiguration(
+	const TunerOpts &tunerOpts)
+{
+	if (!this->sdr_stream_)
+		return UTILS::StatusCodes::UnknownError;
+
+	if (sdr_stream_->GetCenterFrequency() == tunerOpts.freq)
+		return UTILS::StatusCodes::Empty;
+
+	if (int ret = sdr_stream_->SetCenterFrequency(tunerOpts.freq, 0);
+		ret < 0)
+	{
+		Logger::Log(err, "Failed to set SDR frequency {}: {}", ret, tunerOpts.freq);
+		return UTILS::StatusCodes::TunerError;
+	}
+
+	if (int ret = nrsc5_decoder_.SetFrequency(static_cast<float>(tunerOpts.freq));
+		ret < 0)
 	{
 		Logger::Log(err, "Failed to reset NRSC5 Decoder {}", ret);
-		return ret;
+		return UTILS::StatusCodes::UnknownError;
 	}
 
-	Logger::Log(debug, "HybridRadio: frequency has been set: {} Hz", tunerData.frequency_);
-	return 0;
+	{
+		std::lock_guard lock(station_mutex_);
+
+		station_info_.Reset();
+		station_details_.Reset();
+	}
+
+	Logger::Log(debug, "HybridRadio: frequency has been set: {} hz", tunerOpts.freq);
+	return UTILS::StatusCodes::Ok;
 }
 
-void HybridRadio::SetProgram(const unsigned int programId)
+void HybridRadio::SetProgram(
+	const unsigned int programId)
 {
 	std::lock_guard lock(station_mutex_);
 
-	station_.current_program = programId;
+	if (station_info_.current_program != programId)
+	{
+		station_info_.current_program = programId;
+		audio_stream_.Reset();
+	}
+
 	delegate_->RadioStationUpdate(CreateChannel());
 }
 
-RadioChannel HybridRadio::GetChannel() const
+ActiveChannel HybridRadio::GetChannel() const
 {
 	if (!sdr_stream_)
 		return {};
@@ -237,7 +258,9 @@ RadioChannel HybridRadio::GetChannel() const
 	return CreateChannel();
 }
 
-void HybridRadio::SDRCallback(const int16_t *data, std::size_t frame_size)
+void HybridRadio::SDRCallback(
+	const int16_t *data,
+	const std::size_t frame_size)
 {
 	assert(frame_size % 4 == 0);
 
@@ -254,15 +277,13 @@ void HybridRadio::SDRCallback(const int16_t *data, std::size_t frame_size)
 		halfband_16_.execute(x, &convert_buffer_[len++]);
 	}
 
-	// Lock mutex for nrsc5 decoder processing (thread safety)
 	std::lock_guard lock(station_mutex_);
-	// Send samples to nrsc5 decoder for processing
 	nrsc5_decoder_.SendIQ(reinterpret_cast<int16_t *>(convert_buffer_.data()), len * 2);
 
 	fflush(stderr); // This is temporary to fix nrsc5 debug library logging with spdlog.
 }
 
-void HybridRadio::NRSC5Audio(const int16_t *data, size_t frame_size)
+void HybridRadio::NRSC5Audio(const int16_t *data, const size_t frame_size)
 {
 	audio_buffer_.resize(frame_size);
 
@@ -277,18 +298,20 @@ void HybridRadio::NRSC5Audio(const int16_t *data, size_t frame_size)
 	audio_stream_.WriteFrame(audio_buffer_.data(), frame_size / 2);
 }
 
+ActiveChannel HybridRadio::CreateChannel() const
+{
+	assert(this->sdr_stream_);
+
+	return {
+		TunerOpts{Modulation::Type::MOD_FM, sdr_stream_->GetCenterFrequency()},
+		station_info_,
+		station_details_
+	};
+}
+
 void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 {
 	auto *stream = static_cast<HybridRadio *>(opaque);
-	auto &[id,
-		country_code,
-		name,
-		message,
-		slogan,
-		programId,
-		programs,
-		services
-	] = stream->station_;
 
 	switch (evt->event)
 	{
@@ -332,40 +355,40 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 
 			if (evt->sis.country_code)
 			{
-				country_code = evt->sis.country_code;
-				id = evt->sis.fcc_facility_id;
+				stream->station_info_.country_code = evt->sis.country_code;
+				stream->station_info_.id = evt->sis.fcc_facility_id;
 			}
 			else
 			{
-				country_code.clear();
-				id = 0;
+				stream->station_info_.country_code.clear();
+				stream->station_info_.id = 0;
 			}
 
 			if (evt->sis.name)
-				name = evt->sis.name;
+				stream->station_info_.name = evt->sis.name;
 			else
-				name.clear();
+				stream->station_info_.name.clear();
 
 			if (evt->sis.slogan)
-				slogan = evt->sis.slogan;
+				stream->station_details_.slogan = evt->sis.slogan;
 			else
-				slogan.clear();
+				stream->station_details_.slogan.clear();
 
 			if (evt->sis.message)
-				message = evt->sis.message;
+				stream->station_details_.message = evt->sis.message;
 			else
-				message.clear();
+				stream->station_details_.message.clear();
 
 			Logger::Log(info,
-			            "HDRadio: Country={} ID={} Name={} Message={} Slogan={}",
-			            country_code,
-			            id,
-			            name,
-			            message,
-			            slogan);
+			            "HDRadio: Country={} ID={} Name={} Slogan={} Message={}",
+			            stream->station_info_.country_code,
+			            stream->station_info_.id,
+			            stream->station_info_.name,
+			            stream->station_details_.slogan,
+			            stream->station_details_.message);
 
 			// Clear programs (SIS is updated)
-			programs.clear();
+			stream->station_details_.programs.clear();
 
 			for (audio_service = evt->sis.audio_services;
 			     audio_service != nullptr; audio_service = audio_service->next)
@@ -381,7 +404,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 				            NRSC5::FriendlyProgramId(program.id),
 				            NRSC5::Decoder::ProgramTypeName(audio_service->type));
 
-				programs.insert({kProgramId, program});
+				stream->station_details_.programs.insert({kProgramId, program});
 			}
 
 			stream->delegate_->RadioStationUpdate(stream->CreateChannel());
@@ -401,7 +424,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 				            sig_service->number,
 				            sig_service->name);
 
-				std::optional<unsigned int> serviceProgram;
+				std::optional<unsigned int> audio_program;
 
 				for (sig_component = sig_service->components;
 				     sig_component != nullptr; sig_component = sig_component->next)
@@ -409,7 +432,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 					if (sig_component->type == NRSC5_SIG_SERVICE_AUDIO)
 					{
 						/* data service is associated with a program */
-						NRSC5::Program &program = programs[sig_component->audio.port];
+						NRSC5::Program &program = stream->station_details_.programs[sig_component->audio.port];
 
 						// Some stations are configured improperly.
 						// They provide multi-programs in SIS. only one in SIG
@@ -423,12 +446,20 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 						            sig_component->audio.port,
 						            NRSC5::FriendlyProgramId(program.id));
 
-						serviceProgram = program.id;
+						audio_program = program.id;
 					}
 					else if (sig_component->type == NRSC5_SIG_SERVICE_DATA)
 					{
+						if (!audio_program.has_value()
+							&& sig_service->type == NRSC5_SIG_SERVICE_AUDIO)
+						{
+							Logger::Log(warn, "Data component without audio component");
+							continue;
+						}
+
 						NRSC5::DataService service;
-						service.program = serviceProgram;
+						service.channel = sig_service->number;
+						service.program = audio_program;
 						service.port = sig_component->data.port;
 						service.type = sig_component->data.type;
 						service.mime = sig_component->data.mime;
@@ -439,7 +470,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 						            service.port,
 						            NRSC5::DescribeMime(service.mime));
 
-						services.insert({service.port, service});
+						stream->station_details_.services.insert({service.port, service});
 					}
 				}
 			}
@@ -447,8 +478,8 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		}
 		case NRSC5_EVENT_STREAM:
 		{
-			const auto kIt = services.find(evt->stream.port);
-			if (kIt == services.end())
+			const auto kIt = stream->station_details_.services.find(evt->stream.port);
+			if (kIt == stream->station_details_.services.end())
 			{
 				Logger::Log(err, "HDRadio: Stream: Unknown port={}", evt->stream.port);
 				break;
@@ -474,8 +505,8 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		}
 		case NRSC5_EVENT_PACKET:
 		{
-			const auto kIt = services.find(evt->packet.port);
-			if (kIt == services.end())
+			const auto kIt = stream->station_details_.services.find(evt->packet.port);
+			if (kIt == stream->station_details_.services.end())
 			{
 				Logger::Log(err, "HDRadio: Packet: Unknown port={}", evt->packet.port);
 				break;
@@ -501,8 +532,8 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		}
 		case NRSC5_EVENT_LOT:
 		{
-			const auto kIt = services.find(evt->lot.port);
-			if (kIt == services.end())
+			const auto kIt = stream->station_details_.services.find(evt->lot.port);
+			if (kIt == stream->station_details_.services.end())
 			{
 				Logger::Log(err, "HDRadio: LOT: Unknown port={}", evt->lot.port);
 				break;
@@ -529,12 +560,12 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 				            lot.expire_point - std::chrono::system_clock::now())
 			);
 
-			stream->delegate_->HDReceivedLot(stream->CreateChannel(), kComponent, lot);
+			stream->delegate_->HDReceivedLot(stream->station_info_, kComponent, lot);
 			break;
 		}
 		case NRSC5_EVENT_HDC:
 		{
-			if (evt->hdc.program == stream->station_.current_program)
+			if (evt->hdc.program == stream->station_info_.current_program)
 			{
 				stream->audio_packets++;
 				stream->audio_bytes += evt->hdc.count * sizeof(evt->hdc.data[0]);
@@ -554,7 +585,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		}
 		case NRSC5_EVENT_ID3:
 		{
-			if (evt->hdc.program == stream->station_.current_program)
+			if (evt->hdc.program == stream->station_info_.current_program)
 			{
 				const NRSC5::ID3 kId3(evt);
 				const unsigned int friendlyId = NRSC5::FriendlyProgramId(evt->id3.program);
@@ -592,7 +623,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		}
 		case NRSC5_EVENT_AUDIO:
 		{
-			if (evt->audio.program != stream->station_.current_program)
+			if (evt->audio.program != stream->station_info_.current_program)
 				break;
 
 			stream->NRSC5Audio(evt->audio.data, evt->audio.count);
@@ -603,12 +634,3 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 	}
 }
 
-RadioChannel HybridRadio::CreateChannel() const
-{
-	assert(this->sdr_stream_);
-
-	return {
-		TunerOptions{Modulation::Type::MOD_FM, sdr_stream_->GetCenterFrequency()},
-		station_
-	};
-}

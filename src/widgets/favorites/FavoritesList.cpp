@@ -44,6 +44,6 @@ FavoritesList::FavoritesList(QWidget *parent,
 		        {
 			        return;
 		        }
-		        dApp->GetRadioController().SetChannel(dApp->GetFavoritesModel()->GetChannel(index.row()));
+		        getApp()->GetRadioController().SetChannel(getApp()->GetFavoritesModel()->Get(index.row()));
 	        });
 }

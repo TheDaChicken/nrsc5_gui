@@ -36,7 +36,7 @@ struct fmt::formatter<std::chrono::duration<Rep, Period>>
   }
 };
 
-namespace TimeUtils
+namespace UTILS
 {
 
 static time_t timegm(tm &e)

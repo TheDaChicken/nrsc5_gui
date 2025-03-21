@@ -70,7 +70,7 @@ void TuneWidget::TuneToStation()
 	const auto station = tune_number.toFloat();
 
 	emit TuneChanged();
-	dApp->GetRadioController().SetChannel({modulation.type, station, 0});
+	getApp()->GetRadioController().SetChannel({{modulation.type, station}, 0});
 
 	ClearTune();
 }

@@ -44,11 +44,12 @@ GainSettings::GainSettings(QWidget *parent) : QGroupBox(parent)
 }
 
 GainSettings::~GainSettings()
-{
-}
+= default;
 
-void GainSettings::UpdateGainSettings()
+void GainSettings::UpdateTunerStream(PortSDR::Stream *stream)
 {
+	stream_ = stream;
+
 	UpdateGainModes();
 	UpdateGainSliders();
 }
@@ -57,13 +58,11 @@ void GainSettings::UpdateGainModes()
 {
 	ClearGainModes();
 
-	PortSDR::Stream *stream = dApp->GetRadioController().GetRadio().GetSDRStream();
-
-	if (!stream)
+	if (!stream_)
 		return;
 
 	// Create buttons for each gain mode
-	for (const std::string &modes : stream->GetGainModes())
+	for (const std::string &modes : stream_->GetGainModes())
 	{
 		QRadioButton *button = new QRadioButton(this);
 
@@ -76,14 +75,10 @@ void GainSettings::UpdateGainModes()
 	}
 
 	// Show free gain mode if there are any gain modes
-	if (!stream->GetGainModes().empty())
-	{
+	if (!stream_->GetGainModes().empty())
 		modes_frame_->show();
-	}
 	else
-	{
 		modes_frame_->hide();
-	}
 
 	// Default option is free gain
 	freely_gain_mode_ = true;
@@ -94,21 +89,19 @@ void GainSettings::UpdateGainSliders()
 {
 	ClearGainSliders();
 
-	PortSDR::Stream *stream = dApp->GetRadioController().GetRadio().GetSDRStream();
-
-	if (!stream)
+	if (!stream_)
 		return;
 
 	if (freely_gain_mode_)
 	{
-		for (const auto &gain : stream->GetGainStages())
+		for (const auto &gain : stream_->GetGainStages())
 		{
 			CreateGainSlider(gain);
 		}
 	}
 	else
 	{
-		CreateGainSlider(stream->GetGainStage());
+		CreateGainSlider(stream_->GetGainStage());
 	}
 }
 
@@ -159,11 +152,9 @@ void GainSettings::ClearGainModes()
 	}
 }
 
-void GainSettings::GainFreelyChanged(std::string_view stage, int value)
+void GainSettings::GainFreelyChanged(std::string_view stage, int value) const
 {
-	PortSDR::Stream *stream = dApp->GetRadioController().GetRadio().GetSDRStream();
-
-	int ret = stream->SetGain(value, stage);
+	int ret = stream_->SetGain(value, stage);
 	if (ret < 0)
 	{
 		Logger::Log(err, "Failed to set gain stage: {} value: {}", stage, value);
@@ -173,10 +164,8 @@ void GainSettings::GainFreelyChanged(std::string_view stage, int value)
 	Logger::Log(info, "Gain stage: {} value: {}", stage, value);
 }
 
-void GainSettings::GainChanged(int value)
+void GainSettings::GainChanged(const int value) const
 {
-	PortSDR::Stream *stream = dApp->GetRadioController().GetRadio().GetSDRStream();
-
-	stream->SetGain(value);
+	stream_->SetGain(value);
 }
 

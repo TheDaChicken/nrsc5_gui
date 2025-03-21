@@ -150,7 +150,7 @@ size_t RingBuffer::CalcFree(const size_t w, const size_t r) const
   return (m_size - (w - r)) - 1U;
 }
 
-size_t RingBuffer::CalcAvailable(size_t w, size_t r) const
+size_t RingBuffer::CalcAvailable(const size_t w, const size_t r) const
 {
   if (w >= r)
   {

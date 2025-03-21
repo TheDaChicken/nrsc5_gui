@@ -18,6 +18,7 @@ class SettingsView : public DualViewContainer
 	public:
 		SettingsView();
 
+		TunerPage *GetTunerPage() const;
 	private:
 		QStackedWidget *stacked_widget_;
 		QListView *settings_panel_;
