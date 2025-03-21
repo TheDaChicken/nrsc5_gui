@@ -106,7 +106,7 @@ class PooledPreparedStatement
 		{
 		}
 
-		bool Prepare(const std::string_view sql)
+		bool Prepare(const std::string &sql)
 		{
 			connection.Prepare(sql, stmt_);
 			return stmt_ != nullptr;
