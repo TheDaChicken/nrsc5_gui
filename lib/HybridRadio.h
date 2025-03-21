@@ -105,7 +105,6 @@ class HybridRadio
 		PortAudio::StreamLiveOutputPush audio_stream_;
 
 		mutable std::mutex station_mutex_;
-		mutable std::mutex tuner_mutex_;
 };
 
 #endif //NRSC5_GUI_SRC_LIB_HYBRIDRADIO_H_
