@@ -1,10 +1,15 @@
-project(UI)
+set(LIBRARY_NAME "${PROJECT_NAME}-lib")
+set(EXECUTABLE_PROJECT ${PROJECT_NAME})
 
-set(APPLICATION "nrsc5_gui")
-
-qt_add_executable(${APPLICATION}
-        windows/MainWindow.cpp
-        windows/MainWindow.ui
+set(SOURCE_FILES
+        audio/stream/StreamParametersDirectionSpecific.cpp
+        audio/stream/StreamParameters.cpp
+        audio/stream/StreamOutputPush.cpp
+        audio/stream/StreamBuffer.cpp
+        audio/stream/Stream.cpp
+        audio/HostApi.cpp
+        audio/Device.cpp
+        audio/PortAudioCpp.cpp
 
         pages/LoadingPage.cpp
         pages/RadioPage.cpp
@@ -19,6 +24,8 @@ qt_add_executable(${APPLICATION}
         sql/sqlite/sqlite3.c
 
         nrsc5/LotManager.cpp
+        nrsc5/Decoder.cpp
+        nrsc5/Station.cpp
 
         threads/GuiSyncThread.cpp
 
@@ -39,16 +46,19 @@ qt_add_executable(${APPLICATION}
         display/RadioInfoDisplay.cpp
         display/RadioInfoDisplay.ui
 
+        views/RadioControlPanelView.cpp
+        views/RadioMainView.cpp
+        views/SettingsView.cpp
+
+        dsp/FirdecimQ15.cpp
+
         widgets/dualview/DualViewContainer.h
         widgets/dualview/DualViewWidget.cpp
         widgets/dualview/DualViewLayout.cpp
-
         widgets/navigation/NavigationHeader.cpp
         widgets/navigation/NavigationWidget.cpp
-
         widgets/AnimatedStackedWidget.cpp
         widgets/StationFramePanel.cpp
-
         widgets/favorites/FavoritesList.cpp
         widgets/favorites/FavoritesHeader.cpp
         widgets/ListViewHeader.cpp
@@ -64,62 +74,77 @@ qt_add_executable(${APPLICATION}
         widgets/ClickableQLabel.cpp
         widgets/sdr/GainSettings.cpp
 
-        views/RadioControlPanelView.cpp
-        views/RadioMainView.cpp
-        views/SettingsView.cpp
-
         themes/ThemeManager.cpp
 
         utils/StylingText.cpp
         utils/Image.cpp
+        utils/Log.cpp
+        utils/StringUtils.cpp
+        utils/RingBuffer.cpp
+        utils/MessageQueue.cpp
+
+        windows/MainWindow.cpp
+        windows/MainWindow.ui
 
         Application.cpp
-        Main.cpp
-
-        ${CMAKE_SOURCE_DIR}/resources/Resources.qrc
+        HybridRadio.cpp
 )
 
-target_link_libraries(${APPLICATION} PUBLIC
-        nrsc5_lib
-        PRIVATE
-        Qt6::OpenGL
+qt_add_library(${LIBRARY_NAME} OBJECT ${SOURCE_FILES})
+
+target_link_libraries(${LIBRARY_NAME}
+        PUBLIC
+        Qt6::Core
+        Qt6::Widgets
         Qt6::Svg
+        Qt6::OpenGL
         Qt6::Concurrent
         Qt6::PrintSupport
+
+        nrsc5::nrsc5
+        fmt::fmt
+        spdlog::spdlog
+        nlohmann_json::nlohmann_json
+
+        portaudio
+        PortSDR
+
+        FFTW::Float
 )
 
 if (CMAKE_VERSION VERSION_LESS "3.7.0")
     set(CMAKE_INCLUDE_CURRENT_DIR ON)
 endif ()
 
-set_target_properties(${APPLICATION} PROPERTIES
+qt_add_executable(${EXECUTABLE_PROJECT} Main.cpp ${CMAKE_SOURCE_DIR}/resources/Resources.qrc)
+target_link_libraries(${EXECUTABLE_PROJECT} PRIVATE ${LIBRARY_NAME})
+target_include_directories(${EXECUTABLE_PROJECT} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_BINARY_DIR}/autogen/
+)
+set_target_properties(${EXECUTABLE_PROJECT} PROPERTIES
         AUTOUIC ON
         AUTORCC ON
         AUTOMOC ON
 )
-
-target_include_directories(${APPLICATION} PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_BINARY_DIR}/autogen/
-)
-set_target_properties(${APPLICATION} PROPERTIES LINK_FLAGS "${LINKER_FLAGS}")
-set_target_properties(${APPLICATION} PROPERTIES
+set_target_properties(${EXECUTABLE_PROJECT} PROPERTIES LINK_FLAGS "${LINKER_FLAGS}")
+set_target_properties(${EXECUTABLE_PROJECT} PROPERTIES
         WIN32_EXECUTABLE ON
         MACOSX_BUNDLE ON
 )
 
-install(TARGETS ${APPLICATION}
+install(TARGETS ${EXECUTABLE_PROJECT}
         BUNDLE DESTINATION .
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-if(APPLE)
-    set(executable_path "$<TARGET_FILE_NAME:${APPLICATION}>.APPLICATION")
-else()
-    set(executable_path "\${QT_DEPLOY_BIN_DIR}/$<TARGET_FILE_NAME:${APPLICATION}>")
-endif()
+if (APPLE)
+    set(executable_path "$<TARGET_FILE_NAME:${EXECUTABLE_PROJECT}>.APPLICATION")
+else ()
+    set(executable_path "\${QT_DEPLOY_BIN_DIR}/$<TARGET_FILE_NAME:${EXECUTABLE_PROJECT}>")
+endif ()
 
-set(deploy_script "${CMAKE_CURRENT_BINARY_DIR}/deploy_${APPLICATION}.cmake")
+set(deploy_script "${CMAKE_CURRENT_BINARY_DIR}/deploy_${EXECUTABLE_PROJECT}.cmake")
 
 file(GENERATE OUTPUT ${deploy_script} CONTENT "
 include(\"${QT_DEPLOY_SUPPORT}\")

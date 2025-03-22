@@ -69,7 +69,6 @@ FetchContent_Declare(PortSDR
 FetchContent_MakeAvailable(fmt spdlog PortAudio json PortSDR)
 
 # subdirectories
-add_subdirectory(lib)
 add_subdirectory(src)
 
 if (ENABLE_TESTS)
