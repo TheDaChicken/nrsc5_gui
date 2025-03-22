@@ -368,10 +368,9 @@ UTILS::StatusCodes SQLite::Database::InsertLot(
 		                     static_cast<int>(path_str.size()),
 		                     SQLITE_STATIC),
 	                     "Unable to set Insert Lot Path");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
+	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
 		                     sqlite3_bind_parameter_index(statement.Get(), ":expire"),
-		                     std::chrono::duration_cast<std::chrono::seconds>(lot.expire_point.time_since_epoch()).count
-		                     ()),
+		                     std::chrono::duration_cast<std::chrono::seconds>(lot.expire_point.time_since_epoch()).count()),
 	                     "Unable to set Insert Lot Expire");
 
 	ret = sqlite3_step(statement.Get());
