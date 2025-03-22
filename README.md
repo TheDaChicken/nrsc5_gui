@@ -14,7 +14,9 @@ It was made in Python with dependencies that are linux only or are hard to insta
 - libusb (from [PortSDR](https://github.com/TheDaChicken/PortSDR/))
 - librtlsdr (from [PortSDR](https://github.com/TheDaChicken/PortSDR/))
 - PortAudio (Cmake automatically downloads)
+- fmt (used with spdlog) (Cmake automatically downloads)
 - spdlog (used with fmt) (Cmake automatically downloads)
+- nlohmann/json (Cmake automatically downloads)
 
 ### Building nrsc5
 
