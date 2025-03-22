@@ -238,7 +238,7 @@ UTILS::StatusCodes SQLite::Database::SetSchemaVersion(const int version)
 
 	ret = sqlite3_step(statement.Get());
 	if (ret == SQLITE_OK || ret == SQLITE_DONE)
-		return UTILS::StatusCodes::Empty;
+		return UTILS::StatusCodes::Ok;
 	else
 	{
 		Logger::Log(debug, "SQLite: Unable to Insert SchemaVersion {}", sqlite3_errmsg(db));
