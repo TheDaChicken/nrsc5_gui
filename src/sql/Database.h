@@ -36,7 +36,7 @@ class Database
 
 		UTILS::StatusCodes GetLot(const NRSC5::StationInfo &station, const NRSC5::DataService &component,
 		                          NRSC5::Lot &lot);
-		UTILS::StatusCodes DeleteLot(const NRSC5::StationInfo &station, const NRSC5::Lot &lot);
+		UTILS::StatusCodes DeleteLot(const NRSC5::StationInfo &station, const NRSC5::DataService &component, const NRSC5::Lot &lot);
 
 	private:
 		UTILS::StatusCodes CreateSchemaVersion();

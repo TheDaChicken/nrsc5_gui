@@ -83,19 +83,21 @@ static constexpr auto kGetHDRadioLot = R"(
 	;
 )";
 
+static constexpr auto kDeleteHDRadioLot = R"(
+	DELETE FROM HDRADIO_LOTS WHERE
+		callSign = :callSign AND
+		channel = :channel AND
+		service = :service AND
+		lotId = :lotId
+	;
+)";
+
 static constexpr auto kGetHDRadioLotsPerService = R"(
 	SELECT * FROM HDRADIO_LOTS
 	WHERE
 		callSign = :callSign AND
 		channel = :channel AND
 		service = :service
-	;
-)";
-
-static constexpr auto kDeleteHDRadioLot = R"(
-	DELETE FROM HDRADIO_LOTS WHERE
-		callSign = :callSign AND
-		lotId = :lotId
 	;
 )";
 
@@ -438,6 +440,7 @@ UTILS::StatusCodes SQLite::Database::GetLot(
 
 UTILS::StatusCodes SQLite::Database::DeleteLot(
 	const NRSC5::StationInfo &station,
+	const NRSC5::DataService &component,
 	const NRSC5::Lot &lot)
 {
 	PooledPreparedStatement statement(pool_.GetConnection());
@@ -456,6 +459,14 @@ UTILS::StatusCodes SQLite::Database::DeleteLot(
 		                     static_cast<int>(station.name.size()),
 		                     SQLITE_STATIC),
 	                     "Unable to set Delete LOT callSign");
+	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
+							 sqlite3_bind_parameter_index(statement.Get(), ":channel"),
+							 component.channel),
+						 "Unable to set Delete Lot Channel");
+	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
+							 sqlite3_bind_parameter_index(statement.Get(), ":service"),
+							 component.mime),
+						 "Unable to set Delete Lot Service");
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
 		                     sqlite3_bind_parameter_index(statement.Get(), ":lotId"),
 		                     lot.id),
