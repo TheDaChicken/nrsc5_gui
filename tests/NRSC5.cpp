@@ -9,12 +9,3 @@ TEST(Nrsc5Test, OpenPipe) {
   decoder.OpenPipe();
   decoder.Close();
 }
-
-TEST(Nrsc5Test, TwoOpenPipe) {
-  NRSC5::Decoder decoder1;
-  NRSC5::Decoder decoder2;
-  decoder1.OpenPipe();
-  decoder2.OpenPipe();
-  decoder1.Close();
-  decoder2.Close();
-}

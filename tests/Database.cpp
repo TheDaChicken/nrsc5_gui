@@ -3,146 +3,60 @@
 //
 #include <gtest/gtest.h>
 
-#include <models/LinkedChannelModel.h>
-#include <QSqlRecord>
-#include <QMimeData>
+#include "sql/Database.h"
 
-class SqlTest : public testing::Test
+TEST(Database, Open)
 {
- protected:
-  void SetUp() override
-  {
-	db = QSqlDatabase::addDatabase("QSQLITE");
-	db.setDatabaseName(":memory:");
-	db.open();
+	SQLite::Database db;
+	ASSERT_EQ(db.Open(":memory:"), UTILS::StatusCodes::Ok);
+}
 
-	model = std::make_unique<LinkedChannelModel>(nullptr, db);
-	model->SetTable("favorites");
-  }
+TEST(Database, Settings)
+{
+	SQLite::Database db;
+	ASSERT_EQ(db.Open(":memory:"), UTILS::StatusCodes::Ok);
 
-  void SetupDefault()
-  {
-	ASSERT_EQ(model->AddChannel(one), true);
-	ASSERT_EQ(model->AddChannel(two), true);
-	ASSERT_EQ(model->AddChannel(three), true);
-	ASSERT_EQ(model->AddChannel(four), true);
+	const std::string key = "key";
+	const std::string value = "value";
+	db.SetSettingValue(key, value);
 
-	{
-	  SCOPED_TRACE(DescribeModel());
-
-	  ASSERT_EQ(model->GetChannel(model->index(0, 0)), one);
-	  ASSERT_EQ(model->GetChannel(model->index(1, 0)), two);
-	  ASSERT_EQ(model->GetChannel(model->index(2, 0)), three);
-	  ASSERT_EQ(model->GetChannel(model->index(3, 0)), four);
-	}
-
-	ASSERT_EQ(model->submit(), true);
-  }
-
-  void TearDown() override
-  {
-	QSqlDatabase::removeDatabase(db.connectionName());
-	model.reset();
-  }
-
-  std::string DescribeModel()
-  {
 	std::string result;
-	for (int i = 0; i < model->rowCount(); i++)
-	{
-	  RadioChannel channel = model->GetChannel(model->index(i, 0));
-	  int prev = model->GetRecord(i).value("prev").toInt();
-
-	  result += channel.GetDisplayChannel().toStdString() + " (" + std::to_string(prev) + "), ";
-	}
-	return result;
-  }
-
-  QSqlDatabase db;
-  std::unique_ptr<LinkedChannelModel> model;
-
-  RadioChannel one = {MOD_FM, 92.5, 0};
-  RadioChannel two = {MOD_FM, 93.3, 0};
-  RadioChannel three = {MOD_FM, 94.1, 0};
-  RadioChannel four = {MOD_FM, 95.1, 0};
-};
-
-TEST_F(SqlTest, Simple)
-{
-  // Test adding and removing rows
-  ASSERT_EQ(model->rowCount(), 0);
-  ASSERT_EQ(model->insertRows(0, 1, QModelIndex()), true);
-  ASSERT_EQ(model->rowCount(), 1);
-  ASSERT_EQ(model->removeRows(0, 1, QModelIndex()), true);
-  ASSERT_EQ(model->rowCount(), 0);
-
-  ASSERT_EQ(model->submit(), true);
-
-  // Test adding and removing channels
-  ASSERT_EQ(model->AddChannel(one), true);
-  ASSERT_EQ(model->rowCount(), 1);
-  ASSERT_EQ(model->RemoveChannel(one), true);
-  ASSERT_EQ(model->rowCount(), 0);
-
-  // Test the movement of rows due to deletion
-  ASSERT_EQ(model->AddChannel(two), true);
-  ASSERT_EQ(model->AddChannel(one), true);
-  ASSERT_EQ(model->rowCount(), 2);
-  ASSERT_EQ(model->RemoveChannel(two), true);
-  ASSERT_EQ(model->GetChannel(model->index(0, 0)), one);
-
-  // Test the movement of rows due to insertion
-  ASSERT_EQ(model->AddChannel(two), true);
-  ASSERT_EQ(model->GetChannel(model->index(1, 0)), two);
-  ASSERT_EQ(model->GetChannel(model->index(0, 0)), one);
+	ASSERT_EQ(db.GetSettingValue(key, result), UTILS::StatusCodes::Ok);
+	ASSERT_EQ(result, value);
 }
 
-/**
- * @brief Test the complex operations of the model
- */
-TEST_F(SqlTest, MovingRows)
+TEST(Database, LOT)
 {
-  SetupDefault();
+	SQLite::Database db;
+	ASSERT_EQ(db.Open(":memory:"), UTILS::StatusCodes::Ok);
 
-  // Test moving rows
-  // Moved at 0 to 2 (92.5, 93.3, 94.1, 95.1) -> (93.3, 94.1, 92.5, 95.1)
-  ASSERT_EQ(model->moveRows(QModelIndex(), 0, 1, QModelIndex(), 2), true);
-  ASSERT_EQ(model->submit(), true);
+	NRSC5::StationInfo mock_station;
+	mock_station.id = 21;
+	mock_station.name = "Mock Station";
 
-  {
-	SCOPED_TRACE(DescribeModel());
+	NRSC5::DataService mock_component;
+	mock_component.channel = 1;
+	mock_component.mime = NRSC5_MIME_PRIMARY_IMAGE;
 
-	ASSERT_EQ(model->GetChannel(model->index(0, 0)), two);
-	ASSERT_EQ(model->GetChannel(model->index(1, 0)), three);
-	ASSERT_EQ(model->GetChannel(model->index(2, 0)), one);
-	ASSERT_EQ(model->GetChannel(model->index(3, 0)), four);
-  }
-}
+	NRSC5::Lot lot;
+	lot.id = 100; // Unique per component per station
+	lot.component = mock_component;
+	lot.mime = NRSC5_MIME_JPEG;
+	lot.path = "test.jpg";
+	lot.expire_point = std::chrono::system_clock::now() + std::chrono::hours(1);
 
-TEST_F(SqlTest, Drop)
-{
-  SetupDefault();
+	ASSERT_EQ(db.InsertLot(mock_station, lot, lot.path), UTILS::StatusCodes::Ok);
 
-  // Moved at 0 to 1
-  QMimeData data;
-  // Unused freq
-  RadioChannel temp_channel = {MOD_FM, 95.5, 0};
+	NRSC5::Lot result;
+	result.id = lot.id;
+	result.component = mock_component;
 
-  data.setData("application/json",
-			   QByteArray::fromStdString(nlohmann::json::array({temp_channel}).dump()));
+	ASSERT_EQ(db.GetLot(mock_station, result), UTILS::StatusCodes::Ok);
+	ASSERT_EQ(lot.mime, result.mime);
+	ASSERT_EQ(lot.path, result.path);
+	// Database only stores up to seconds
+	ASSERT_EQ(std::chrono::duration_cast<std::chrono::seconds>(lot.expire_point.time_since_epoch()), result.expire_point.time_since_epoch());
 
-  ASSERT_EQ(model->dropMimeData(&data, Qt::MoveAction, 1, 0, QModelIndex()), true);
-  ASSERT_EQ(model->submit(), true);
-
-  {
-	SCOPED_TRACE(DescribeModel());
-
-	ASSERT_EQ(model->GetChannel(model->index(0, 0)), one);
-	ASSERT_EQ(nlohmann::json(model->GetChannel(model->index(1, 0))).dump(),
-			  nlohmann::json(temp_channel).dump());
-	ASSERT_EQ(model->GetChannel(model->index(1, 0)), temp_channel);
-	ASSERT_EQ(model->GetChannel(model->index(2, 0)), two);
-	ASSERT_EQ(model->GetChannel(model->index(3, 0)), three);
-	ASSERT_EQ(model->GetChannel(model->index(4, 0)), four);
-  }
+	ASSERT_EQ(db.DeleteLot(mock_station, result), UTILS::StatusCodes::Ok);
+	ASSERT_EQ(db.GetLot(mock_station, result), UTILS::StatusCodes::Empty);
 }
