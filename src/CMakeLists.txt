@@ -91,7 +91,6 @@ set(SOURCE_FILES
 )
 
 qt_add_library(${LIBRARY_NAME} OBJECT ${SOURCE_FILES})
-
 target_link_libraries(${LIBRARY_NAME}
         PUBLIC
         Qt6::Core
@@ -111,17 +110,11 @@ target_link_libraries(${LIBRARY_NAME}
 
         FFTW::Float
 )
-
-if (CMAKE_VERSION VERSION_LESS "3.7.0")
-    set(CMAKE_INCLUDE_CURRENT_DIR ON)
-endif ()
+target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 qt_add_executable(${EXECUTABLE_PROJECT} Main.cpp ${CMAKE_SOURCE_DIR}/resources/Resources.qrc)
 target_link_libraries(${EXECUTABLE_PROJECT} PRIVATE ${LIBRARY_NAME})
-target_include_directories(${EXECUTABLE_PROJECT} PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_BINARY_DIR}/autogen/
-)
+target_include_directories(${EXECUTABLE_PROJECT} PRIVATE ${CMAKE_BINARY_DIR}/autogen/)
 set_target_properties(${EXECUTABLE_PROJECT} PROPERTIES
         AUTOUIC ON
         AUTORCC ON

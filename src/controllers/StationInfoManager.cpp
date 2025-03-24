@@ -9,20 +9,16 @@
 
 #include <QtConcurrentRun>
 
-StationInfoManager::StationInfoManager(
-	const std::weak_ptr<StationImageProvider> &image_provider,
-	const std::weak_ptr<FavoriteModel> &favorites)
-	: image_provider_(image_provider),
-	  favorites_(favorites)
-
+StationInfoManager::StationInfoManager(SQLite::Database &database)
+	: lot_manager_(database)
 {
-	assert(image_provider_.lock());
+	station_logo_ = image_provider_.MissingImage();
+	primary_image_ = image_provider_.MissingImage();
+	favorites_model_ = std::make_unique<FavoriteModel>(database, image_provider_, this);
 
-	if (const auto provider = image_provider_.lock())
-	{
-		station_logo_ = provider->MissingImage();
-		primary_image_ = provider->MissingImage();
-	}
+	image_provider_.AddProvider(
+		std::make_shared<LotImageProvider>(&lot_manager_),
+		1);
 }
 
 /**
@@ -36,10 +32,10 @@ void StationInfoManager::StyleAndDisplayStation(
 	const NRSC5::StationInfo &stationInfo = channel.station_info;
 
 	// If the station is not similar, update the station information.
-	if (station_ != stationInfo)
+	if (station_info_ != stationInfo)
 	{
-		station_ = stationInfo;
-		station_logo_ = image_provider_.lock()->FetchStationImage(channel);
+		station_info_ = stationInfo;
+		station_logo_ = image_provider_.FetchStationImage(channel);
 		ClearID3();
 	}
 
@@ -51,14 +47,14 @@ void StationInfoManager::StyleAndDisplayStation(
 
 /**
 * @brief If we have received a new Station Logo, update the station logo cache.
-* @param component The component that sent the lot.
+* @param station The station for which the lot was received.
 * @param lot The lot that was received.
 */
 void StationInfoManager::ReceiveLot(
-	const NRSC5::DataService &component,
+	const NRSC5::StationInfo &station,
 	const NRSC5::Lot &lot)
 {
-	if (component.mime == NRSC5_MIME_PRIMARY_IMAGE
+	if (lot.component.mime == NRSC5_MIME_PRIMARY_IMAGE
 		&& station_id3_.xhdr.lot == lot.id)
 	{
 		// If we received an image for the current lot, update the primary image.
@@ -74,8 +70,8 @@ void StationInfoManager::ReceiveLot(
 
 		DisplayPrimaryImage(imageLot);
 	}
-	else if (component.mime == NRSC5_MIME_STATION_LOGO
-		&& component.program.value() == station_.current_program)
+	else if (lot.component.mime == NRSC5_MIME_STATION_LOGO
+		&& lot.component.program.value() == station_info_.current_program)
 	{
 		// We received a new station logo. Update the station logo.
 		Logger::Log(debug,
@@ -95,6 +91,12 @@ void StationInfoManager::ReceiveLot(
 			DisplayFallbackPrimaryImage();
 		}
 	}
+
+	// Save the lot to the database
+	QFuture<void> future = QtConcurrent::run([this, station, lot]
+	{
+		lot_manager_.LotReceived(station, lot);
+	});
 }
 
 /**
@@ -104,16 +106,16 @@ void StationInfoManager::ReceiveLot(
 void StationInfoManager::DisplayFavorite(
 	const Channel &channel)
 {
-	const QModelIndex index = favorites_.lock()->Find(channel);
-	if (index.isValid() && !station_.name.empty())
+	const QModelIndex index = favorites_model_->Find(channel);
+	if (index.isValid() && !station_info_.name.empty())
 	{
 		// Update the favorite if it exists with the new channel
-		if (const Channel &favorite = favorites_.lock()->Get(index.row());
-			favorite.station_info.name != station_.name)
+		if (const Channel &favorite = favorites_model_->Get(index.row());
+			favorite.station_info.name != station_info_.name)
 		{
 			// If the station name is different, update the favorite.
 			// This is to prevent the favorite from being out of sync.
-			favorites_.lock()->Set(index.row(), channel);
+			favorites_model_->Set(index.row(), channel);
 		}
 	}
 
@@ -208,7 +210,7 @@ QFuture<ImageData> StationInfoManager::FetchPrimaryImage(
 {
 	return QtConcurrent::run([this, channel, id3]
 	{
-		return image_provider_.lock()->FetchPrimaryImage(channel, id3);
+		return image_provider_.FetchPrimaryImage(channel, id3);
 	});
 }
 
@@ -220,7 +222,7 @@ QFuture<ImageData> StationInfoManager::FetchPrimaryImage(
 ImageData StationInfoManager::FallbackPrimaryImage() const
 {
 	ImageData missingImage = station_logo_.IsMissing()
-		                         ? image_provider_.lock()->MissingImage()
+		                         ? image_provider_.MissingImage()
 		                         : station_logo_;
 
 	// Identify this as a missing image that can be replaced by a primary image.

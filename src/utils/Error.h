@@ -17,6 +17,8 @@ enum class StatusCodes
 
 	SQLBusy, // SQL busy
 
+	NoPermission, // No permission
+
 	TunerError, // Generic tuner error
 	DatabaseError, // Generic Database error
 	UnknownError, // Generic error

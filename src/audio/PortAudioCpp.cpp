@@ -20,7 +20,7 @@ std::string_view PortAudio::System::VersionText()
 
 PortAudio::System::System() = default;
 
-int PortAudio::System::Initialize()
+PaError PortAudio::System::Initialize()
 {
   PaError ret = Pa_Initialize();
   if (ret < paNoError)

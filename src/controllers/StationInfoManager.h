@@ -21,10 +21,9 @@ class StationInfoManager : public QObject
   Q_OBJECT
 
  public:
-  explicit StationInfoManager(const std::weak_ptr<StationImageProvider> &image_provider,
-                              const std::weak_ptr<FavoriteModel> &favorites);
+  explicit StationInfoManager(SQLite::Database &database);
 
-  void ReceiveLot(const NRSC5::DataService &component, const NRSC5::Lot &lot);
+  void ReceiveLot(const NRSC5::StationInfo &station, const NRSC5::Lot &lot);
 
   void StyleAndDisplayStation(const ActiveChannel &channel);
   void StyleAndDisplayID3(const NRSC5::ID3 &id3);
@@ -42,6 +41,22 @@ class StationInfoManager : public QObject
    *
    */
   void ClearID3();
+
+  FavoriteModel* GetFavoritesModel() const
+  {
+   assert(this->favorites_model_);
+   return this->favorites_model_.get();
+  }
+
+  StationImageProvider &GetImageProvider()
+  {
+   return this->image_provider_;
+  }
+
+  LotManager &GetLotManager()
+  {
+   return this->lot_manager_;
+  }
 
  signals:
   /**
@@ -82,6 +97,7 @@ class StationInfoManager : public QObject
    * @param pixmap
    */
   void UpdatePrimaryImage(const QPixmap &pixmap);
+
  private:
   void FetchPrimaryImage(const NRSC5::ID3 &id3);
 
@@ -89,14 +105,15 @@ class StationInfoManager : public QObject
   [[nodiscard]] ImageData FallbackPrimaryImage() const;
 
   // Station information
-  NRSC5::StationInfo station_;
+  NRSC5::StationInfo station_info_;
   NRSC5::ID3 station_id3_;
 
   ImageData station_logo_;
   ImageData primary_image_;
 
-  std::weak_ptr<StationImageProvider> image_provider_;
-  std::weak_ptr<FavoriteModel> favorites_;
+  StationImageProvider image_provider_;
+  LotManager lot_manager_;
+  std::unique_ptr<FavoriteModel> favorites_model_;
 
   QFuture<ImageData> primary_image_future_;
 };

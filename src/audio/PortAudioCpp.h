@@ -26,7 +26,7 @@ class System : public std::enable_shared_from_this<System>
   static std::string_view VersionText();
   static std::string_view ErrorText(int error);
 
-  int Initialize();
+  PaError Initialize();
 
   int DefaultInputDevice(std::shared_ptr<Device> &device);
   int DefaultOutputDevice(std::shared_ptr<Device> &device);

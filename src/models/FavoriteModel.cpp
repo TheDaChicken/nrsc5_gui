@@ -14,7 +14,8 @@ constexpr auto kSettingKey = "favorite_channels";
 
 FavoriteModel::FavoriteModel(
 	SQLite::Database &db,
-	const std::weak_ptr<StationImageProvider> &image_provider, QObject *parent)
+	const StationImageProvider &image_provider,
+	QObject *parent)
 	: QAbstractListModel(parent),
 	  db_(db),
 	  image_provider_(image_provider)
@@ -27,19 +28,23 @@ bool FavoriteModel::update()
 
 	channels_.clear();
 
+	bool result = true;
 	std::string value;
-	if (UTILS::StatusCodes ret = db_.GetSettingValue(kSettingKey, value); ret == UTILS::StatusCodes::Ok)
+
+	if (UTILS::StatusCodes ret = db_.GetSettingValue(kSettingKey, value);
+		ret == UTILS::StatusCodes::Ok)
 	{
 		const nlohmann::json array = nlohmann::json::parse(value);
 		channels_ = array.get<std::vector<Channel> >();
 	}
 	else if (ret != UTILS::StatusCodes::Empty)
 	{
+		result = false;
 		Logger::Log(err, "Failed to get favorite channels: {}", static_cast<int>(ret));
 	}
 
 	endResetModel();
-	return true;
+	return result;
 }
 
 bool FavoriteModel::Set(const int row, const Channel &channel)
@@ -135,12 +140,7 @@ QVariant FavoriteModel::data(const QModelIndex &index, int role) const
 		}
 		case Qt::DecorationRole:
 		{
-			if (const auto p = image_provider_.lock())
-			{
-				return p->FetchStationImage(channel).image;
-			}
-
-			return {};
+			return image_provider_.FetchStationImage(channel).image;
 		}
 		case kIsDeletable:
 		{

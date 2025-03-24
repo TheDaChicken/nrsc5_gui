@@ -38,36 +38,6 @@ struct Ber
 		float count{0};
 };
 
-/**
- * \brief Large Object Transfer
- */
-struct Lot
-{
-	explicit Lot(const nrsc5_event_t *event);
-	Lot() = default;
-
-	explicit Lot(const unsigned int lotId)
-		: id(lotId)
-	{
-	}
-
-	[[nodiscard]] bool isExpired() const
-	{
-		return expire_point < std::chrono::system_clock::now();
-	}
-
-	unsigned int id{0};
-	unsigned int port{100};
-	uint32_t mime{0};
-
-	std::string name;
-	std::filesystem::path path;
-	vector_uint8_t data;
-
-	tm discard_utc{};
-	std::chrono::system_clock::time_point expire_point;
-};
-
 struct ID3
 {
 	ID3() = default;
@@ -98,7 +68,7 @@ struct ID3
 			FLUSH = 2,
 		} param = EMPTY;
 
-		uint32_t mime = {NRSC5_MIME_PRIMARY_IMAGE};
+		uint32_t mime = 0;
 		int lot = -1;
 
 		void Clear()
@@ -222,6 +192,36 @@ struct StationDetails
 		programs.clear();
 		services.clear();
 	}
+};
+
+/**
+ * \brief Large Object Transfer
+ */
+struct Lot
+{
+	Lot() = default;
+
+	explicit Lot(const unsigned int lotId)
+		: id(lotId)
+	{
+	}
+
+	[[nodiscard]] bool isExpired() const
+	{
+		return expire_point < std::chrono::system_clock::now();
+	}
+
+	unsigned int id{0};
+	uint32_t mime{0};
+
+	std::string name;
+	std::filesystem::path path;
+	vector_uint8_t data;
+
+	std::chrono::system_clock::time_point expire_point;
+	tm discard_utc{};
+
+	DataService component{0, 0, 0};
 };
 
 std::string_view DescribeMime(uint32_t mime);

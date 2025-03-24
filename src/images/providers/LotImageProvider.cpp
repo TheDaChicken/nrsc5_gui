@@ -35,12 +35,10 @@ ImageData LotImageProvider::FetchPrimaryImage(
 	// if a hint is provided, try to use it as an option
 	NRSC5::Lot lot;
 	lot.id = id3.xhdr.lot;
+	lot.component.channel = NRSC5::FriendlyProgramId(channel.station_info.current_program);
+	lot.component.mime = id3.xhdr.mime;
 
-	NRSC5::DataService component;
-	component.channel = NRSC5::FriendlyProgramId(channel.station_info.current_program);
-	component.mime = id3.xhdr.mime;
-
-	if (lot_manager_->GetLot(channel.station_info, component, lot))
+	if (lot_manager_->GetLot(channel.station_info, lot))
 	{
 		return LoadLotImage(lot);
 	}
@@ -58,7 +56,6 @@ ImageData LotImageProvider::LoadLotImage(const NRSC5::Lot &lot)
 	if (!lot.data.empty())
 	{
 		// If it's already loaded, use it
-
 		ret = pixmap.loadFromData(lot.data.data(),
 		                          lot.data.size(),
 		                          format);

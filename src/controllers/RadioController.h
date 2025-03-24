@@ -11,6 +11,7 @@
 
 #include "RadioChannel.h"
 #include "HybridRadio.h"
+#include "StationInfoManager.h"
 #include "threads/GuiEvent.h"
 #include "threads/GuiSyncThread.h"
 #include "utils/Error.h"
@@ -49,8 +50,7 @@ class RadioController : public QObject
 				void HDSyncUpdate(bool sync) override;
 				void HDSignalStrengthUpdate(float lower, float upper) override;
 				void HDID3Update(const NRSC5::ID3 &id3) override;
-				void HDReceivedLot(const NRSC5::StationInfo &channel,
-				                   const NRSC5::DataService &component,
+				void HDReceivedLot(const NRSC5::StationInfo &station,
 				                   const NRSC5::Lot &lot) override;
 
 			private:
@@ -59,7 +59,7 @@ class RadioController : public QObject
 				GuiSyncThread *sync_thread;
 		};
 
-		explicit RadioController(QObject *parent);
+		explicit RadioController(SQLite::Database& db, QObject *parent);
 
 		~RadioController() override
 		{
@@ -105,24 +105,29 @@ class RadioController : public QObject
 			return radio_;
 		}
 
+		StationInfoManager &GetStationInfoManager()
+		{
+			return station_info_manager_;
+		}
+
 	signals:
 		// Tuner signals for GUI
 		void TunerStatus(TunerAction action, UTILS::StatusCodes ret);
 		void TunerStream(PortSDR::Stream *stream);
 
 		void TunerStationUpdate(const ActiveChannel &channel);
-		void TunerSyncEvent(const std::shared_ptr<GuiSyncEvent> &event);
 
-		void HDReceivedLot(const NRSC5::StationInfo &station, const NRSC5::DataService &component,
-		                   const NRSC5::Lot &lot);
 		void HDSignalStrength(float lower, float upper);
 
 	private:
+		void TunerSyncEvent(const std::shared_ptr<GuiSyncEvent> &event);
+
 		UTILS::StatusCodes SetupDevices();
 
 		GuiDelegate delegate_;
 		GuiSyncThread sync_thread;
 		HybridRadio radio_;
+		StationInfoManager station_info_manager_;
 
 		Channel current_channel_
 		{

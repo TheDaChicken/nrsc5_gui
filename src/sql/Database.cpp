@@ -323,7 +323,6 @@ UTILS::StatusCodes SQLite::Database::SetSettingValue(
 
 UTILS::StatusCodes SQLite::Database::InsertLot(
 	const NRSC5::StationInfo &station,
-	const NRSC5::DataService &component,
 	const NRSC5::Lot &lot,
 	const std::filesystem::path &path)
 {
@@ -339,7 +338,7 @@ UTILS::StatusCodes SQLite::Database::InsertLot(
 	}
 
 	assert(lot.id > 0);
-	assert(component.channel > 0);
+	assert(lot.component.channel > 0);
 
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_text(statement.Get(),
 		                     sqlite3_bind_parameter_index(statement.Get(), ":callSign"),
@@ -349,11 +348,11 @@ UTILS::StatusCodes SQLite::Database::InsertLot(
 	                     "Unable to set Insert LOT callSign");
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
 		                     sqlite3_bind_parameter_index(statement.Get(), ":channel"),
-		                     component.channel),
+		                     lot.component.channel),
 	                     "Unable to set Insert LOT channel");
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
 		                     sqlite3_bind_parameter_index(statement.Get(), ":service"),
-		                     component.mime),
+		                     lot.component.mime),
 	                     "Unable to set Insert LOT service");
 
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
@@ -387,7 +386,6 @@ UTILS::StatusCodes SQLite::Database::InsertLot(
 
 UTILS::StatusCodes SQLite::Database::GetLot(
 	const NRSC5::StationInfo &station,
-	const NRSC5::DataService &component,
 	NRSC5::Lot &lot)
 {
 	PooledPreparedStatement statement(pool_.GetConnection());
@@ -395,7 +393,7 @@ UTILS::StatusCodes SQLite::Database::GetLot(
 	int ret;
 
 	assert(lot.id > 0);
-	assert(component.channel > 0);
+	assert(lot.component.channel > 0);
 
 	if (statement.Prepare(kGetHDRadioLot) == false)
 	{
@@ -411,11 +409,11 @@ UTILS::StatusCodes SQLite::Database::GetLot(
 	                     "Unable to set Get LOT CallSign");
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
 		                     sqlite3_bind_parameter_index(statement.Get(), ":channel"),
-		                     component.channel),
+		                     lot.component.channel),
 	                     "Unable to set Get Lot Channel");
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
 		                     sqlite3_bind_parameter_index(statement.Get(), ":service"),
-		                     component.mime),
+		                     lot.component.mime),
 	                     "Unable to set Get Lot Service");
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
 		                     sqlite3_bind_parameter_index(statement.Get(), ":lotId"),
@@ -440,7 +438,6 @@ UTILS::StatusCodes SQLite::Database::GetLot(
 
 UTILS::StatusCodes SQLite::Database::DeleteLot(
 	const NRSC5::StationInfo &station,
-	const NRSC5::DataService &component,
 	const NRSC5::Lot &lot)
 {
 	PooledPreparedStatement statement(pool_.GetConnection());
@@ -461,11 +458,11 @@ UTILS::StatusCodes SQLite::Database::DeleteLot(
 	                     "Unable to set Delete LOT callSign");
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
 							 sqlite3_bind_parameter_index(statement.Get(), ":channel"),
-							 component.channel),
+							 lot.component.channel),
 						 "Unable to set Delete Lot Channel");
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
 							 sqlite3_bind_parameter_index(statement.Get(), ":service"),
-							 component.mime),
+							 lot.component.mime),
 						 "Unable to set Delete Lot Service");
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
 		                     sqlite3_bind_parameter_index(statement.Get(), ":lotId"),
@@ -481,14 +478,13 @@ UTILS::StatusCodes SQLite::Database::DeleteLot(
 
 UTILS::StatusCodes SQLite::Database::GetLotSpecial(
 	const NRSC5::StationInfo &station,
-	const NRSC5::DataService &component,
 	NRSC5::Lot &lot)
 {
 	PooledPreparedStatement statement(pool_.GetConnection());
 	sqlite3 *db = statement.GetConnection();
 	int ret;
 
-	assert(component.channel > 0);
+	assert(lot.component.channel > 0);
 
 	if (statement.Prepare(kGetHDRadioLotsPerService) == false)
 	{
@@ -504,11 +500,11 @@ UTILS::StatusCodes SQLite::Database::GetLotSpecial(
 	                     "Unable to set Get LOTs CallSign");
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
 		                     sqlite3_bind_parameter_index(statement.Get(), ":channel"),
-		                     component.channel),
+		                     lot.component.channel),
 	                     "Unable to set Get LOTs Channel");
 	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
 		                     sqlite3_bind_parameter_index(statement.Get(), ":service"),
-		                     component.mime),
+		                     lot.component.mime),
 	                     "Unable to set Get LOTs Service");
 
 	ret = sqlite3_step(statement.Get());

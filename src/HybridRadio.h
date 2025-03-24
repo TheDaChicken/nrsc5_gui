@@ -34,7 +34,6 @@ class HybridRadio
 				virtual void HDSignalStrengthUpdate(float lower, float upper) = 0;
 				virtual void HDID3Update(const NRSC5::ID3 &id3) = 0;
 				virtual void HDReceivedLot(const NRSC5::StationInfo &channel,
-				                           const NRSC5::DataService &component,
 				                           const NRSC5::Lot &lot) = 0;
 		};
 

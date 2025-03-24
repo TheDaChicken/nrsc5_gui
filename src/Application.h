@@ -34,21 +34,19 @@ class Application : public QApplication
 			return radio_controller;
 		}
 
-		StationInfoManager &GetStationInfoManager()
-		{
-			assert(this->info_manager);
-			return *this->info_manager;
-		}
-
 		ThemeManager &GetThemeManager()
 		{
 			return theme_manager;
 		}
 
+		StationInfoManager &GetStationInfoManager()
+		{
+			return radio_controller.GetStationInfoManager();
+		}
+
 		StationImageProvider &GetImageProvider()
 		{
-			assert(this->image_provider_);
-			return *this->image_provider_;
+			return GetStationInfoManager().GetImageProvider();
 		}
 
 		SQLite::Database &GetSQLManager()
@@ -62,16 +60,15 @@ class Application : public QApplication
 			return *this->port_audio;
 		}
 
-		PortSDR::PortSDR &GetSDRSystem()
+		PortSDR::PortSDR &GetSDRSystem() const
 		{
 			assert(this->sdr_system);
 			return *this->sdr_system;
 		}
 
-		FavoriteModel *GetFavoritesModel() const
+		FavoriteModel *GetFavoritesModel()
 		{
-			assert(this->favorites_model_);
-			return this->favorites_model_.get();
+			return GetStationInfoManager().GetFavoritesModel();
 		}
 
 		TunerDevicesModel *GetTunerDevicesModel() const
@@ -80,27 +77,17 @@ class Application : public QApplication
 			return this->tuner_devices_model_.get();
 		}
 
-	private slots:
-		void OnAudioSyncUpdate(const std::shared_ptr<GuiSyncEvent> &event);
-
 	private:
 		void PrintStartupInformation() const;
-		void HDReceivedLot(const NRSC5::StationInfo &station,
-		                   const NRSC5::DataService &component, const NRSC5::Lot &lot) const;
 
 		SQLite::Database sql_manager;
-		LotManager lot_manager_;
 		ThemeManager theme_manager;
 
 		std::shared_ptr<PortAudio::System> port_audio;
 		std::shared_ptr<PortSDR::PortSDR> sdr_system;
 
-		std::shared_ptr<StationImageProvider> image_provider_;
-		std::unique_ptr<StationInfoManager> info_manager;
-
 		RadioController radio_controller;
 
-		std::shared_ptr<FavoriteModel> favorites_model_;
 		std::shared_ptr<TunerDevicesModel> tuner_devices_model_;
 		std::unique_ptr<MainWindow> window;
 };

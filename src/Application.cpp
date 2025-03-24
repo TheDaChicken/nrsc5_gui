@@ -7,7 +7,6 @@
 #include "utils/Log.h"
 #include "images/providers/LotImageProvider.h"
 
-#include <QtConcurrentRun>
 #include <QFontDatabase>
 #include <QFile>
 #include <QMessageBox>
@@ -16,8 +15,7 @@ Application *instance_ = nullptr;
 
 Application::Application(int &argc, char **argv, int flags)
 	: QApplication(argc, argv, flags),
-	  lot_manager_(sql_manager),
-	  radio_controller(this)
+	  radio_controller(sql_manager, this)
 {
 	instance_ = this;
 
@@ -28,11 +26,7 @@ Application::Application(int &argc, char **argv, int flags)
 
 	sdr_system = std::make_unique<PortSDR::PortSDR>();
 	port_audio = std::make_shared<PortAudio::System>();
-	image_provider_ = std::make_shared<StationImageProvider>();
-
 	tuner_devices_model_ = std::make_unique<TunerDevicesModel>(sdr_system, this);
-	favorites_model_ = std::make_unique<FavoriteModel>(sql_manager, image_provider_, this);
-	info_manager = std::make_unique<StationInfoManager>(image_provider_, favorites_model_);
 
 	PrintStartupInformation();
 }
@@ -50,9 +44,8 @@ void Application::PrintStartupInformation() const
 
 bool Application::Initialize()
 {
-	// TODO: Add error message dialog for failed initialization
-	int ret = port_audio->Initialize();
-	if (ret < 0)
+	if (PaError ret = port_audio->Initialize();
+		ret < 0)
 	{
 		QMessageBox msgBox;
 		msgBox.setText("Failed to Open NRSC5 GUI");
@@ -62,8 +55,8 @@ bool Application::Initialize()
 		return false;
 	}
 
-	UTILS::StatusCodes error = sql_manager.Open("database.db");
-	if (error != UTILS::StatusCodes::Ok)
+	if (const UTILS::StatusCodes error = sql_manager.Open("database.db");
+		error != UTILS::StatusCodes::Ok)
 	{
 		QMessageBox msgBox;
 		msgBox.setText("Failed to Open NRSC5 GUI");
@@ -72,22 +65,17 @@ bool Application::Initialize()
 		return false;
 	}
 
-	favorites_model_->update();
+	GetFavoritesModel()->update();
 
 	// TODO make this configurable in the settings
-	ret = lot_manager_.SetImageFolder("HDImages");
-	if (ret < 0)
+	if (std::error_code fileSystem = GetStationInfoManager().GetLotManager().SetImageFolder("HDImages"))
 	{
 		QMessageBox msgBox;
 		msgBox.setText("Failed to Open NRSC5 GUI");
-		msgBox.setInformativeText("Failed to open image folder: " + QString::number(ret));
+		msgBox.setInformativeText("Failed to open image folder: " + QString::fromStdString(fileSystem.message()));
 		msgBox.exec();
 		return false;
 	}
-
-	image_provider_->ProviderManager()->AddProvider(
-		std::make_shared<LotImageProvider>(&lot_manager_),
-		1);
 
 	// Load themes
 	theme_manager.LoadThemes();
@@ -101,69 +89,7 @@ bool Application::Initialize()
 
 int Application::Run()
 {
-	connect(&radio_controller,
-	        &RadioController::HDReceivedLot,
-	        this,
-	        &Application::HDReceivedLot);
-	connect(&radio_controller,
-	        &RadioController::TunerSyncEvent,
-	        this,
-	        &Application::OnAudioSyncUpdate);
 	return exec();
-}
-
-/**
- * @brief This is run from the gui thread
- * @param event
- */
-void Application::OnAudioSyncUpdate(const std::shared_ptr<GuiSyncEvent> &event)
-{
-	switch (event->GetEventType())
-	{
-		case GuiSyncEvent::EventType::EVENT_HD_SYNC:
-		{
-			const auto syncEvent = std::dynamic_pointer_cast<GuiHDSyncEvent>(event);
-			emit info_manager->UpdateHDSync(syncEvent->on_);
-			break;
-		}
-		case GuiSyncEvent::EventType::EVENT_HD_STATION:
-		{
-			const auto stationEvent = std::dynamic_pointer_cast<GuiStationUpdate>(event);
-			info_manager->StyleAndDisplayStation(stationEvent->channel_);
-			break;
-		}
-		case GuiSyncEvent::EventType::EVENT_HD_ID3:
-		{
-			const auto id3Event = std::dynamic_pointer_cast<GuiID3Update>(event);
-			info_manager->StyleAndDisplayID3(id3Event->id3_);
-			break;
-		}
-		default:
-		{
-			Logger::Log(warn, "Unhandled Sync Event: {}", static_cast<int>(event->GetEventType()));
-			break;
-		}
-	}
-}
-
-/**
- * This is not run from the gui thread
- * @param station The channel that received the lot
- * @param component The component that received the lot
- * @param lot The lot that was received
- */
-void Application::HDReceivedLot(const NRSC5::StationInfo &station,
-                                const NRSC5::DataService &component,
-                                const NRSC5::Lot &lot) const
-{
-	// Update GUI cache with the LOT
-	info_manager->ReceiveLot(component, lot);
-
-	// Save the lot to the database
-	QFuture<void> future = QtConcurrent::run([this, component, lot, station]
-	{
-		lot_manager_.LotReceived(station, component, lot);
-	});
 }
 
 Application *getApp()
@@ -185,6 +111,8 @@ QString Application::GetStatusMessage(const UTILS::StatusCodes status)
 			return tr("SQL database is busy");
 		case UTILS::StatusCodes::DatabaseError:
 			return tr("Database error");
+		case UTILS::StatusCodes::NoPermission:
+			return tr("No permission to folder");
 		case UTILS::StatusCodes::UnknownError:
 		default:
 		{

@@ -25,7 +25,7 @@ class FavoriteModel : public QAbstractListModel
   };
 
   explicit FavoriteModel(SQLite::Database &db,
-                         const std::weak_ptr<StationImageProvider> &image_provider, QObject *parent = nullptr);
+                         const StationImageProvider &image_provider, QObject *parent = nullptr);
   Q_DISABLE_COPY_MOVE(FavoriteModel)
 
   bool Set(int row, const Channel &channel);
@@ -60,7 +60,7 @@ class FavoriteModel : public QAbstractListModel
  private:
   SQLite::Database &db_;
   std::vector<Channel> channels_;
-  std::weak_ptr<StationImageProvider> image_provider_;
+  const StationImageProvider& image_provider_;
 };
 
 #endif //NRSC5_GUI_SRC_MODELS_FAVORITESMODEL_H_

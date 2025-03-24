@@ -12,13 +12,17 @@
 #include "utils/Error.h"
 #include "audio/PortAudioCpp.h"
 
-RadioController::RadioController(QObject *parent)
+RadioController::RadioController(
+	SQLite::Database &db, QObject *parent)
 	: QObject(parent),
 	  delegate_(this, &sync_thread),
-	  radio_(&delegate_)
+	  radio_(&delegate_),
+	  station_info_manager_(db)
 {
-	connect(&sync_thread, &GuiSyncThread::SyncEvent, this, &RadioController::TunerSyncEvent);
-
+	connect(&sync_thread,
+	        &GuiSyncThread::SyncEvent,
+	        this,
+	        &RadioController::TunerSyncEvent);
 	sync_thread.start();
 }
 
@@ -163,9 +167,39 @@ void RadioController::GuiDelegate::HDSignalStrengthUpdate(float lower, float upp
 	emit controller_->HDSignalStrength(lower, upper);
 }
 
-void RadioController::GuiDelegate::HDReceivedLot(const NRSC5::StationInfo &channel,
-                                                 const NRSC5::DataService &component,
+void RadioController::GuiDelegate::HDReceivedLot(const NRSC5::StationInfo &station,
                                                  const NRSC5::Lot &lot)
 {
-	emit controller_->HDReceivedLot(channel, component, lot);
+	// Update GUI cache with the LOT
+	controller_->station_info_manager_.ReceiveLot(station, lot);
+}
+
+void RadioController::TunerSyncEvent(const std::shared_ptr<GuiSyncEvent> &event)
+{
+	switch (event->GetEventType())
+	{
+		case GuiSyncEvent::EventType::EVENT_HD_SYNC:
+		{
+			const auto syncEvent = std::dynamic_pointer_cast<GuiHDSyncEvent>(event);
+			emit station_info_manager_.UpdateHDSync(syncEvent->on_);
+			break;
+		}
+		case GuiSyncEvent::EventType::EVENT_HD_STATION:
+		{
+			const auto stationEvent = std::dynamic_pointer_cast<GuiStationUpdate>(event);
+			station_info_manager_.StyleAndDisplayStation(stationEvent->channel_);
+			break;
+		}
+		case GuiSyncEvent::EventType::EVENT_HD_ID3:
+		{
+			const auto id3Event = std::dynamic_pointer_cast<GuiID3Update>(event);
+			station_info_manager_.StyleAndDisplayID3(id3Event->id3_);
+			break;
+		}
+		default:
+		{
+			Logger::Log(warn, "Unhandled Sync Event: {}", static_cast<int>(event->GetEventType()));
+			break;
+		}
+	}
 }

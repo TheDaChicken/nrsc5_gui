@@ -540,14 +540,26 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 			}
 
 			const NRSC5::DataService &kComponent = kIt->second;
-			const NRSC5::Lot lot(evt);
+			NRSC5::Lot lot(evt->lot.lot);
+
+			lot.mime = evt->lot.mime;
+			lot.name = evt->lot.name;
+			lot.component = kComponent;
+
+			// Discard time is in UTC time
+			lot.discard_utc  = *evt->lot.expiry_utc;
+			lot.expire_point = std::chrono::system_clock::from_time_t(UTILS::timegm(lot.discard_utc));
+
+			// Copy data
+			lot.data.resize(evt->lot.size);
+			memcpy(lot.data.data(), evt->lot.data, evt->lot.size * sizeof(uint8_t));
 
 			Logger::Log(info,
 			            "HD{}: LOT: file port={} id={} name={} size={} mime={} service={} expire={:%Y-%m-%dT%H:%M:%SZ} (in {})",
 			            kComponent.program.has_value()
 				            ? fmt::to_string(NRSC5::FriendlyProgramId(kComponent.program.value()))
 				            : "Radio",
-			            lot.port,
+			            lot.component.port,
 			            lot.id,
 			            lot.name,
 			            lot.data.size(),
@@ -560,7 +572,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 				            lot.expire_point - std::chrono::system_clock::now())
 			);
 
-			stream->delegate_->HDReceivedLot(stream->station_info_, kComponent, lot);
+			stream->delegate_->HDReceivedLot(stream->station_info_, lot);
 			break;
 		}
 		case NRSC5_EVENT_HDC:

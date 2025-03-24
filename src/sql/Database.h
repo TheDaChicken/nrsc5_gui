@@ -29,14 +29,14 @@ class Database
 		UTILS::StatusCodes SetSettingValue(std::string_view key, std::string_view value);
 
 		UTILS::StatusCodes InsertLot(const NRSC5::StationInfo &station,
-		                             const NRSC5::DataService &component,
 		                             const NRSC5::Lot &lot, const std::filesystem::path &path);
-		UTILS::StatusCodes GetLotSpecial(const NRSC5::StationInfo &station, const NRSC5::DataService &component,
+		UTILS::StatusCodes DeleteLot(const NRSC5::StationInfo &station, const NRSC5::Lot &lot);
+		UTILS::StatusCodes GetLotSpecial(const NRSC5::StationInfo &station,
 		                                 NRSC5::Lot &lot);
+		UTILS::StatusCodes GetLotsFromPath(const std::filesystem::path &path, std::vector<NRSC5::Lot> &lots);
 
-		UTILS::StatusCodes GetLot(const NRSC5::StationInfo &station, const NRSC5::DataService &component,
+		UTILS::StatusCodes GetLot(const NRSC5::StationInfo &station,
 		                          NRSC5::Lot &lot);
-		UTILS::StatusCodes DeleteLot(const NRSC5::StationInfo &station, const NRSC5::DataService &component, const NRSC5::Lot &lot);
 
 	private:
 		UTILS::StatusCodes CreateSchemaVersion();

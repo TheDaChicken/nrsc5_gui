@@ -14,26 +14,20 @@ LotManager::LotManager(SQLite::Database &db)
 {
 }
 
-int LotManager::SetImageFolder(
+std::error_code LotManager::SetImageFolder(
 	const std::filesystem::path &imagePath)
 {
-	const auto permissions = status(imagePath).permissions();
-	if ((permissions & std::filesystem::perms::owner_write) == std::filesystem::perms::none)
-	{
-		return -1;
-	}
-
 	try
 	{
 		create_directory(imagePath);
-	} catch (const std::exception &e)
+	} catch (const std::filesystem::filesystem_error &e)
 	{
 		Logger::Log(err, "LotManager: Failed to create directory for images: {}", e.what());
-		return -1;
+		return e.code();
 	}
 
 	image_path_ = imagePath;
-	return 0;
+	return {};
 }
 
 std::filesystem::path LotManager::StationFolder(
@@ -45,10 +39,9 @@ std::filesystem::path LotManager::StationFolder(
 
 bool LotManager::GetLot(
 	const NRSC5::StationInfo &station,
-	const NRSC5::DataService &component,
 	NRSC5::Lot &lot) const
 {
-	const UTILS::StatusCodes ret = db_.GetLot(station, component, lot);
+	const UTILS::StatusCodes ret = db_.GetLot(station, lot);
 	if (ret == UTILS::StatusCodes::Empty)
 		return false;
 	if (ret != UTILS::StatusCodes::Ok)
@@ -63,11 +56,10 @@ bool LotManager::GetStationImage(
 	const NRSC5::StationInfo &station,
 	NRSC5::Lot &lot) const
 {
-	NRSC5::DataService component;
-	component.mime = NRSC5_MIME_STATION_LOGO;
-	component.channel = NRSC5::FriendlyProgramId(station.current_program);
+	lot.component.mime = NRSC5_MIME_STATION_LOGO;
+	lot.component.channel = NRSC5::FriendlyProgramId(station.current_program);
 
-	const UTILS::StatusCodes ret = db_.GetLotSpecial(station, component, lot);
+	const UTILS::StatusCodes ret = db_.GetLotSpecial(station, lot);
 	if (ret == UTILS::StatusCodes::Empty)
 		return false;
 	if (ret != UTILS::StatusCodes::Ok)
@@ -80,11 +72,10 @@ bool LotManager::GetStationImage(
 
 void LotManager::LotReceived(
 	const NRSC5::StationInfo &station,
-	const NRSC5::DataService &component,
 	const NRSC5::Lot &lot) const
 {
 	// Check if we already have this lot
-	if (IsLotAlreadyStored(station, component, lot))
+	if (IsLotAlreadyStored(station, lot))
 	{
 		Logger::Log(debug, "LotManager: We already have this lot {}", lot.id);
 		return;
@@ -112,7 +103,7 @@ void LotManager::LotReceived(
 		return;
 	}
 
-	if (db_.InsertLot(station, component, lot, path) == UTILS::StatusCodes::Ok)
+	if (db_.InsertLot(station, lot, path) == UTILS::StatusCodes::Ok)
 	{
 		Logger::Log(info, "LotManager: Saved lot {}", lot.name);
 	}
@@ -163,13 +154,12 @@ bool LotManager::VerifyLot(const NRSC5::Lot &lot) const
 
 bool LotManager::IsLotAlreadyStored(
 	const NRSC5::StationInfo &station,
-	const NRSC5::DataService &component,
 	const NRSC5::Lot &lot) const
 {
 	NRSC5::Lot oldLot;
 	oldLot.id = lot.id;
 
-	return db_.GetLot(station, component, oldLot) == UTILS::StatusCodes::Ok
+	return db_.GetLot(station, oldLot) == UTILS::StatusCodes::Ok
 			&& oldLot.expire_point == lot.expire_point
 			&& oldLot.mime == lot.mime;
 }

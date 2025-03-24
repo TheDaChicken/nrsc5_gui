@@ -27,25 +27,6 @@ NRSC5::ID3::ID3(const nrsc5_event_t *event)
 	xhdr.lot = event->id3.xhdr.lot;
 }
 
-NRSC5::Lot::Lot(const nrsc5_event_t *event)
-{
-	assert(event);
-	assert(event->event == NRSC5_EVENT_LOT);
-
-	id = event->lot.lot;
-	port = event->lot.port;
-	mime = event->lot.mime;
-	name = event->lot.name;
-
-	// Discard time is in UTC time
-	discard_utc  = *event->lot.expiry_utc;
-	expire_point = std::chrono::system_clock::from_time_t(UTILS::timegm(discard_utc));
-
-	// Copy data
-	data.resize(event->lot.size);
-	memcpy(data.data(), event->lot.data, event->lot.size * sizeof(uint8_t));
-}
-
 std::string_view NRSC5::DescribeMime(const uint32_t mime)
 {
 	switch (mime)
