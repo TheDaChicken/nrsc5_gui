@@ -5,6 +5,7 @@
 #include "FavoritesList.h"
 
 #include <Application.h>
+#include <QScrollBar>
 
 FavoritesList::FavoritesList(QWidget *parent,
                              const ChannelDelegate::Styles style)
@@ -17,6 +18,8 @@ FavoritesList::FavoritesList(QWidget *parent,
 	setDragDropMode(InternalMove);
 	setSelectionMode(SingleSelection);
 	setSelectionBehavior(SelectRows);
+	setVerticalScrollMode(ScrollPerPixel);
+	verticalScrollBar()->setSingleStep(20);
 
 	if (style == ChannelDelegate::kBoxLayout)
 	{
