@@ -71,7 +71,7 @@ void StationInfoManager::ReceiveLot(
 		DisplayPrimaryImage(imageLot);
 	}
 	else if (lot.component.mime == NRSC5_MIME_STATION_LOGO
-		&& lot.component.program.value() == station_info_.current_program)
+		&& lot.component.programId.value() == station_info_.current_program)
 	{
 		// We received a new station logo. Update the station logo.
 		Logger::Log(debug,

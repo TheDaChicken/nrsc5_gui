@@ -387,24 +387,20 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 			            stream->station_details_.slogan,
 			            stream->station_details_.message);
 
-			// Clear programs (SIS is updated)
-			stream->station_details_.programs.clear();
-
 			for (audio_service = evt->sis.audio_services;
 			     audio_service != nullptr; audio_service = audio_service->next)
 			{
 				const unsigned int kProgramId = audio_service->program;
-				NRSC5::Program program;
 
-				program.id = kProgramId;
+				/* data service is associated with a program */
+				NRSC5::Program &program = stream->station_details_.programs[kProgramId];
+
 				program.type = audio_service->type;
 
 				Logger::Log(info,
 				            "HD{}: Audio Service type={}",
-				            NRSC5::FriendlyProgramId(program.id),
+				            NRSC5::FriendlyProgramId(kProgramId),
 				            NRSC5::Decoder::ProgramTypeName(audio_service->type));
-
-				stream->station_details_.programs.insert({kProgramId, program});
 			}
 
 			stream->delegate_->RadioStationUpdate(stream->CreateChannel());
@@ -432,21 +428,21 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 					if (sig_component->type == NRSC5_SIG_SERVICE_AUDIO)
 					{
 						/* data service is associated with a program */
-						NRSC5::Program &program = stream->station_details_.programs[sig_component->audio.port];
 
 						// Some stations are configured improperly.
-						// They provide multi-programs in SIS. only one in SIG
-						// This is a workaround to fix the issue.
+						// They provide multi-programs in SIS and zero in SIG.
+						// I don't check if program exists already here.
+						NRSC5::Program &program = stream->station_details_.programs[sig_component->audio.port];
+
 						program.name = sig_service->name;
-						program.id = sig_component->audio.port;
 
 						Logger::Log(debug,
 						            "  Audio component: {} port={} channel={}",
 						            sig_component->id,
 						            sig_component->audio.port,
-						            NRSC5::FriendlyProgramId(program.id));
+						            NRSC5::FriendlyProgramId(sig_component->audio.port));
 
-						audio_program = program.id;
+						audio_program = sig_component->audio.port;
 					}
 					else if (sig_component->type == NRSC5_SIG_SERVICE_DATA)
 					{
@@ -459,7 +455,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 
 						NRSC5::DataService service;
 						service.channel = sig_service->number;
-						service.program = audio_program;
+						service.programId = audio_program;
 						service.port = sig_component->data.port;
 						service.type = sig_component->data.type;
 						service.mime = sig_component->data.mime;
@@ -493,8 +489,8 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 
 			Logger::Log(info,
 			            "HD{}: Stream: port={} size={} seq={} mime={} service={}",
-			            kComponent.program.has_value()
-				            ? fmt::to_string(NRSC5::FriendlyProgramId(kComponent.program.value()))
+			            kComponent.programId.has_value()
+				            ? fmt::to_string(NRSC5::FriendlyProgramId(kComponent.programId.value()))
 				            : "Radio",
 			            evt->stream.port,
 			            evt->stream.size,
@@ -520,8 +516,8 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 
 			Logger::Log(info,
 			            "HD{}: Packet: port={} size={} seq={} mime={} service={}",
-			            kComponent.program.has_value()
-				            ? fmt::to_string(NRSC5::FriendlyProgramId(kComponent.program.value()))
+			            kComponent.programId.has_value()
+				            ? fmt::to_string(NRSC5::FriendlyProgramId(kComponent.programId.value()))
 				            : "Radio",
 			            evt->packet.port,
 			            evt->packet.size,
@@ -556,8 +552,8 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 
 			Logger::Log(info,
 			            "HD{}: LOT: file port={} id={} name={} size={} mime={} service={} expire={:%Y-%m-%dT%H:%M:%SZ} (in {})",
-			            kComponent.program.has_value()
-				            ? fmt::to_string(NRSC5::FriendlyProgramId(kComponent.program.value()))
+			            kComponent.programId.has_value()
+				            ? fmt::to_string(NRSC5::FriendlyProgramId(kComponent.programId.value()))
 				            : "Radio",
 			            lot.component.port,
 			            lot.id,

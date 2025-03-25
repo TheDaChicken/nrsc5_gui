@@ -121,7 +121,6 @@ struct ID3
 struct Program
 {
 	unsigned int type = NRSC5_PROGRAM_TYPE_UNDEFINED;
-	unsigned int id = 0;
 
 	std::string name;
 };
@@ -133,7 +132,7 @@ struct DataService
 	uint16_t port{100};
 
 	unsigned int channel;
-	std::optional<unsigned int> program;
+	std::optional<unsigned int> programId;
 };
 
 struct StationInfo

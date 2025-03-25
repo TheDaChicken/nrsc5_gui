@@ -69,8 +69,6 @@ void StylingText::GenerateChannelList(QTextDocument *document,
 	{
 		const unsigned int channel = NRSC5::FriendlyProgramId(id);
 
-		assert(program.id == id);
-
 		if (current_program == id)
 			cursor.insertText(QString::number(channel), selectedFormat);
 		else

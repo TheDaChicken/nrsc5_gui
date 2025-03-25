@@ -143,15 +143,15 @@ void RadioInfoDisplay::OnPlusButton()
   Q_UNUSED(this)
 
   const ActiveChannel &channel = getApp()->GetRadioController().GetActiveChannel();
-  const unsigned int nextProgram = channel.station_info.current_program + 1;
+  auto itr = channel.hd_details.programs.upper_bound(channel.station_info.current_program);
 
-  if (nextProgram >= channel.hd_details.programs.size())
+  if (itr != channel.hd_details.programs.end())
   {
-    // TODO: Scan for next Station
+    getApp()->GetRadioController().SetProgram(itr->first);
   }
   else
   {
-    getApp()->GetRadioController().SetProgram(nextProgram);
+    // TODO: Scan for next Station
   }
 }
 
@@ -160,15 +160,16 @@ void RadioInfoDisplay::OnMinusButton()
   Q_UNUSED(this)
 
   const ActiveChannel &channel = getApp()->GetRadioController().GetActiveChannel();
+  auto itr = channel.hd_details.programs.lower_bound(channel.station_info.current_program);
 
-  if (channel.station_info.current_program <= 0)
+  if (itr != channel.hd_details.programs.begin())
   {
-    // TODO: Scan for next Station
+    --itr;
+    getApp()->GetRadioController().SetProgram(itr->first);
   }
   else
   {
-    unsigned int nextProgram = channel.station_info.current_program - 1;
-    getApp()->GetRadioController().SetProgram(nextProgram);
+    // TODO: Scan for next Station
   }
 }
 
