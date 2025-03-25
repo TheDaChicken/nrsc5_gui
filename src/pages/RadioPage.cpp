@@ -42,7 +42,7 @@ void RadioPage::UpdateTunerStatus(const TunerAction &action, const UTILS::Status
 	if (state != UTILS::StatusCodes::Ok)
 	{
 		// If there was an error, show the error to the user
-		StatusPage()->SetStatus(Application::GetStatusMessage(state), true);
+		StatusPage()->SetStatus(Application::GetStatusMessage(state), false);
 		SetCurrentWidget(status_view);
 		return;
 	}
