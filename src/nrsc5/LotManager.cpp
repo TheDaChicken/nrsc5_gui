@@ -158,6 +158,7 @@ bool LotManager::IsLotAlreadyStored(
 {
 	NRSC5::Lot oldLot;
 	oldLot.id = lot.id;
+	oldLot.component = lot.component;
 
 	return db_.GetLot(station, oldLot) == UTILS::StatusCodes::Ok
 			&& oldLot.expire_point == lot.expire_point
