@@ -15,6 +15,12 @@ std::string_view NRSC5::Decoder::VersionText()
   nrsc5_get_version(&version);
   return version;
 }
+std::string_view NRSC5::Decoder::ServiceTypeName(unsigned int type)
+{
+  const char *name;
+  nrsc5_service_data_type_name(type, &name);
+  return name;
+}
 
 std::string_view NRSC5::Decoder::ProgramTypeName(unsigned int type)
 {

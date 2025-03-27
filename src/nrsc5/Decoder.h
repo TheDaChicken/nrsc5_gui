@@ -25,6 +25,7 @@ class Decoder
   ~Decoder();
 
   static std::string_view VersionText();
+  static std::string_view ServiceTypeName(unsigned int type);
   static std::string_view ProgramTypeName(unsigned int type);
 
   /**

@@ -352,6 +352,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		case NRSC5_EVENT_SIS:
 		{
 			const nrsc5_sis_asd_t *audio_service;
+			const nrsc5_sis_dsd_t *data_service;
 
 			if (evt->sis.country_code)
 			{
@@ -394,13 +395,20 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 
 				/* data service is associated with a program */
 				NRSC5::Program &program = stream->station_details_.programs[kProgramId];
-
 				program.type = audio_service->type;
 
 				Logger::Log(info,
 				            "HD{}: Audio Service type={}",
 				            NRSC5::FriendlyProgramId(kProgramId),
 				            NRSC5::Decoder::ProgramTypeName(audio_service->type));
+			}
+			for (data_service = evt->sis.data_services;
+				data_service != nullptr; data_service = data_service->next)
+			{
+				Logger::Log(info,
+				            "HDRadio: Data Service access={} type={}",
+				            data_service->access == NRSC5_ACCESS_PUBLIC ? "public" : "restricted",
+				            NRSC5::Decoder::ServiceTypeName(data_service->type));
 			}
 
 			stream->delegate_->RadioStationUpdate(stream->CreateChannel());
