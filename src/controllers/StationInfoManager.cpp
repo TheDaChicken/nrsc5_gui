@@ -54,41 +54,43 @@ void StationInfoManager::ReceiveLot(
 	const NRSC5::StationInfo &station,
 	const NRSC5::Lot &lot)
 {
-	if (lot.component.mime == NRSC5_MIME_PRIMARY_IMAGE
-		&& station_id3_.xhdr.lot == lot.id)
+	if (lot.component.programId.value() == station_info_.current_program)
 	{
-		// If we received an image for the current lot, update the primary image.
-		Logger::Log(debug,
-		            "StationInfoManager: Received Primary Image LOT ID={}",
-		            lot.id);
-
-		const ImageData imageLot = LotImageProvider::LoadLotImage(lot);
-		if (imageLot.IsEmpty())
+		if (lot.component.mime == NRSC5_MIME_PRIMARY_IMAGE
+			&& station_id3_.xhdr.lot == lot.id)
 		{
-			return;
+			// If we received an image for the current lot, update the primary image.
+			Logger::Log(debug,
+			            "StationInfoManager: Received Primary Image LOT ID={}",
+			            lot.id);
+
+			const ImageData imageLot = LotImageProvider::LoadLotImage(lot);
+			if (imageLot.IsEmpty())
+			{
+				return;
+			}
+
+			DisplayPrimaryImage(imageLot);
 		}
-
-		DisplayPrimaryImage(imageLot);
-	}
-	else if (lot.component.mime == NRSC5_MIME_STATION_LOGO
-		&& lot.component.programId.value() == station_info_.current_program)
-	{
-		// We received a new station logo. Update the station logo.
-		Logger::Log(debug,
-		            "StationInfoManager: Received Station Logo LOT ID={}",
-		            lot.id);
-
-		const ImageData stationLogo = LotImageProvider::LoadLotImage(lot);
-		if (stationLogo.IsEmpty())
-			return;
-
-		station_logo_ = stationLogo;
-		emit UpdateStationLogo(station_logo_.image);
-
-		// If the primary image is labeled "missing", update the primary image to the new station logo.
-		if (primary_image_.IsMissing())
+		else if (lot.component.mime == NRSC5_MIME_STATION_LOGO)
 		{
-			DisplayFallbackPrimaryImage();
+			// We received a new station logo. Update the station logo.
+			Logger::Log(debug,
+			            "StationInfoManager: Received Station Logo LOT ID={}",
+			            lot.id);
+
+			const ImageData stationLogo = LotImageProvider::LoadLotImage(lot);
+			if (stationLogo.IsEmpty())
+				return;
+
+			station_logo_ = stationLogo;
+			emit UpdateStationLogo(station_logo_.image);
+
+			// If the primary image is labeled "missing", update the primary image to the new station logo.
+			if (primary_image_.IsMissing())
+			{
+				DisplayFallbackPrimaryImage();
+			}
 		}
 	}
 
