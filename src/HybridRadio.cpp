@@ -229,6 +229,7 @@ UTILS::StatusCodes HybridRadio::SetTunerConfiguration(
 
 		station_info_.Reset();
 		station_details_.Reset();
+		ber_ = {};
 	}
 
 	Logger::Log(debug, "HybridRadio: frequency has been set: {} hz", tunerOpts.freq);
