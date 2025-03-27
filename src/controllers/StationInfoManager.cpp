@@ -54,7 +54,8 @@ void StationInfoManager::ReceiveLot(
 	const NRSC5::StationInfo &station,
 	const NRSC5::Lot &lot)
 {
-	if (lot.component.programId.value() == station_info_.current_program)
+	if (lot.component.programId.has_value()
+		&& lot.component.programId.value() == station_info_.current_program)
 	{
 		if (lot.component.mime == NRSC5_MIME_PRIMARY_IMAGE
 			&& station_id3_.xhdr.lot == lot.id)
@@ -66,9 +67,7 @@ void StationInfoManager::ReceiveLot(
 
 			const ImageData imageLot = LotImageProvider::LoadLotImage(lot);
 			if (imageLot.IsEmpty())
-			{
 				return;
-			}
 
 			DisplayPrimaryImage(imageLot);
 		}
