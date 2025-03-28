@@ -19,7 +19,7 @@
 class ImageText : public QFrame
 {
 		Q_OBJECT
-		Q_PROPERTY(QImage image READ image WRITE setImage)
+		Q_PROPERTY(QPixmap image READ pixmap WRITE setPixmap)
 		Q_PROPERTY(int alignment READ alignment WRITE setAlignment)
 		Q_PROPERTY(int spacing READ spacing WRITE setSpacing)
 		Q_PROPERTY(int textWidth READ textWidth WRITE setTextWidth)
@@ -42,9 +42,9 @@ class ImageText : public QFrame
 		};
 
 		void setPixmap(const QPixmap &pixmap);
-		void setImage(const QImage &image);
+	    void setImage(const QImage &image);
 
-		[[nodiscard]] QImage image() const
+		[[nodiscard]] QPixmap pixmap() const
 		{
 			return image_;
 		}
@@ -132,7 +132,7 @@ class ImageText : public QFrame
 		virtual void EnsureScaledPixmap();
 		QPixmap ScalePixmap(QSize size) const;
 
-		QImage image_;
+		QPixmap image_;
 		QPixmap scaled_pixmap_;
 		mutable QTextDocument text_document_;
 };

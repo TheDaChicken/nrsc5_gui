@@ -547,10 +547,6 @@ margin: 0px;</string>
               <property name="text">
                <string/>
               </property>
-              <property name="icon">
-               <iconset>
-                <normaloff>:/buttons/BlackPlus.svg</normaloff>:/buttons/BlackPlus.svg</iconset>
-              </property>
               <property name="iconSize">
                <size>
                 <width>32</width>
@@ -713,7 +709,7 @@ margin: 0px;</string>
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../../../resources/Resources.qrc"/>
+  <include location="../../resources/Resources.qrc"/>
  </resources>
  <connections/>
 </ui>

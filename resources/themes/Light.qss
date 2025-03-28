@@ -43,12 +43,17 @@ QHeaderView {
 
 /* Buttons */
 
-QPushButton#MinusButton
+QToolButton#MinusButton
 {
-    image: url(':/buttons/BlackMinus.svg');
+    qproperty-icon: url(":/buttons/black/Minus.svg");
 }
 
-QPushButton#PlusButton
+QToolButton#PlusButton
 {
-    image: url(':/buttons/BlackPlus.svg');
+    qproperty-icon: url(":/buttons/black/Plus.svg");
+}
+
+ImageTextEdit#HDLogo
+{
+    qproperty-image: url(":/images/HDRadioLogo.svg");
 }

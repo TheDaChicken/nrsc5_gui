@@ -23,17 +23,19 @@ class StationImageProvider
   [[nodiscard]] ImageData FetchStationImage(const Channel &channel) const;
   [[nodiscard]] ImageData FetchPrimaryImage(const Channel &channel, const NRSC5::ID3 &id3) const;
 
-  [[nodiscard]] ImageData MissingRadio() const;
+  [[nodiscard]] ImageData MissingLogo() const;
   [[nodiscard]] ImageData MissingImage() const;
 
+  void SetDefaultLogo(const QPixmap &radio);
+  [[nodiscard]] QPixmap DefaultLogo() const
+  {
+   return default_logo_;
+  }
+
+  void SetDefaultImage(const QPixmap &image);
   [[nodiscard]] QPixmap DefaultImage() const
   {
    return default_image_;
-  }
-
-  [[nodiscard]] QPixmap DefaultRadio() const
-  {
-   return default_radio_;
   }
 
   [[nodiscard]] ImageProviderPriorityManager *ProviderManager() const
@@ -43,7 +45,7 @@ class StationImageProvider
 
  private:
   QPixmap default_image_;
-  QPixmap default_radio_;
+  QPixmap default_logo_;
 
   std::unique_ptr<ImageProviderPriorityManager> provider_manager_;
 };

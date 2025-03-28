@@ -19,22 +19,23 @@ ImageText::ImageText(QWidget *parent)
 	setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 	setContentsMargins(0, 0, 0, 0);
 }
+
 void ImageText::setPixmap(const QPixmap &pixmap)
 {
 	if (image_.cacheKey() != pixmap.cacheKey())
-		setImage(pixmap.toImage());
+	{
+		image_ = pixmap;
+		scaled_pixmap_ = QPixmap();
+		update();
+	}
 }
 
 void ImageText::setImage(const QImage &image)
 {
-	if (image_ != image)
-	{
-		image_ = UTILS::Image::CreateBestOptionalBackground(image,
-		                                                    palette().color(backgroundRole()),
-		                                                    palette().color(QPalette::AlternateBase));
-		scaled_pixmap_ = QPixmap();
-		update();
-	}
+	setPixmap(QPixmap::fromImage(
+		UTILS::Image::CreateBestOptionalBackground(image,
+		                                           palette().color(backgroundRole()),
+		                                           palette().color(QPalette::AlternateBase))));
 }
 
 void ImageText::paintEvent(QPaintEvent *)
@@ -67,13 +68,13 @@ void ImageText::EnsureScaledPixmap()
 
 	if (scaled_pixmap_.isNull() || scaled_pixmap_.size() != bestSize)
 	{
-		QImage resize = image_.scaled(
+		QPixmap resize = image_.scaled(
 			bestSize,
 			Qt::KeepAspectRatio,
 			Qt::SmoothTransformation);
 		resize.setDevicePixelRatio(pixelRatio);
 
-		scaled_pixmap_ = QPixmap::fromImage(resize);
+		scaled_pixmap_ = resize;
 	}
 }
 
@@ -216,9 +217,9 @@ QSize ImageText::sizeHint() const
 int ImageText::heightForWidth(const int width) const
 {
 	const QSizeF textSize = TextSize();
-	int height_max = image().isNull()
+	int height_max = pixmap().isNull()
 		                 ? 0
-		                 : static_cast<int>(static_cast<qreal>(image().height()) * width / image().width());
+		                 : static_cast<int>(static_cast<qreal>(pixmap().height()) * width / pixmap().width());
 
 	if (alignment_ & TextLeft || alignment_ & TextRight)
 	{

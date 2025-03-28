@@ -9,56 +9,47 @@
 #define MISSING_RADIO ":/images/BlackRadio.svg"
 
 StationImageProvider::StationImageProvider()
-
 	: default_image_(MISSING_IMAGE),
-	  default_radio_(MISSING_RADIO),
+	  default_logo_(MISSING_RADIO),
 	  provider_manager_(std::make_unique<ImageProviderPriorityManager>())
 {
-
 }
 
 void StationImageProvider::AddProvider(
-	const std::shared_ptr<IImageProvider>& provider,
+	const std::shared_ptr<IImageProvider> &provider,
 	int priority) const
 {
-  provider_manager_->AddProvider(provider, priority);
+	provider_manager_->AddProvider(provider, priority);
 }
 
 ImageData StationImageProvider::FetchStationImage(
 	const Channel &channel) const
 {
-  for(const auto &entry : provider_manager_->Providers())
-  {
-	ImageData image = entry.provider->FetchStationImage(channel);
-	if(!image.IsEmpty())
+	for (const auto &entry : provider_manager_->Providers())
 	{
-	  return image;
+		ImageData image = entry.provider->FetchStationImage(channel);
+		if (!image.IsEmpty())
+			return image;
 	}
-  }
-  return MissingRadio();
+	return MissingLogo();
 }
 
 ImageData StationImageProvider::FetchPrimaryImage(
 	const Channel &channel,
-	const NRSC5::ID3& id3) const
+	const NRSC5::ID3 &id3) const
 {
-  for(const auto &[provider, priority] : provider_manager_->Providers())
-  {
-	ImageData image = provider->FetchPrimaryImage(channel, id3);
-
-  	// If the image is not empty, return it
-	if(!image.IsEmpty())
+	for (const auto &[provider, priority] : provider_manager_->Providers())
 	{
-	  return image;
+		ImageData image = provider->FetchPrimaryImage(channel, id3);
+		if (!image.IsEmpty())
+			return image;
 	}
-
-  }
-  return MissingImage();
+	return MissingImage();
 }
 
-ImageData StationImageProvider::MissingRadio() const
+ImageData StationImageProvider::MissingLogo() const
 {
-	return {default_radio_, MISSING_RADIO, ImageData::Type::kMissing};
+	return {default_logo_, MISSING_RADIO, ImageData::Type::kMissing};
 }
 
 ImageData StationImageProvider::MissingImage() const

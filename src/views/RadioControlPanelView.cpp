@@ -57,7 +57,7 @@ RadioControlPanelView::RadioControlPanelView()
 
 	// Header
 	header_ = new NavigationWidget();
-	header_->ImageLabel()->setPixmap(getApp()->GetImageProvider().DefaultRadio());
+	header_->ImageLabel()->setPixmap(getApp()->GetImageProvider().DefaultLogo());
 	header_->ViewLabel()->setText(tr("Radio"));
 
 	SetLeftWidget(radio_panel_);

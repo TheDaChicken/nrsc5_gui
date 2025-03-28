@@ -42,7 +42,7 @@ class StationInfoManager : public QObject
    */
   void ClearID3();
 
-  FavoriteModel* GetFavoritesModel() const
+  FavoriteModel *GetFavoritesModel() const
   {
    assert(this->favorites_model_);
    return this->favorites_model_.get();

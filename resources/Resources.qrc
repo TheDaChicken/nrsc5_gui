@@ -1,26 +1,26 @@
 <RCC>
-  <qresource prefix="/">
-    <file>buttons/BlackHeart.svg</file>
-    <file>buttons/BlackMinus.svg</file>
-    <file>buttons/BlackPlay.svg</file>
-    <file>buttons/BlackPause.svg</file>
-    <file>buttons/BlackPlus.svg</file>
-    <file>buttons/BlackNavigation.svg</file>
-    <file>buttons/BlackNote.svg</file>
-    <file>buttons/BlackSettings.svg</file>
-    <file>buttons/BlueNote.svg</file>
-    <file>buttons/BlueNavigation.svg</file>
-    <file>buttons/RedHeart.svg</file>
-    <file>buttons/BlueSettings.svg</file>
-    <file>buttons/RedMinus.svg</file>
-    <file>buttons/BlueBack.svg</file>
-    <file>images/BlackRadio.svg</file>
-    <file>images/HDRadioLogo.svg</file>
-    <file>images/ImageMissing.jpg</file>
+    <qresource prefix="/">
+        <file>buttons/black/Heart.svg</file>
+        <file>buttons/black/Minus.svg</file>
+        <file>buttons/black/Play.svg</file>
+        <file>buttons/black/Pause.svg</file>
+        <file>buttons/black/Plus.svg</file>
+        <file>buttons/black/Navigation.svg</file>
+        <file>buttons/black/Note.svg</file>
+        <file>buttons/black/Settings.svg</file>
+        <file>buttons/BlueNote.svg</file>
+        <file>buttons/BlueNavigation.svg</file>
+        <file>buttons/BlueSettings.svg</file>
+        <file>buttons/BlueBack.svg</file>
+        <file>buttons/RedHeart.svg</file>
+        <file>buttons/RedMinus.svg</file>
+        <file>images/BlackRadio.svg</file>
+        <file>images/HDRadioLogo.svg</file>
+        <file>images/ImageMissing.jpg</file>
 
-    <file>fonts/OpenSans-VariableFont.ttf</file>
+        <file>fonts/OpenSans-VariableFont.ttf</file>
 
-    <file>themes/Dark.qss</file>
-    <file>themes/Light.qss</file>
-  </qresource>
+        <file>themes/Dark.qss</file>
+        <file>themes/Light.qss</file>
+    </qresource>
 </RCC>

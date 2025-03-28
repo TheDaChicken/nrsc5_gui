@@ -83,8 +83,8 @@ QMainWindow {
          </property>
          <property name="icon">
           <iconset resource="../../resources/Resources.qrc">
-           <normaloff>:/buttons/BlackPlay.svg</normaloff>
-           <normalon>:/buttons/BlackPause.svg</normalon>:/buttons/BlackPlay.svg</iconset>
+           <normaloff>:/buttons/black/Play.svg</normaloff>
+           <normalon>:/buttons/black/Pause.svg</normalon>:/buttons/black/Play.svg</iconset>
          </property>
          <property name="checkable">
           <bool>true</bool>
@@ -107,8 +107,8 @@ QMainWindow {
          </property>
          <property name="icon">
           <iconset resource="../../resources/Resources.qrc">
-           <normaloff>:/buttons/BlackNote.svg</normaloff>
-           <normalon>:/buttons/BlueNote.svg</normalon>:/buttons/BlackNote.svg</iconset>
+           <normaloff>:/buttons/black/Note.svg</normaloff>
+           <normalon>:/buttons/BlueNote.svg</normalon>:/buttons/black/Note.svg</iconset>
          </property>
          <property name="checkable">
           <bool>true</bool>
@@ -146,8 +146,8 @@ QMainWindow {
          </property>
          <property name="icon">
           <iconset resource="../../resources/Resources.qrc">
-           <normaloff>:/buttons/BlackNavigation.svg</normaloff>
-           <normalon>:/buttons/BlueNavigation.svg</normalon>:/buttons/BlackNavigation.svg</iconset>
+           <normaloff>:/buttons/black/Navigation.svg</normaloff>
+           <normalon>:/buttons/BlueNavigation.svg</normalon>:/buttons/black/Navigation.svg</iconset>
          </property>
          <property name="checkable">
           <bool>true</bool>
@@ -176,8 +176,8 @@ QMainWindow {
          </property>
          <property name="icon">
           <iconset resource="../../resources/Resources.qrc">
-           <normaloff>:/buttons/BlackSettings.svg</normaloff>
-           <normalon>:/buttons/BlueSettings.svg</normalon>:/buttons/BlackSettings.svg</iconset>
+           <normaloff>:/buttons/black/Settings.svg</normaloff>
+           <normalon>:/buttons/BlueSettings.svg</normalon>:/buttons/black/Settings.svg</iconset>
          </property>
          <property name="checkable">
           <bool>true</bool>

@@ -12,8 +12,6 @@
 
 #include "ui_RadioInfoDisplay.h"
 
-#define HDRADIO_LOGO ":/images/HDRadioLogo.svg"
-
 RadioInfoDisplay::RadioInfoDisplay(QWidget *parent)
   : QFrame(parent), ui(new Ui::RadioCoverLayout)
 {
@@ -22,12 +20,11 @@ RadioInfoDisplay::RadioInfoDisplay(QWidget *parent)
   ui->PrimaryLogo->setAlignment(ImageText::TextRight | ImageText::CenterX);
   ui->PrimaryLogo->clear();
 
-  ui->RadioLogo->setPixmap(getApp()->GetImageProvider().DefaultRadio());
+  ui->RadioLogo->setPixmap(getApp()->GetImageProvider().DefaultLogo());
   ui->RadioLogo->setAlignment(ImageText::TextRight | ImageText::CenterX);
   ui->RadioLogo->clear();
 
   ui->HDLogo->setAlignment(ImageText::TextBottom | ImageText::CenterX);
-  ui->HDLogo->setPixmap(QPixmap(HDRADIO_LOGO));
   ui->HDLogo->hide();
 
   ui->lower->hide();
@@ -80,7 +77,7 @@ RadioInfoDisplay::~RadioInfoDisplay()
 
 void RadioInfoDisplay::DisplayStationLogo(const QPixmap &logo) const
 {
-  ui->RadioLogo->setPixmap(logo);
+  ui->RadioLogo->setImage(logo.toImage());
 }
 
 void RadioInfoDisplay::DisplayChannel(const ActiveChannel &channel) const
@@ -105,7 +102,7 @@ void RadioInfoDisplay::ClearID3() const
 
 void RadioInfoDisplay::DisplayPrimaryImage(const QPixmap &image) const
 {
-  ui->PrimaryLogo->setPixmap(image);
+  ui->PrimaryLogo->setImage(image.toImage());
 }
 
 void RadioInfoDisplay::DisplayFavorite(const QModelIndex &index) const

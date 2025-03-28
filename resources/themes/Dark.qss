@@ -167,7 +167,7 @@ QCheckBox {
 }
 
 * [frameShape="1"], * [frameShape="2"], * [frameShape="3"], * [frameShape="4"], * [frameShape="5"], * [frameShape="6"] {
-    border: 1px solid rgb(243,243,243);
+    border: 1px solid var(--border_color);
 }
 
 QFrame [frameShadow="48"] {
