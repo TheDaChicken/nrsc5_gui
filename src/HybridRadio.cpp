@@ -605,6 +605,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 			if (evt->hdc.program == stream->station_info_.current_program)
 			{
 				const NRSC5::ID3 kId3(evt);
+				nrsc5_id3_comment_t *kComment;
 				const unsigned int friendlyId = NRSC5::FriendlyProgramId(evt->id3.program);
 
 				if (!kId3.artist.empty() || !kId3.title.empty())
@@ -633,6 +634,14 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 					            kId3.xhdr.ParamName(),
 					            kId3.xhdr.lot,
 					            NRSC5::DescribeMime(kId3.xhdr.mime));
+
+				for (kComment = evt->id3.comments; kComment != nullptr; kComment = kComment->next)
+					Logger::Log(info,
+								"HD{}: Comment: Lang={} {} {}",
+								friendlyId,
+								kComment->lang,
+								kComment->short_content_desc,
+								kComment->full_text);
 
 				stream->delegate_->HDID3Update(kId3);
 			}
