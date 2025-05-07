@@ -360,16 +360,9 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 				stream->station_info_.country_code = evt->sis.country_code;
 				stream->station_info_.id = evt->sis.fcc_facility_id;
 			}
-			else
-			{
-				stream->station_info_.country_code.clear();
-				stream->station_info_.id = 0;
-			}
 
 			if (evt->sis.name)
 				stream->station_info_.name = evt->sis.name;
-			else
-				stream->station_info_.name.clear();
 
 			if (evt->sis.slogan)
 				stream->station_details_.slogan = evt->sis.slogan;
@@ -383,9 +376,9 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 
 			Logger::Log(info,
 			            "HDRadio: Country={} ID={} Name={} Slogan={} Message={}",
-			            stream->station_info_.country_code,
-			            stream->station_info_.id,
-			            stream->station_info_.name,
+			            evt->sis.country_code,
+			            evt->sis.fcc_facility_id,
+			            evt->sis.name == nullptr ? evt->sis.name : "",
 			            stream->station_details_.slogan,
 			            stream->station_details_.message);
 
@@ -394,7 +387,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 			{
 				const unsigned int kProgramId = audio_service->program;
 
-				/* data service is associated with a program */
+				/* create audio program */
 				NRSC5::Program &program = stream->station_details_.programs[kProgramId];
 				program.type = audio_service->type;
 
@@ -404,7 +397,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 				            NRSC5::Decoder::ProgramTypeName(audio_service->type));
 			}
 			for (data_service = evt->sis.data_services;
-				data_service != nullptr; data_service = data_service->next)
+			     data_service != nullptr; data_service = data_service->next)
 			{
 				Logger::Log(info,
 				            "HDRadio: Data Service access={} type={}",
@@ -552,7 +545,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 			lot.component = kComponent;
 
 			// Discard time is in UTC time
-			lot.discard_utc  = *evt->lot.expiry_utc;
+			lot.discard_utc = *evt->lot.expiry_utc;
 			lot.expire_point = std::chrono::system_clock::from_time_t(UTILS::timegm(lot.discard_utc));
 
 			// Copy data
@@ -637,11 +630,11 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 
 				for (kComment = evt->id3.comments; kComment != nullptr; kComment = kComment->next)
 					Logger::Log(info,
-								"HD{}: Comment: Lang={} {} {}",
-								friendlyId,
-								kComment->lang,
-								kComment->short_content_desc,
-								kComment->full_text);
+					            "HD{}: Comment: Lang={} {} {}",
+					            friendlyId,
+					            kComment->lang,
+					            kComment->short_content_desc,
+					            kComment->full_text);
 
 				stream->delegate_->HDID3Update(kId3);
 			}
