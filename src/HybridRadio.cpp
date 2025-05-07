@@ -376,9 +376,9 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 
 			Logger::Log(info,
 			            "HDRadio: Country={} ID={} Name={} Slogan={} Message={}",
-			            evt->sis.country_code,
+			            evt->sis.country_code != nullptr ? evt->sis.country_code : "",
 			            evt->sis.fcc_facility_id,
-			            evt->sis.name == nullptr ? evt->sis.name : "",
+			            evt->sis.name != nullptr ? evt->sis.name : "",
 			            stream->station_details_.slogan,
 			            stream->station_details_.message);
 
@@ -430,10 +430,6 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 					if (sig_component->type == NRSC5_SIG_SERVICE_AUDIO)
 					{
 						/* data service is associated with a program */
-
-						// Some stations are configured improperly.
-						// They provide multi-programs in SIS and zero in SIG.
-						// I don't check if program exists already here.
 						NRSC5::Program &program = stream->station_details_.programs[sig_component->audio.port];
 
 						program.name = sig_service->name;
