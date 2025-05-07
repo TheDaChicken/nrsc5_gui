@@ -291,9 +291,9 @@
                <string/>
               </property>
               <property name="icon">
-               <iconset>
-                <normaloff>:/buttons/BlackHeart.svg</normaloff>
-                <normalon>:/buttons/RedHeart.svg</normalon>:/buttons/BlackHeart.svg</iconset>
+               <iconset resource="../../resources/Resources.qrc">
+                <normaloff>:/buttons/black/Heart.svg</normaloff>
+                <normalon>:/buttons/RedHeart.svg</normalon>:/buttons/black/Heart.svg</iconset>
               </property>
               <property name="iconSize">
                <size>
@@ -463,10 +463,6 @@ margin: 0px;</string>
               </property>
               <property name="text">
                <string/>
-              </property>
-              <property name="icon">
-               <iconset>
-                <normaloff>:/buttons/BlackMinus.svg</normaloff>:/buttons/BlackMinus.svg</iconset>
               </property>
               <property name="iconSize">
                <size>
