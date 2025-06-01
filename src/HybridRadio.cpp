@@ -350,65 +350,83 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 			            stream->ber_.max);
 			break;
 		}
-		case NRSC5_EVENT_SIS:
+		/* sis as a hint for programs */
+		case NRSC5_EVENT_AUDIO_SERVICE_DESCRIPTOR:
 		{
-			const nrsc5_sis_asd_t *audio_service;
-			const nrsc5_sis_dsd_t *data_service;
+			const unsigned int kProgramId = evt->asd.program;
 
-			if (evt->sis.country_code)
-			{
-				stream->station_info_.country_code = evt->sis.country_code;
-				stream->station_info_.id = evt->sis.fcc_facility_id;
-			}
-
-			if (evt->sis.name)
-				stream->station_info_.name = evt->sis.name;
-
-			if (evt->sis.slogan)
-				stream->station_details_.slogan = evt->sis.slogan;
-			else
-				stream->station_details_.slogan.clear();
-
-			if (evt->sis.message)
-				stream->station_details_.message = evt->sis.message;
-			else
-				stream->station_details_.message.clear();
+			NRSC5::Program &program = stream->station_details_.programs[kProgramId];
+			program.type = evt->asd.type;
 
 			Logger::Log(info,
-			            "HDRadio: Country={} ID={} Name={} Slogan={} Message={}",
-			            evt->sis.country_code != nullptr ? evt->sis.country_code : "",
-			            evt->sis.fcc_facility_id,
-			            evt->sis.name != nullptr ? evt->sis.name : "",
-			            stream->station_details_.slogan,
-			            stream->station_details_.message);
+			            "HD{}: Audio Service type={}",
+			            NRSC5::FriendlyProgramId(kProgramId),
+			            NRSC5::Decoder::ProgramTypeName(program.type));
+			stream->delegate_->RadioStationUpdate(stream->CreateChannel());
+			break;
+		}
+		/* all existing programs get called here */
+		case NRSC5_EVENT_AUDIO_SERVICE:
+		{
+			const unsigned int kProgramId = evt->audio_service.program;
 
-			for (audio_service = evt->sis.audio_services;
-			     audio_service != nullptr; audio_service = audio_service->next)
-			{
-				const unsigned int kProgramId = audio_service->program;
+			NRSC5::Program &program = stream->station_details_.programs[kProgramId];
+			program.type = evt->audio_service.type;
 
-				/* create audio program */
-				NRSC5::Program &program = stream->station_details_.programs[kProgramId];
-				program.type = audio_service->type;
-
-				Logger::Log(info,
-				            "HD{}: Audio Service type={}",
-				            NRSC5::FriendlyProgramId(kProgramId),
-				            NRSC5::Decoder::ProgramTypeName(audio_service->type));
-			}
-			for (data_service = evt->sis.data_services;
-			     data_service != nullptr; data_service = data_service->next)
-			{
-				Logger::Log(info,
-				            "HDRadio: Data Service access={} type={}",
-				            data_service->access == NRSC5_ACCESS_PUBLIC ? "public" : "restricted",
-				            NRSC5::Decoder::ServiceTypeName(data_service->type));
-			}
+			Logger::Log(info,
+			            "HD{}: Audio Service type={}",
+			            NRSC5::FriendlyProgramId(kProgramId),
+			            NRSC5::Decoder::ProgramTypeName(evt->audio_service.type));
 
 			stream->delegate_->RadioStationUpdate(stream->CreateChannel());
 			break;
 		}
-		case NRSC5_EVENT_SIG: /* Part of AAS (SIG = Station Information Guide) */
+		case NRSC5_EVENT_DATA_SERVICE_DESCRIPTOR:
+		{
+			Logger::Log(info,
+			            "HDRadio: Data Service access={} type={}",
+			            evt->dsd.access == NRSC5_ACCESS_PUBLIC ? "public" : "restricted",
+			            NRSC5::Decoder::ServiceTypeName(evt->dsd.type));
+			break;
+		}
+		case NRSC5_EVENT_STATION_ID:
+		{
+			stream->station_info_.country_code = evt->station_id.country_code;
+			stream->station_info_.id = evt->station_id.fcc_facility_id;
+
+			Logger::Log(debug,
+			            "HDRadio: Station ID: {} ({})",
+			            stream->station_info_.id,
+			            stream->station_info_.country_code);
+
+			stream->delegate_->RadioStationUpdate(stream->CreateChannel());
+			break;
+		}
+		case NRSC5_EVENT_STATION_NAME:
+		{
+			stream->station_info_.name = evt->station_name.name;
+
+			Logger::Log(debug, "HDRadio: Station Name: {}", stream->station_info_.name);
+
+			stream->delegate_->RadioStationUpdate(stream->CreateChannel());
+			break;
+		}
+		case NRSC5_EVENT_STATION_MESSAGE:
+		{
+			stream->station_details_.message = evt->station_message.message;
+
+			Logger::Log(debug, "HDRadio: Station Message: {}", stream->station_details_.message);
+			break;
+		}
+		case NRSC5_EVENT_STATION_SLOGAN:
+		{
+			stream->station_details_.slogan = evt->station_slogan.slogan;
+
+			Logger::Log(debug, "HDRadio: Station Slogan: {}", stream->station_details_.slogan);
+			break;
+		}
+		/* Part of AAS (SIG = Station Information Guide) */
+		case NRSC5_EVENT_SIG:
 		{
 			const nrsc5_sig_component_t *sig_component;
 			const nrsc5_sig_service_t *sig_service;
