@@ -127,6 +127,10 @@ struct Program
 
 struct DataService
 {
+	DataService(const nrsc5_sig_service_t *sig_service,
+	            const nrsc5_sig_component_t *component);
+	DataService() = default;
+
 	uint8_t type{0};
 	uint32_t mime{0};
 	uint16_t port{100};
@@ -181,15 +185,11 @@ struct StationDetails
 	// program ID -> program
 	std::map<unsigned int, Program> programs;
 
-	// port -> data service
-	std::unordered_map<int, DataService> services;
-
 	void Reset()
 	{
 		message.clear();
 		slogan.clear();
 		programs.clear();
-		services.clear();
 	}
 };
 
@@ -198,17 +198,8 @@ struct StationDetails
  */
 struct Lot
 {
+	explicit Lot(const nrsc5_event_t *evt);
 	Lot() = default;
-
-	explicit Lot(const unsigned int lotId)
-		: id(lotId)
-	{
-	}
-
-	[[nodiscard]] bool isExpired() const
-	{
-		return expire_point < std::chrono::system_clock::now();
-	}
 
 	unsigned int id{0};
 	uint32_t mime{0};
@@ -216,11 +207,16 @@ struct Lot
 	std::string name;
 	std::filesystem::path path;
 	vector_uint8_t data;
-
-	std::chrono::system_clock::time_point expire_point;
 	tm discard_utc{};
 
-	DataService component{0, 0, 0};
+	std::chrono::system_clock::time_point expire_point;
+
+	DataService component;
+
+	[[nodiscard]] bool isExpired() const
+	{
+		return expire_point < std::chrono::system_clock::now();
+	}
 };
 
 std::string_view DescribeMime(uint32_t mime);
@@ -229,6 +225,7 @@ inline unsigned int FriendlyProgramId(const unsigned int program)
 	// Program ID is 0-based. Friendly would be to display it as 1-based
 	return program + 1;
 }
+
 } // namespace NRSC5
 
 #endif //NRSC5_GUI_SRC_LIB_NRSC5_STATION_H_

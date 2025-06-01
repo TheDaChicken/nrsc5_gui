@@ -27,6 +27,64 @@ NRSC5::ID3::ID3(const nrsc5_event_t *event)
 	xhdr.lot = event->id3.xhdr.lot;
 }
 
+NRSC5::Lot::Lot(const nrsc5_event_t *evt)
+{
+	assert(evt);
+	assert(evt->event == NRSC5_EVENT_LOT);
+
+	id = evt->lot.lot;
+	mime = evt->lot.mime;
+	name = evt->lot.name;
+
+	// Discard time is in UTC time
+	discard_utc = *evt->lot.expiry_utc;
+	expire_point = std::chrono::system_clock::from_time_t(UTILS::timegm(discard_utc));
+
+	component = DataService(evt->lot.service, evt->lot.component);
+
+	// Copy data
+	data.resize(evt->lot.size);
+	memcpy(data.data(), evt->lot.data, evt->lot.size * sizeof(uint8_t));
+}
+
+std::string_view NRSC5::ID3::XHDR::ParamName() const
+{
+	switch (param)
+	{
+		case EMPTY: return "EMPTY";
+		case DEFAULT: return "DEFAULT";
+		case PROVIDED: return "PROVIDED";
+		case FLUSH: return "FLUSH";
+		default: return "Unknown";
+	}
+}
+
+NRSC5::DataService::DataService(const nrsc5_sig_service_t *sig_service, const nrsc5_sig_component_t *component)
+{
+	assert(sig_service);
+	assert(component);
+
+	channel = sig_service->number;
+	if (sig_service->audio_component)
+		programId = sig_service->audio_component->audio.port;
+
+	port = component->data.port;
+	type = component->data.type;
+	mime = component->data.mime;
+}
+
+void NRSC5::Ber::Add(float cber)
+{
+	cber_ = cber;
+	sum += cber;
+	count += 1;
+
+	ber = sum / count;
+
+	if (cber < min) min = cber;
+	if (cber > max) max = cber;
+}
+
 std::string_view NRSC5::DescribeMime(const uint32_t mime)
 {
 	switch (mime)
@@ -50,28 +108,4 @@ std::string_view NRSC5::DescribeMime(const uint32_t mime)
 		case NRSC5_MIME_TTN_STM_WEATHER: return "TTN STM Weather";
 		default: return "Unknown";
 	}
-}
-
-std::string_view NRSC5::ID3::XHDR::ParamName() const
-{
-	switch (param)
-	{
-		case EMPTY: return "EMPTY";
-		case DEFAULT: return "DEFAULT";
-		case PROVIDED: return "PROVIDED";
-		case FLUSH: return "FLUSH";
-		default: return "Unknown";
-	}
-}
-
-void NRSC5::Ber::Add(float cber)
-{
-	cber_ = cber;
-	sum += cber;
-	count += 1;
-
-	ber = sum / count;
-
-	if (cber < min) min = cber;
-	if (cber > max) max = cber;
 }

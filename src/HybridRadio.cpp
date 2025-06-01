@@ -440,8 +440,6 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 				            sig_service->number,
 				            sig_service->name);
 
-				std::optional<unsigned int> audio_program;
-
 				for (sig_component = sig_service->components;
 				     sig_component != nullptr; sig_component = sig_component->next)
 				{
@@ -457,32 +455,14 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 						            sig_component->id,
 						            sig_component->audio.port,
 						            NRSC5::FriendlyProgramId(sig_component->audio.port));
-
-						audio_program = sig_component->audio.port;
 					}
 					else if (sig_component->type == NRSC5_SIG_SERVICE_DATA)
 					{
-						if (!audio_program.has_value()
-							&& sig_service->type == NRSC5_SIG_SERVICE_AUDIO)
-						{
-							Logger::Log(warn, "Data component without audio component");
-							continue;
-						}
-
-						NRSC5::DataService service;
-						service.channel = sig_service->number;
-						service.programId = audio_program;
-						service.port = sig_component->data.port;
-						service.type = sig_component->data.type;
-						service.mime = sig_component->data.mime;
-
 						Logger::Log(debug,
 						            "  Data component: {} port={} mime={}",
 						            sig_component->id,
-						            service.port,
-						            NRSC5::DescribeMime(service.mime));
-
-						stream->station_details_.services.insert({service.port, service});
+						            sig_component->data.port,
+						            NRSC5::DescribeMime(sig_component->data.mime));
 					}
 				}
 			}
@@ -490,18 +470,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		}
 		case NRSC5_EVENT_STREAM:
 		{
-			const auto kIt = stream->station_details_.services.find(evt->stream.port);
-			if (kIt == stream->station_details_.services.end())
-			{
-				Logger::Log(err, "HDRadio: Stream: Unknown port={}", evt->stream.port);
-				break;
-			}
-			const NRSC5::DataService &kComponent = kIt->second;
-
-			if (kComponent.type != 0)
-			{
-				Logger::Log(warn, "Wrong component type {}. port={}", kComponent.type, kComponent.port);
-			}
+			NRSC5::DataService kComponent(evt->packet.service, evt->packet.component);
 
 			Logger::Log(info,
 			            "HD{}: Stream: port={} size={} seq={} mime={} service={}",
@@ -517,18 +486,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		}
 		case NRSC5_EVENT_PACKET:
 		{
-			const auto kIt = stream->station_details_.services.find(evt->packet.port);
-			if (kIt == stream->station_details_.services.end())
-			{
-				Logger::Log(err, "HDRadio: Packet: Unknown port={}", evt->packet.port);
-				break;
-			}
-			const NRSC5::DataService &kComponent = kIt->second;
-
-			if (kComponent.type != 1)
-			{
-				Logger::Log(warn, "Wrong component type {}. port={}", kComponent.type, kComponent.port);
-			}
+			NRSC5::DataService kComponent(evt->packet.service, evt->packet.component);
 
 			Logger::Log(info,
 			            "HD{}: Packet: port={} size={} seq={} mime={} service={}",
@@ -544,32 +502,12 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		}
 		case NRSC5_EVENT_LOT:
 		{
-			const auto kIt = stream->station_details_.services.find(evt->lot.port);
-			if (kIt == stream->station_details_.services.end())
-			{
-				Logger::Log(err, "HDRadio: LOT: Unknown port={}", evt->lot.port);
-				break;
-			}
-
-			const NRSC5::DataService &kComponent = kIt->second;
-			NRSC5::Lot lot(evt->lot.lot);
-
-			lot.mime = evt->lot.mime;
-			lot.name = evt->lot.name;
-			lot.component = kComponent;
-
-			// Discard time is in UTC time
-			lot.discard_utc = *evt->lot.expiry_utc;
-			lot.expire_point = std::chrono::system_clock::from_time_t(UTILS::timegm(lot.discard_utc));
-
-			// Copy data
-			lot.data.resize(evt->lot.size);
-			memcpy(lot.data.data(), evt->lot.data, evt->lot.size * sizeof(uint8_t));
+			NRSC5::Lot lot(evt);
 
 			Logger::Log(info,
 			            "HD{}: LOT: file port={} id={} name={} size={} mime={} service={} expire={:%Y-%m-%dT%H:%M:%SZ} (in {})",
-			            kComponent.programId.has_value()
-				            ? fmt::to_string(NRSC5::FriendlyProgramId(kComponent.programId.value()))
+			            lot.component.programId.has_value()
+				            ? fmt::to_string(NRSC5::FriendlyProgramId(lot.component.programId.value()))
 				            : "Radio",
 			            lot.component.port,
 			            lot.id,
@@ -577,8 +515,8 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 			            lot.data.size(),
 			            /* mime */
 			            NRSC5::DescribeMime(lot.mime),
-			            NRSC5::DescribeMime(kComponent.mime),
-			            /* discard */
+			            NRSC5::DescribeMime(lot.component.mime),
+			            /* discard info */
 			            lot.discard_utc,
 			            std::chrono::duration_cast<std::chrono::seconds>(
 				            lot.expire_point - std::chrono::system_clock::now())
