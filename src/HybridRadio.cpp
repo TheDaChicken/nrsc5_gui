@@ -280,8 +280,6 @@ void HybridRadio::SDRCallback(
 
 	std::lock_guard lock(station_mutex_);
 	nrsc5_decoder_.SendIQ(reinterpret_cast<int16_t *>(convert_buffer_.data()), len * 2);
-
-	fflush(stderr); // This is temporary to fix nrsc5 debug library logging with spdlog.
 }
 
 void HybridRadio::NRSC5Audio(const int16_t *data, const size_t frame_size)
