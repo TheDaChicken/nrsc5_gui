@@ -317,6 +317,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		case NRSC5_EVENT_SYNC:
 		{
 			Logger::Log(info, "HDRadio: Synchronized");
+			Logger::Log(info, "HDRadio: Primary Service Mode: {}", evt->sync.psmi);
 			stream->delegate_->HDSyncUpdate(true);
 			stream->m_sync_ = std::chrono::steady_clock::now();
 			break;
