@@ -11,11 +11,6 @@ option(ENABLE_TESTS "Enable tests" OFF)
 include(FetchContent)
 include(ExternalProject)
 
-if (WIN32)
-    # NRSC5 shared breaks on Windows???
-    set(NRSC5_STATIC ON)
-endif ()
-
 # set(LINKER_FLAGS "-static-libgcc -static-libstdc++")
 
 find_package(RTLSDR REQUIRED)
