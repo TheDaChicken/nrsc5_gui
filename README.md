@@ -9,27 +9,16 @@ It was made in Python with dependencies that are linux only or are hard to insta
 ### Dependencies
 - CMake
 - Qt6
-- SQLite (embedded into the project)
-- nrsc5 (my fork of the original nrsc5)
+- nrsc5
 - libusb (from [PortSDR](https://github.com/TheDaChicken/PortSDR/))
 - librtlsdr (from [PortSDR](https://github.com/TheDaChicken/PortSDR/))
 - PortAudio (Cmake automatically downloads)
 - fmt (used with spdlog) (Cmake automatically downloads)
 - spdlog (used with fmt) (Cmake automatically downloads)
 - nlohmann/json (Cmake automatically downloads)
+- SQLite (embedded into the project)
 
-### Building nrsc5
-
-This requires the nrsc5 fork I made with better buffering.
-You can compile it just like the original nrsc5, but with the elastic-buffering branch.
-
-```bash
-... # Follow the original nrsc5 build instructions
-git clone https://github.com/TheDaChicken/nrsc5/
-cd nrsc5
-git checkout elastic-buffering
-... # Follow the original nrsc5 build instructions
-```
+The build instructions assumes that libnrsc5 is compiled and able to be found by CMake. 
 
 ### Building on Ubuntu
 
