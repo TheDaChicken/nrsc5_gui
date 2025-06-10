@@ -30,7 +30,7 @@ NRSC5::ID3::ID3(const nrsc5_event_t *event)
 NRSC5::Lot::Lot(const nrsc5_event_t *evt)
 {
 	assert(evt);
-	assert(evt->event == NRSC5_EVENT_LOT);
+	assert(evt->event == NRSC5_EVENT_LOT || evt->event == NRSC5_EVENT_LOT_HEADER);
 
 	id = evt->lot.lot;
 	mime = evt->lot.mime;
@@ -42,9 +42,12 @@ NRSC5::Lot::Lot(const nrsc5_event_t *evt)
 
 	component = DataService(evt->lot.service, evt->lot.component);
 
-	// Copy data
-	data.resize(evt->lot.size);
-	memcpy(data.data(), evt->lot.data, evt->lot.size * sizeof(uint8_t));
+	if (evt->lot.data != nullptr)
+	{
+		// Copy data
+		data.resize(evt->lot.size);
+		memcpy(data.data(), evt->lot.data, evt->lot.size);
+	}
 }
 
 std::string_view NRSC5::ID3::XHDR::ParamName() const

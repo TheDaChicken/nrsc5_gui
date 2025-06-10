@@ -393,7 +393,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 			stream->station_info_.country_code = evt->station_id.country_code;
 			stream->station_info_.id = evt->station_id.fcc_facility_id;
 
-			Logger::Log(debug,
+			Logger::Log(info,
 			            "HDRadio: Station ID: {} ({})",
 			            stream->station_info_.id,
 			            stream->station_info_.country_code);
@@ -405,7 +405,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		{
 			stream->station_info_.name = evt->station_name.name;
 
-			Logger::Log(debug, "HDRadio: Station Name: {}", stream->station_info_.name);
+			Logger::Log(info, "HDRadio: Station Name: {}", stream->station_info_.name);
 
 			stream->delegate_->RadioStationUpdate(stream->CreateChannel());
 			break;
@@ -414,14 +414,14 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		{
 			stream->station_details_.message = evt->station_message.message;
 
-			Logger::Log(debug, "HDRadio: Station Message: {}", stream->station_details_.message);
+			Logger::Log(info, "HDRadio: Station Message: {}", stream->station_details_.message);
 			break;
 		}
 		case NRSC5_EVENT_STATION_SLOGAN:
 		{
 			stream->station_details_.slogan = evt->station_slogan.slogan;
 
-			Logger::Log(debug, "HDRadio: Station Slogan: {}", stream->station_details_.slogan);
+			Logger::Log(info, "HDRadio: Station Slogan: {}", stream->station_details_.slogan);
 			break;
 		}
 		/* Part of AAS (SIG = Station Information Guide) */
@@ -471,7 +471,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		{
 			NRSC5::DataService kComponent(evt->packet.service, evt->packet.component);
 
-			Logger::Log(info,
+			Logger::Log(debug,
 			            "HD{}: Stream: port={} size={} seq={} mime={} service={}",
 			            kComponent.programId.has_value()
 				            ? fmt::to_string(NRSC5::FriendlyProgramId(kComponent.programId.value()))
@@ -487,7 +487,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		{
 			NRSC5::DataService kComponent(evt->packet.service, evt->packet.component);
 
-			Logger::Log(info,
+			Logger::Log(debug,
 			            "HD{}: Packet: port={} size={} seq={} mime={} service={}",
 			            kComponent.programId.has_value()
 				            ? fmt::to_string(NRSC5::FriendlyProgramId(kComponent.programId.value()))
@@ -499,12 +499,35 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 			            NRSC5::DescribeMime(kComponent.mime));
 			break;
 		}
+		case NRSC5_EVENT_LOT_HEADER:
+		{
+			NRSC5::Lot lot(evt);
+
+			Logger::Log(debug,
+						"HD{}: LOT Header: port={} id={} name={} size={} mime={} service={} expire={:%Y-%m-%dT%H:%M:%SZ} (in {})",
+						lot.component.programId.has_value()
+							? fmt::to_string(NRSC5::FriendlyProgramId(lot.component.programId.value()))
+							: "Radio",
+						lot.component.port,
+						lot.id,
+						lot.name,
+						lot.data.size(),
+						/* mime */
+						NRSC5::DescribeMime(lot.mime),
+						NRSC5::DescribeMime(lot.component.mime),
+						/* discard info */
+						lot.discard_utc,
+						std::chrono::duration_cast<std::chrono::seconds>(
+							lot.expire_point - std::chrono::system_clock::now())
+			);
+			break;
+		}
 		case NRSC5_EVENT_LOT:
 		{
 			NRSC5::Lot lot(evt);
 
 			Logger::Log(info,
-			            "HD{}: LOT: file port={} id={} name={} size={} mime={} service={} expire={:%Y-%m-%dT%H:%M:%SZ} (in {})",
+			            "HD{}: LOT File: port={} id={} name={} size={} mime={} service={} expire={:%Y-%m-%dT%H:%M:%SZ} (in {})",
 			            lot.component.programId.has_value()
 				            ? fmt::to_string(NRSC5::FriendlyProgramId(lot.component.programId.value()))
 				            : "Radio",
