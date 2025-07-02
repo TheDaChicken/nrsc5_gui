@@ -73,10 +73,9 @@ class HybridRadio
 
 	private:
 		void NRSC5Audio(const int16_t *data, std::size_t frame_size);
+		void NRSC5Callback(const nrsc5_event_t *evt);
 		void SDRCallback(const int16_t *data, std::size_t frame_size);
 		[[nodiscard]] ActiveChannel CreateChannel() const;
-
-		static void NRSC5Callback(const nrsc5_event_t *evt, void *opaque);
 
 		std::unique_ptr<PortSDR::Stream> sdr_stream_;
 
@@ -100,7 +99,6 @@ class HybridRadio
 		vector_cint16_t convert_buffer_;
 		vector_float_t audio_buffer_;
 
-		bool audio_disabled = false;
 		PortAudio::StreamLiveOutputPush audio_stream_;
 
 		mutable std::mutex station_mutex_;

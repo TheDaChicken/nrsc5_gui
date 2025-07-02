@@ -23,12 +23,20 @@ HybridRadio::HybridRadio(Delegate *delegate)
 {
 	assert(this->delegate_);
 
-	int ret = nrsc5_decoder_.OpenPipe();
 	// This won't happen. The function always returns 0.
-	if (ret < 0)
+	if (int ret = nrsc5_decoder_.OpenPipe(); ret < 0)
 		throw std::runtime_error("Failed to open NRSC5 pipe");
 
-	nrsc5_decoder_.SetCallback(NRSC5Callback, this);
+	nrsc5_decoder_.SetCallback(
+		[](const nrsc5_event_t *evt, void *opaque)
+		{
+			const auto radio = static_cast<HybridRadio *>(opaque);
+			if (!radio)
+				return;
+
+			radio->NRSC5Callback(evt);
+		},
+		this);
 }
 
 UTILS::StatusCodes HybridRadio::Start()
@@ -44,14 +52,14 @@ UTILS::StatusCodes HybridRadio::Start()
 	}
 
 	// Start audio output
-	if (!audio_disabled)
+	if (audio_stream_.IsOpen())
 	{
 		ret = audio_stream_.Start();
 		if (ret < 0)
 		{
-			sdr_stream_->Stop();
-
 			Logger::Log(err, "Failed to start audio output");
+
+			sdr_stream_->Stop();
 			return UTILS::StatusCodes::UnknownError;
 		}
 	}
@@ -74,9 +82,9 @@ UTILS::StatusCodes HybridRadio::Stop()
 	// Reset libnrsc5
 	nrsc5_decoder_.SetFrequency(-1);
 
-	if (!audio_disabled)
+	// Stop audio output
+	if (audio_stream_.IsOpen())
 	{
-		// Stop audio output
 		ret = audio_stream_.Stop();
 		if (ret < 0)
 		{
@@ -138,12 +146,11 @@ UTILS::StatusCodes HybridRadio::SetAudioDevice(
 	if (!device)
 		return UTILS::StatusCodes::UnknownError;
 
+	if (audio_stream_.IsOpen())
+		audio_stream_.Close();
+
 	if (device->isNull())
-	{
-		Logger::Log(warn, "Selected Device: Disabled");
-		audio_disabled = true;
 		return UTILS::StatusCodes::Ok;
-	}
 
 	PortAudio::StreamParametersRingBuffer params;
 
@@ -158,14 +165,13 @@ UTILS::StatusCodes HybridRadio::SetAudioDevice(
 	params.bufferLatency = HYBRID_RADIO_OUTPUT_DELAY_FRAMES;
 	params.sampleRate = NRSC5_SAMPLE_RATE_AUDIO;
 
-	if (int ret = audio_stream_.Open(params); ret < 0)
+	if (const int ret = audio_stream_.Open(params); ret < 0)
 	{
 		Logger::Log(err, "Failed to open audio output: {}", Pa_GetErrorText(ret));
 		return UTILS::StatusCodes::UnknownError;
 	}
 
 	delegate_->SetAudioStream(audio_stream_);
-	audio_disabled = false;
 	return UTILS::StatusCodes::Ok;
 }
 
@@ -297,56 +303,43 @@ void HybridRadio::NRSC5Audio(const int16_t *data, const size_t frame_size)
 	audio_stream_.WriteFrame(audio_buffer_.data(), frame_size / 2);
 }
 
-ActiveChannel HybridRadio::CreateChannel() const
+void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt)
 {
-	assert(this->sdr_stream_);
-
-	return {
-		TunerOpts{Modulation::Type::MOD_FM, sdr_stream_->GetCenterFrequency()},
-		station_info_,
-		station_details_
-	};
-}
-
-void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
-{
-	auto *stream = static_cast<HybridRadio *>(opaque);
-
 	switch (evt->event)
 	{
 		case NRSC5_EVENT_SYNC:
 		{
 			Logger::Log(info, "HDRadio: Synchronized");
 			Logger::Log(info, "HDRadio: Primary Service Mode: {}", evt->sync.psmi);
-			stream->delegate_->HDSyncUpdate(true);
-			stream->m_sync_ = std::chrono::steady_clock::now();
+			delegate_->HDSyncUpdate(true);
+			m_sync_ = std::chrono::steady_clock::now();
 			break;
 		}
 		case NRSC5_EVENT_LOST_SYNC:
 		{
 			Logger::Log(info, "HDRadio: Lost Sync");
-			stream->delegate_->HDSyncUpdate(false);
-			stream->m_sync_.reset();
+			delegate_->HDSyncUpdate(false);
+			m_sync_.reset();
 			break;
 		}
 		case NRSC5_EVENT_MER:
 		{
 			Logger::Log(info, "HDRadio: MER: {:.1f} dB (lower), {:.1f} dB (upper)", evt->mer.lower, evt->mer.upper);
-			stream->delegate_->HDSignalStrengthUpdate(evt->mer.lower, evt->mer.upper);
+			delegate_->HDSignalStrengthUpdate(evt->mer.lower, evt->mer.upper);
 			break;
 		}
 		case NRSC5_EVENT_BER:
 		{
 			const float cber = evt->ber.cber;
 
-			stream->ber_.Add(cber);
+			ber_.Add(cber);
 
 			Logger::Log(info,
 			            "HDRadio: BER: {:.6f}, avg: {:.6f}, min: {:.6f}, max: {:.6f}",
 			            cber,
-			            stream->ber_.ber,
-			            stream->ber_.min,
-			            stream->ber_.max);
+			            ber_.ber,
+			            ber_.min,
+			            ber_.max);
 			break;
 		}
 		/* sis as a hint for programs */
@@ -354,14 +347,14 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		{
 			const unsigned int kProgramId = evt->asd.program;
 
-			NRSC5::Program &program = stream->station_details_.programs[kProgramId];
+			NRSC5::Program &program = station_details_.programs[kProgramId];
 			program.type = evt->asd.type;
 
 			Logger::Log(info,
 			            "HD{}: Audio Service type={}",
 			            NRSC5::FriendlyProgramId(kProgramId),
 			            NRSC5::Decoder::ProgramTypeName(program.type));
-			stream->delegate_->RadioStationUpdate(stream->CreateChannel());
+			delegate_->RadioStationUpdate(CreateChannel());
 			break;
 		}
 		/* all existing programs get called here */
@@ -369,7 +362,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		{
 			const unsigned int kProgramId = evt->audio_service.program;
 
-			NRSC5::Program &program = stream->station_details_.programs[kProgramId];
+			NRSC5::Program &program = station_details_.programs[kProgramId];
 			program.type = evt->audio_service.type;
 
 			Logger::Log(info,
@@ -377,7 +370,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 			            NRSC5::FriendlyProgramId(kProgramId),
 			            NRSC5::Decoder::ProgramTypeName(evt->audio_service.type));
 
-			stream->delegate_->RadioStationUpdate(stream->CreateChannel());
+			delegate_->RadioStationUpdate(CreateChannel());
 			break;
 		}
 		case NRSC5_EVENT_DATA_SERVICE_DESCRIPTOR:
@@ -390,38 +383,38 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 		}
 		case NRSC5_EVENT_STATION_ID:
 		{
-			stream->station_info_.country_code = evt->station_id.country_code;
-			stream->station_info_.id = evt->station_id.fcc_facility_id;
+			station_info_.country_code = evt->station_id.country_code;
+			station_info_.id = evt->station_id.fcc_facility_id;
 
 			Logger::Log(info,
 			            "HDRadio: Station ID: {} ({})",
-			            stream->station_info_.id,
-			            stream->station_info_.country_code);
+			            station_info_.id,
+			            station_info_.country_code);
 
-			stream->delegate_->RadioStationUpdate(stream->CreateChannel());
+			delegate_->RadioStationUpdate(CreateChannel());
 			break;
 		}
 		case NRSC5_EVENT_STATION_NAME:
 		{
-			stream->station_info_.name = evt->station_name.name;
+			station_info_.name = evt->station_name.name;
 
-			Logger::Log(info, "HDRadio: Station Name: {}", stream->station_info_.name);
+			Logger::Log(info, "HDRadio: Station Name: {}", station_info_.name);
 
-			stream->delegate_->RadioStationUpdate(stream->CreateChannel());
+			delegate_->RadioStationUpdate(CreateChannel());
 			break;
 		}
 		case NRSC5_EVENT_STATION_MESSAGE:
 		{
-			stream->station_details_.message = evt->station_message.message;
+			station_details_.message = evt->station_message.message;
 
-			Logger::Log(info, "HDRadio: Station Message: {}", stream->station_details_.message);
+			Logger::Log(info, "HDRadio: Station Message: {}", station_details_.message);
 			break;
 		}
 		case NRSC5_EVENT_STATION_SLOGAN:
 		{
-			stream->station_details_.slogan = evt->station_slogan.slogan;
+			station_details_.slogan = evt->station_slogan.slogan;
 
-			Logger::Log(info, "HDRadio: Station Slogan: {}", stream->station_details_.slogan);
+			Logger::Log(info, "HDRadio: Station Slogan: {}", station_details_.slogan);
 			break;
 		}
 		/* Part of AAS (SIG = Station Information Guide) */
@@ -445,7 +438,7 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 					if (sig_component->type == NRSC5_SIG_SERVICE_AUDIO)
 					{
 						/* data service is associated with a program */
-						NRSC5::Program &program = stream->station_details_.programs[sig_component->audio.port];
+						NRSC5::Program &program = station_details_.programs[sig_component->audio.port];
 
 						program.name = sig_service->name;
 
@@ -504,21 +497,21 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 			NRSC5::Lot lot(evt);
 
 			Logger::Log(debug,
-						"HD{}: LOT Header: port={} id={} name={} size={} mime={} service={} expire={:%Y-%m-%dT%H:%M:%SZ} (in {})",
-						lot.component.programId.has_value()
-							? fmt::to_string(NRSC5::FriendlyProgramId(lot.component.programId.value()))
-							: "Radio",
-						lot.component.port,
-						lot.id,
-						lot.name,
-						lot.data.size(),
-						/* mime */
-						NRSC5::DescribeMime(lot.mime),
-						NRSC5::DescribeMime(lot.component.mime),
-						/* discard info */
-						lot.discard_utc,
-						std::chrono::duration_cast<std::chrono::seconds>(
-							lot.expire_point - std::chrono::system_clock::now())
+			            "HD{}: LOT Header: port={} id={} name={} size={} mime={} service={} expire={:%Y-%m-%dT%H:%M:%SZ} (in {})",
+			            lot.component.programId.has_value()
+				            ? fmt::to_string(NRSC5::FriendlyProgramId(lot.component.programId.value()))
+				            : "Radio",
+			            lot.component.port,
+			            lot.id,
+			            lot.name,
+			            lot.data.size(),
+			            /* mime */
+			            NRSC5::DescribeMime(lot.mime),
+			            NRSC5::DescribeMime(lot.component.mime),
+			            /* discard info */
+			            lot.discard_utc,
+			            std::chrono::duration_cast<std::chrono::seconds>(
+				            lot.expire_point - std::chrono::system_clock::now())
 			);
 			break;
 		}
@@ -544,32 +537,32 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 				            lot.expire_point - std::chrono::system_clock::now())
 			);
 
-			stream->delegate_->HDReceivedLot(stream->station_info_, lot);
+			delegate_->HDReceivedLot(station_info_, lot);
 			break;
 		}
 		case NRSC5_EVENT_HDC:
 		{
-			if (evt->hdc.program == stream->station_info_.current_program)
+			if (evt->hdc.program == station_info_.current_program)
 			{
-				stream->audio_packets++;
-				stream->audio_bytes += evt->hdc.count * sizeof(evt->hdc.data[0]);
+				audio_packets++;
+				audio_bytes += evt->hdc.count * sizeof(evt->hdc.data[0]);
 
-				if (stream->audio_packets >= 32)
+				if (audio_packets >= 32)
 				{
 					Logger::Log(info,
 					            "Audio bit rate: {:.1f} kbps",
-					            static_cast<float>(stream->audio_bytes)
+					            static_cast<float>(audio_bytes)
 					            * 8 * NRSC5_SAMPLE_RATE_AUDIO / NRSC5_AUDIO_FRAME_SAMPLES /
-					            static_cast<float>(stream->audio_packets) / 1000);
-					stream->audio_packets = 0;
-					stream->audio_bytes = 0;
+					            static_cast<float>(audio_packets) / 1000);
+					audio_packets = 0;
+					audio_bytes = 0;
 				}
 			}
 			break;
 		}
 		case NRSC5_EVENT_ID3:
 		{
-			if (evt->hdc.program == stream->station_info_.current_program)
+			if (evt->hdc.program == station_info_.current_program)
 			{
 				const NRSC5::ID3 kId3(evt);
 				nrsc5_id3_comment_t *kComment;
@@ -610,16 +603,16 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 					            kComment->short_content_desc,
 					            kComment->full_text);
 
-				stream->delegate_->HDID3Update(kId3);
+				delegate_->HDID3Update(kId3);
 			}
 			break;
 		}
 		case NRSC5_EVENT_AUDIO:
 		{
-			if (evt->audio.program != stream->station_info_.current_program)
+			if (evt->audio.program != station_info_.current_program)
 				break;
 
-			stream->NRSC5Audio(evt->audio.data, evt->audio.count);
+			NRSC5Audio(evt->audio.data, evt->audio.count);
 			break;
 		}
 		default:
@@ -627,3 +620,13 @@ void HybridRadio::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)
 	}
 }
 
+ActiveChannel HybridRadio::CreateChannel() const
+{
+	assert(this->sdr_stream_);
+
+	return {
+		TunerOpts{Modulation::Type::MOD_FM, sdr_stream_->GetCenterFrequency()},
+		station_info_,
+		station_details_
+	};
+}
