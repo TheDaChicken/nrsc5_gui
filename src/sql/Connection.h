@@ -20,7 +20,7 @@ class Connection
 		~Connection();
 
 		UTILS::StatusCodes Open(const std::filesystem::path &path, int flags);
-		UTILS::StatusCodes Prepare(const std::string &sql, sqlite3_stmt *&stmt);
+		UTILS::StatusCodes Prepare(const std::string& sql, sqlite3_stmt *&stmt);
 
 		[[nodiscard]] sqlite3 *Get() const
 		{

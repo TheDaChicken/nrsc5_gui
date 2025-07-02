@@ -7,7 +7,7 @@
 
 #include <QThreadStorage>
 
-#include "Connection.h"
+#include "sql/Connection.h"
 #include "utils/Error.h"
 
 namespace SQLite

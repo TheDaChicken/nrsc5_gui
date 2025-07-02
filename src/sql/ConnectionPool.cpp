@@ -6,7 +6,7 @@
 
 #include <QThread>
 
-#include "SqliteHelper.h"
+#include "sql/SqliteHelper.h"
 
 enum Settings : int
 {

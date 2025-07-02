@@ -8,6 +8,7 @@
 #include <RadioChannel.h>
 
 #include "ConnectionPool.h"
+#include "PreparedStatement.h"
 #include "sqlite/sqlite3.h"
 #include "Utils/Error.h"
 
@@ -42,8 +43,7 @@ class Database
 		UTILS::StatusCodes CreateSchemaVersion();
 		UTILS::StatusCodes CreateSchema();
 
-		static void ConvertToLot(sqlite3_stmt *stmt, NRSC5::Lot &lot);
-		static std::string ReadString(sqlite3_stmt *stmt, int index);
+		static void ConvertToLot(const PreparedStatement &stmt, NRSC5::Lot &lot);
 
 		ConnectionPool pool_;
 };

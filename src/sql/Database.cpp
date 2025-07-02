@@ -101,41 +101,6 @@ static constexpr auto kGetHDRadioLotsPerService = R"(
 	;
 )";
 
-class PooledPreparedStatement
-{
-	public:
-		explicit PooledPreparedStatement(SQLite::Connection &connection) : connection(connection)
-		{
-		}
-
-		bool Prepare(const std::string &sql)
-		{
-			connection.Prepare(sql, stmt_);
-			return stmt_ != nullptr;
-		}
-
-		[[nodiscard]] sqlite3 *GetConnection() const
-		{
-			return connection.Get();
-		}
-
-		[[nodiscard]] sqlite3_stmt *Get() const
-		{
-			return stmt_;
-		}
-
-		~PooledPreparedStatement()
-		{
-			if (stmt_)
-				sqlite3_clear_bindings(stmt_);
-			sqlite3_reset(stmt_);
-		}
-
-	private:
-		SQLite::Connection &connection;
-		sqlite3_stmt *stmt_{nullptr};
-};
-
 UTILS::StatusCodes SQLite::Database::Open(const std::string &path)
 {
 	if (pool_.Open(path) != UTILS::StatusCodes::Ok)
@@ -189,17 +154,16 @@ UTILS::StatusCodes SQLite::Database::CreateSchemaVersion()
 	sqlite3 *db = pool_.GetConnection().Get();
 
 	SQLITE_RETURN_ERRMSG(sqlite3_exec(db, kCreateSchemaVersion,
-						 nullptr, nullptr, nullptr),
-					 "Unable to create Schema Version table");
+		                     nullptr, nullptr, nullptr),
+	                     "Unable to create Schema Version table");
 
 	return UTILS::StatusCodes::Ok;
 }
 
 UTILS::StatusCodes SQLite::Database::GetSchemaVersion(int &version)
 {
-	PooledPreparedStatement statement(pool_.GetConnection());
+	PreparedStatement statement(pool_.GetConnection());
 	sqlite3 *db = statement.GetConnection();
-	int ret;
 
 	if (statement.Prepare(kGetSchemaVersion) == false)
 	{
@@ -207,7 +171,7 @@ UTILS::StatusCodes SQLite::Database::GetSchemaVersion(int &version)
 		return {};
 	}
 
-	ret = sqlite3_step(statement.Get());
+	int ret = sqlite3_step(statement.Get());
 	if (ret == SQLITE_OK || ret == SQLITE_DONE)
 		return UTILS::StatusCodes::Empty;
 	if (ret == SQLITE_ROW)
@@ -224,7 +188,7 @@ UTILS::StatusCodes SQLite::Database::GetSchemaVersion(int &version)
 
 UTILS::StatusCodes SQLite::Database::SetSchemaVersion(const int version)
 {
-	PooledPreparedStatement statement(pool_.GetConnection());
+	PreparedStatement statement(pool_.GetConnection());
 	sqlite3 *db = statement.GetConnection();
 	int ret;
 
@@ -252,7 +216,7 @@ UTILS::StatusCodes SQLite::Database::GetSettingValue(
 	const std::string_view key,
 	std::string &value)
 {
-	PooledPreparedStatement statement(pool_.GetConnection());
+	PreparedStatement statement(pool_.GetConnection());
 	sqlite3 *db = statement.GetConnection();
 	int ret;
 
@@ -262,19 +226,14 @@ UTILS::StatusCodes SQLite::Database::GetSettingValue(
 		return {};
 	}
 
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_text(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":key"),
-		                     key.data(),
-		                     static_cast<int>(key.size()),
-		                     SQLITE_STATIC),
-	                     "Unable to set Get Setting key");
+	SQLITE_RETURN_ERRMSG(statement.BindText(":key", key), "Unable to set Setting Key");
 
-	ret = sqlite3_step(statement.Get());
+	ret = statement.Step();
 	if (ret == SQLITE_OK || ret == SQLITE_DONE)
 		return UTILS::StatusCodes::Empty;
 	if (ret == SQLITE_ROW)
 	{
-		value = ReadString(statement.Get(), 1);
+		value = statement.ReadString(1);
 		return UTILS::StatusCodes::Ok;
 	}
 	else
@@ -288,7 +247,7 @@ UTILS::StatusCodes SQLite::Database::SetSettingValue(
 	const std::string_view key,
 	const std::string_view value)
 {
-	PooledPreparedStatement statement(pool_.GetConnection());
+	PreparedStatement statement(pool_.GetConnection());
 	sqlite3 *db = statement.GetConnection();
 	int ret;
 
@@ -298,20 +257,10 @@ UTILS::StatusCodes SQLite::Database::SetSettingValue(
 		return UTILS::StatusCodes::DatabaseError;
 	}
 
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_text(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":key"),
-		                     key.data(),
-		                     static_cast<int>(key.size()),
-		                     SQLITE_STATIC),
-	                     "Unable to set Insert Setting key");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_text(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":value"),
-		                     value.data(),
-		                     static_cast<int>(value.size()),
-		                     SQLITE_STATIC),
-	                     "Unable to set Insert Setting value");
+	SQLITE_RETURN_ERRMSG(statement.BindText(":key", key), "Unable to set Setting key");
+	SQLITE_RETURN_ERRMSG(statement.BindText(":value", value), "Unable to set Setting value");
 
-	ret = sqlite3_step(statement.Get());
+	ret = statement.Step();
 	if (ret == SQLITE_OK || ret == SQLITE_DONE)
 		return UTILS::StatusCodes::Ok;
 	else
@@ -326,7 +275,7 @@ UTILS::StatusCodes SQLite::Database::InsertLot(
 	const NRSC5::Lot &lot,
 	const std::filesystem::path &path)
 {
-	PooledPreparedStatement statement(pool_.GetConnection());
+	PreparedStatement statement(pool_.GetConnection());
 	sqlite3 *db = statement.GetConnection();
 	const std::string path_str = path.string();
 	int ret;
@@ -337,44 +286,28 @@ UTILS::StatusCodes SQLite::Database::InsertLot(
 		return UTILS::StatusCodes::DatabaseError;
 	}
 
+	const auto expire = std::chrono::duration_cast<std::chrono::seconds>(
+		lot.expire_point.time_since_epoch()).count();
+
 	assert(lot.id > 0);
 	assert(lot.component.channel > 0);
 
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_text(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":callSign"),
-		                     station.name.data(),
-		                     static_cast<int>(station.name.size()),
-		                     SQLITE_STATIC),
-	                     "Unable to set Insert LOT callSign");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":channel"),
-		                     lot.component.channel),
-	                     "Unable to set Insert LOT channel");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":service"),
-		                     lot.component.mime),
-	                     "Unable to set Insert LOT service");
+	SQLITE_RETURN_ERRMSG(statement.BindText(":callSign", station.name),
+	                     "Unable to set LOT callSign for INSERT");
+	SQLITE_RETURN_ERRMSG(statement.BindInt(":channel", lot.component.channel),
+	                     "Unable to set LOT channel for INSERT");
+	SQLITE_RETURN_ERRMSG(statement.BindInt64(":service", lot.component.mime),
+	                     "Unable to set LOT service for INSERT");
 
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":lotId"),
-		                     lot.id),
-	                     "Unable to set Insert Lot ID");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":mime"),
-		                     lot.mime),
-	                     "Unable to set Insert LOT Mime");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_text(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":path"),
-		                     path_str.data(),
-		                     static_cast<int>(path_str.size()),
-		                     SQLITE_STATIC),
-	                     "Unable to set Insert Lot Path");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":expire"),
-		                     std::chrono::duration_cast<std::chrono::seconds>(lot.expire_point.time_since_epoch()).count()),
-	                     "Unable to set Insert Lot Expire");
-
-	ret = sqlite3_step(statement.Get());
+	SQLITE_RETURN_ERRMSG(statement.BindInt(":lotId", lot.id),
+	                     "Unable to set Lot ID for INSERT");
+	SQLITE_RETURN_ERRMSG(statement.BindInt64(":mime", lot.mime),
+	                     "Unable to set Lot Mime for INSERT");;
+	SQLITE_RETURN_ERRMSG(statement.BindText(":path", path_str),
+	                     "Unable to set Lot Path for INSERT");
+	SQLITE_RETURN_ERRMSG(statement.BindInt64(":expire", expire),
+	                     "Unable to set Lot Expire for INSERT");
+	ret = statement.Step();
 	if (ret == SQLITE_OK || ret == SQLITE_DONE)
 		return UTILS::StatusCodes::Ok;
 	else
@@ -388,7 +321,7 @@ UTILS::StatusCodes SQLite::Database::GetLot(
 	const NRSC5::StationInfo &station,
 	NRSC5::Lot &lot)
 {
-	PooledPreparedStatement statement(pool_.GetConnection());
+	PreparedStatement statement(pool_.GetConnection());
 	sqlite3 *db = statement.GetConnection();
 	int ret;
 
@@ -401,32 +334,22 @@ UTILS::StatusCodes SQLite::Database::GetLot(
 		return UTILS::StatusCodes::DatabaseError;
 	}
 
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_text(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":callSign"),
-		                     station.name.data(),
-		                     static_cast<int>(station.name.size()),
-		                     SQLITE_STATIC),
+	SQLITE_RETURN_ERRMSG(statement.BindText(":callSign", station.name),
 	                     "Unable to set Get LOT CallSign");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":channel"),
-		                     lot.component.channel),
+	SQLITE_RETURN_ERRMSG(statement.BindInt(":channel", lot.component.channel),
 	                     "Unable to set Get Lot Channel");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":service"),
-		                     lot.component.mime),
+	SQLITE_RETURN_ERRMSG(statement.BindInt64(":service", lot.component.mime),
 	                     "Unable to set Get Lot Service");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":lotId"),
-		                     lot.id),
+	SQLITE_RETURN_ERRMSG(statement.BindInt(":lotId", lot.id),
 	                     "Unable to set Get Lot ID");
 
-	ret = sqlite3_step(statement.Get());
+	ret = statement.Step();
 	if (ret == SQLITE_OK || ret == SQLITE_DONE)
 		return UTILS::StatusCodes::Empty;
 	if (ret == SQLITE_ROW)
 	{
 		assert(lot.id == sqlite3_column_int(statement.Get(), 3));
-		ConvertToLot(statement.Get(), lot);
+		ConvertToLot(statement, lot);
 		return UTILS::StatusCodes::Ok;
 	}
 	else
@@ -440,7 +363,7 @@ UTILS::StatusCodes SQLite::Database::DeleteLot(
 	const NRSC5::StationInfo &station,
 	const NRSC5::Lot &lot)
 {
-	PooledPreparedStatement statement(pool_.GetConnection());
+	PreparedStatement statement(pool_.GetConnection());
 	sqlite3 *db = statement.GetConnection();
 	int ret;
 
@@ -450,26 +373,16 @@ UTILS::StatusCodes SQLite::Database::DeleteLot(
 		return UTILS::StatusCodes::DatabaseError;
 	}
 
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_text(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":callSign"),
-		                     station.name.data(),
-		                     static_cast<int>(station.name.size()),
-		                     SQLITE_STATIC),
+	SQLITE_RETURN_ERRMSG(statement.BindText(":callSign", station.name),
 	                     "Unable to set Delete LOT callSign");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
-							 sqlite3_bind_parameter_index(statement.Get(), ":channel"),
-							 lot.component.channel),
-						 "Unable to set Delete Lot Channel");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
-							 sqlite3_bind_parameter_index(statement.Get(), ":service"),
-							 lot.component.mime),
-						 "Unable to set Delete Lot Service");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":lotId"),
-		                     lot.id),
+	SQLITE_RETURN_ERRMSG(statement.BindInt(":channel", lot.component.channel),
+	                     "Unable to set Delete Lot Channel");
+	SQLITE_RETURN_ERRMSG(statement.BindInt64(":service", lot.component.mime),
+	                     "Unable to set Delete Lot Service");
+	SQLITE_RETURN_ERRMSG(statement.BindInt(":lotId", lot.id),
 	                     "Unable to set Delete Lot ID");
 
-	ret = sqlite3_step(statement.Get());
+	ret = statement.Step();
 	if (ret == SQLITE_OK || ret == SQLITE_DONE)
 		return UTILS::StatusCodes::Ok;
 	else
@@ -480,7 +393,7 @@ UTILS::StatusCodes SQLite::Database::GetLotSpecial(
 	const NRSC5::StationInfo &station,
 	NRSC5::Lot &lot)
 {
-	PooledPreparedStatement statement(pool_.GetConnection());
+	PreparedStatement statement(pool_.GetConnection());
 	sqlite3 *db = statement.GetConnection();
 	int ret;
 
@@ -492,49 +405,32 @@ UTILS::StatusCodes SQLite::Database::GetLotSpecial(
 		return UTILS::StatusCodes::DatabaseError;
 	}
 
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_text(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":callSign"),
-		                     station.name.data(),
-		                     static_cast<int>(station.name.size()),
-		                     SQLITE_STATIC),
+	SQLITE_RETURN_ERRMSG(statement.BindText(":callSign", station.name),
 	                     "Unable to set Get LOTs CallSign");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":channel"),
-		                     lot.component.channel),
+	SQLITE_RETURN_ERRMSG(statement.BindInt(":channel", lot.component.channel),
 	                     "Unable to set Get LOTs Channel");
-	SQLITE_RETURN_ERRMSG(sqlite3_bind_int64(statement.Get(),
-		                     sqlite3_bind_parameter_index(statement.Get(), ":service"),
-		                     lot.component.mime),
+	SQLITE_RETURN_ERRMSG(statement.BindInt64(":service", lot.component.mime),
 	                     "Unable to set Get LOTs Service");
 
-	ret = sqlite3_step(statement.Get());
+	ret = statement.Step();
 	if (ret == SQLITE_OK || ret == SQLITE_DONE)
 		return UTILS::StatusCodes::Empty;
 	else if (ret == SQLITE_ROW)
 	{
-		ConvertToLot(statement.Get(), lot);
+		ConvertToLot(statement, lot);
 		return UTILS::StatusCodes::Ok;
 	}
 	else
 		return UTILS::StatusCodes::DatabaseError;
 }
 
-std::string SQLite::Database::ReadString(
-	sqlite3_stmt *stmt,
-	const int index)
-{
-	return {
-		reinterpret_cast<const char *>(sqlite3_column_text(stmt, index)),
-		static_cast<std::size_t>(sqlite3_column_bytes(stmt, index))
-	};
-}
-
 void SQLite::Database::ConvertToLot(
-	sqlite3_stmt *stmt,
+	const PreparedStatement &stmt,
 	NRSC5::Lot &lot)
 {
-	lot.mime = sqlite3_column_int(stmt, 4);
-	lot.path = ReadString(stmt, 5);
+	lot.id = stmt.ReadInt(3);
+	lot.mime = stmt.ReadInt(4);
+	lot.path = stmt.ReadString(5);
 	lot.expire_point = std::chrono::system_clock::time_point(
-		std::chrono::seconds{sqlite3_column_int64(stmt, 6)});
+		std::chrono::seconds{stmt.ReadInt64(6)});
 }
