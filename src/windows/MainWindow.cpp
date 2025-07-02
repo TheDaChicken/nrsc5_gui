@@ -3,8 +3,10 @@
 //
 
 #include "MainWindow.h"
-#include "ui_MainWindow.h"
 
+#include <qtconcurrentrun.h>
+
+#include "ui_MainWindow.h"
 #include "Application.h"
 
 MainWindow::MainWindow(QWidget *parent)
@@ -23,14 +25,14 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(ui->OnButton, &QPushButton::clicked, this, &MainWindow::OnPlayButton);
 	connect(&button_group_, &QButtonGroup::buttonClicked, this, &MainWindow::UpdateCurrentPage);
 	connect(&getApp()->GetRadioController(),
-	        &RadioController::TunerStatus,
+	        &HybridRadio::TunerStatus,
 	        this,
 	        [this](const TunerAction action, const UTILS::StatusCodes ret)
 	        {
-	        	if (action == TunerAction::Stopped)
-	        		ui->OnButton->setChecked(false);
-	        	if (action == TunerAction::Started)
-	        		ui->OnButton->setChecked(true);
+		        if (action == TunerAction::Stop)
+			        ui->OnButton->setChecked(false);
+		        if (action == TunerAction::Start)
+			        ui->OnButton->setChecked(true);
 
 		        Dashboard()->UpdateTunerStatus(action, ret);
 	        });
@@ -73,26 +75,36 @@ void MainWindow::SwitchToSettingsPage() const
 	ui->Navigation->setCurrentWidget(ui->Settings);
 }
 
-void MainWindow::OnPlayButton(const bool target) const
+void MainWindow::OnPlayButton(const bool target)
 {
 	Q_UNUSED(this)
 
-	UTILS::StatusCodes ret;
+	QFuture<UTILS::StatusCodes> future;
+	HybridRadio& radio = getApp()->GetRadioController();
 
 	if (target)
 	{
-		ret = getApp()->GetRadioController().StartTuner();
+		future = QtConcurrent::run([&radio]()
+		{
+			return radio.StartDefault();
+		});
 	}
 	else
 	{
-		ret = getApp()->GetRadioController().StopTuner();
+		future = QtConcurrent::run([&radio]()
+		{
+			return radio.Stop();
+		});
 	}
 
-	if (ret != UTILS::StatusCodes::Ok)
+	future.then([this, target](const UTILS::StatusCodes ret)
 	{
-		// failed: back to the previous state
-		ui->OnButton->setChecked(!target);
-	}
+		if (ret != UTILS::StatusCodes::Ok)
+		{
+			// failed: back to the previous state
+			ui->OnButton->setChecked(!target);
+		}
+	});
 }
 
 bool MainWindow::event(QEvent *event)

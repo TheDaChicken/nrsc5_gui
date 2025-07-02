@@ -67,8 +67,8 @@ class Decoder
    * @param buf The buffer containing the IQ data.
    * @param length The length of the buffer.
    */
-  int SendIQ(int16_t *buf, unsigned int length);
-  int SendIQ(uint8_t *buf, unsigned int length);
+  int SendIQ(const int16_t *buf, unsigned int length);
+  int SendIQ(const uint8_t *buf, unsigned int length);
  private:
   nrsc5_t *nrsc_5_{nullptr};
 };

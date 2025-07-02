@@ -91,7 +91,7 @@ void NRSC5::Decoder::SetMode(int mode)
   nrsc5_set_mode(nrsc_5_, mode);
 }
 
-int NRSC5::Decoder::SendIQ(uint8_t *buf, unsigned int length)
+int NRSC5::Decoder::SendIQ(const uint8_t *buf, unsigned int length)
 {
   if (!nrsc_5_)
     return -1;
@@ -99,7 +99,7 @@ int NRSC5::Decoder::SendIQ(uint8_t *buf, unsigned int length)
   return nrsc5_pipe_samples_cu8(nrsc_5_, buf, length);
 }
 
-int NRSC5::Decoder::SendIQ(int16_t *buf, unsigned int length)
+int NRSC5::Decoder::SendIQ(const int16_t *buf, unsigned int length)
 {
   if (!nrsc_5_)
     return -1;

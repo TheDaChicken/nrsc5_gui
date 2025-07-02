@@ -5,7 +5,7 @@
 #ifndef NRSC5_GUI_SRC_PAGES_RADIODASHBOARD_H_
 #define NRSC5_GUI_SRC_PAGES_RADIODASHBOARD_H_
 
-#include <controllers/RadioController.h>
+#include <controllers/HybridRadio.h>
 
 #include "RadioChannel.h"
 #include "LoadingPage.h"

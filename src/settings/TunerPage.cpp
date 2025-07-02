@@ -40,8 +40,8 @@ TunerPage::TunerPage(QWidget *parent)
 	layout_->addWidget(gain_settings);
 	layout_->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
 
-	connect(&getApp()->GetRadioController(),
-	        &RadioController::TunerStream,
+	connect(&getApp()->GetRadioController().GetTuner(),
+	        &HybridTuner::TunerStream,
 	        this,
 	        &TunerPage::UpdateTunerStream);
 	connect(device_list_,

@@ -40,7 +40,6 @@ set(SOURCE_FILES
         delegates/BasicTextDelegate.cpp
 
         controllers/StationInfoManager.cpp
-        controllers/RadioController.cpp
 
         display/StationInfoPanel.cpp
         display/RadioInfoDisplay.cpp
@@ -87,7 +86,8 @@ set(SOURCE_FILES
         windows/MainWindow.ui
 
         Application.cpp
-        HybridRadio.cpp
+        controllers/HybridRadio.cpp
+        HybridTuner.cpp
 )
 
 qt_add_library(${LIBRARY_NAME} OBJECT ${SOURCE_FILES})

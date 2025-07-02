@@ -165,7 +165,7 @@ void StationInfoManager::ClearID3()
 void StationInfoManager::FetchPrimaryImage(
 	const NRSC5::ID3 &id3)
 {
-	const ActiveChannel &channel = getApp()->GetRadioController().GetActiveChannel();
+	const ActiveChannel &channel = getApp()->GetRadioController().GetChannel();
 
 	// HDRadio alerted us that we display primary image
 	// This is to prevent non-primary images from being displayed.

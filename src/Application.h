@@ -10,7 +10,7 @@
 
 #include "windows/MainWindow.h"
 #include "controllers/StationInfoManager.h"
-#include "controllers/RadioController.h"
+#include "controllers/HybridRadio.h"
 #include "themes/ThemeManager.h"
 #include "models/TunerDevicesModel.h"
 #include "sql/Database.h"
@@ -27,9 +27,15 @@ class Application : public QApplication
 
 		bool Initialize();
 		int Run();
+
 		static QString GetStatusMessage(UTILS::StatusCodes status);
 
-		RadioController &GetRadioController()
+		const HybridRadio &GetRadioController() const
+		{
+			return radio_controller;
+		}
+
+		HybridRadio &GetRadioController()
 		{
 			return radio_controller;
 		}
@@ -86,7 +92,7 @@ class Application : public QApplication
 		std::shared_ptr<PortAudio::System> port_audio;
 		std::shared_ptr<PortSDR::PortSDR> sdr_system;
 
-		RadioController radio_controller;
+		HybridRadio radio_controller;
 
 		std::shared_ptr<TunerDevicesModel> tuner_devices_model_;
 		std::unique_ptr<MainWindow> window;

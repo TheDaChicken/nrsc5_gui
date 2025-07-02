@@ -65,7 +65,7 @@ RadioInfoDisplay::RadioInfoDisplay(QWidget *parent)
           this,
           &RadioInfoDisplay::ClearID3);
   connect(&getApp()->GetRadioController(),
-          &RadioController::HDSignalStrength,
+          &HybridRadio::HDSignalStrength,
           this,
           &RadioInfoDisplay::DisplaySignalMeter);
 }
@@ -139,7 +139,7 @@ void RadioInfoDisplay::OnPlusButton()
 {
   Q_UNUSED(this)
 
-  const ActiveChannel &channel = getApp()->GetRadioController().GetActiveChannel();
+  const ActiveChannel &channel = getApp()->GetRadioController().GetChannel();
   auto itr = channel.hd_details.programs.upper_bound(channel.station_info.current_program);
 
   if (itr != channel.hd_details.programs.end())
@@ -156,7 +156,7 @@ void RadioInfoDisplay::OnMinusButton()
 {
   Q_UNUSED(this)
 
-  const ActiveChannel &channel = getApp()->GetRadioController().GetActiveChannel();
+  const ActiveChannel &channel = getApp()->GetRadioController().GetChannel();
   auto itr = channel.hd_details.programs.lower_bound(channel.station_info.current_program);
 
   if (itr != channel.hd_details.programs.begin())
@@ -172,7 +172,7 @@ void RadioInfoDisplay::OnMinusButton()
 
 void RadioInfoDisplay::OnFavoriteButton(bool status)
 {
-  const ActiveChannel &channel = getApp()->GetRadioController().GetActiveChannel();
+  const ActiveChannel &channel = getApp()->GetRadioController().GetChannel();
 
   if (status)
   {

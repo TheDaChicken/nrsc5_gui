@@ -41,6 +41,9 @@ namespace UTILS
 
 static time_t timegm(tm &e)
 {
+  // timegm is not available on Windows, so we use _mkgmtime instead.
+  // This function converts a tm structure to a time_t value in UTC.
+  // It is equivalent to mktime but assumes the input is in UTC.
 #if defined(WIN32)
   return ::_mkgmtime(&e);
 #else

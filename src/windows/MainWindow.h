@@ -40,7 +40,7 @@ class MainWindow : public QMainWindow
   void UpdateCurrentPage() const;
 
  private slots:
-  void OnPlayButton(bool target) const;
+  void OnPlayButton(bool target);
 
  protected:
   bool event(QEvent *event) override;
