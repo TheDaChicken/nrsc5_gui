@@ -41,8 +41,10 @@ HybridRadio::HybridRadio(SQLite::Database &db, QObject *parent)
 
 HybridRadio::~HybridRadio()
 {
+	tuner_.Stop();
 	if (audio_stream_.IsActive())
 		audio_stream_.Stop();
+	tuner_.Close();
 	sync_thread.Stop();
 }
 

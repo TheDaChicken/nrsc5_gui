@@ -22,7 +22,7 @@ HybridTuner::HybridTuner()
 
 HybridTuner::~HybridTuner()
 {
-	Stop();
+
 }
 
 bool HybridTuner::Open(const std::shared_ptr<PortSDR::Device> &device)
