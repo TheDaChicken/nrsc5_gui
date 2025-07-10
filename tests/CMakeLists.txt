@@ -10,6 +10,7 @@ include(GoogleTest)
 add_executable(${PROJECT_NAME}-test
         NRSC5.cpp
         Database.cpp
+        ResamplerTest.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}-test

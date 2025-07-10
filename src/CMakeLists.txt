@@ -49,7 +49,7 @@ set(SOURCE_FILES
         views/RadioMainView.cpp
         views/SettingsView.cpp
 
-        dsp/FirdecimQ15.cpp
+        dsp/ArbResampler.cpp
 
         widgets/dualview/DualViewContainer.h
         widgets/dualview/DualViewWidget.cpp
@@ -88,6 +88,8 @@ set(SOURCE_FILES
         Application.cpp
         controllers/HybridRadio.cpp
         HybridTuner.cpp
+        dsp/Firdes.cpp
+        dsp/window.cpp
 )
 
 qt_add_library(${LIBRARY_NAME} OBJECT ${SOURCE_FILES})
@@ -108,6 +110,7 @@ target_link_libraries(${LIBRARY_NAME}
         portaudio
         PortSDR
 
+        Volk::volk
         FFTW::Float
 )
 target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -125,6 +128,7 @@ set_target_properties(${EXECUTABLE_PROJECT} PROPERTIES
         WIN32_EXECUTABLE ON
         MACOSX_BUNDLE ON
 )
+add_dependencies(${EXECUTABLE_PROJECT} LibVolkExternal)
 
 install(TARGETS ${EXECUTABLE_PROJECT}
         BUNDLE DESTINATION .

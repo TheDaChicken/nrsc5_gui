@@ -6,9 +6,6 @@ else()
     set(NRSC5_LIBRARY_NAME nrsc5)
 endif()
 
-message("${NRSC5_INCLUDE_DIR}")
-message("${NRSC5_LIBRARIES}")
-
 find_library(NRSC5_LIBRARIES
         NAMES ${NRSC5_LIBRARY_NAME}
         DOC "NRSC5 library location"

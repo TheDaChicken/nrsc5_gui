@@ -23,16 +23,6 @@ qt_standard_project_setup()
 
 message(STATUS "Qt version: ${Qt6_VERSION}")
 
-if (NOT VOLK_FOUND)
-#    message(STATUS "Libvolk couldn't be found. Building from source.")
-#    FetchContent_Declare(volk
-#            GIT_REPOSITORY https://github.com/gnuradio/volk.git
-#            GIT_TAG v3.1.2
-#            EXCLUDE_FROM_ALL
-#    )
-#    # FetchContent_MakeAvailable(volk)
-endif ()
-
 message(STATUS "Fetching dependencies...")
 FetchContent_Declare(fmt
         GIT_REPOSITORY https://github.com/fmtlib/fmt.git
@@ -54,6 +44,7 @@ FetchContent_Declare(json
         GIT_TAG v3.11.3
         EXCLUDE_FROM_ALL
 )
+set(SDR_BACKEND_AIRSPY ON)
 FetchContent_Declare(PortSDR
         GIT_REPOSITORY https://github.com/thedachicken/PortSDR.git
         GIT_TAG master
@@ -62,6 +53,31 @@ FetchContent_Declare(PortSDR
 
 # Fetch content
 FetchContent_MakeAvailable(fmt spdlog PortAudio json PortSDR)
+
+if (NOT VOLK_FOUND)
+    message(STATUS "Libvolk couldn't be found. Building from source.")
+    set(LIBVOLK_PREFIX "${CMAKE_BINARY_DIR}/libvolk/")
+    set(LIBVOLK_INCLUDE_DIR "${LIBVOLK_PREFIX}/include/")
+    set(LIBVOLK_LIBRARIES "${LIBVOLK_PREFIX}/lib/libvolk.dll.a")
+
+    ExternalProject_Add(LibVolkExternal
+            GIT_REPOSITORY https://github.com/gnuradio/volk.git
+            GIT_TAG v3.2.0
+            PREFIX ${LIBAIRSPY_PREFIX}
+            UPDATE_COMMAND ""
+            BYPRODUCTS ${LIBVOLK_LIBRARIES}
+            CMAKE_ARGS
+            ${COMMON_CMAKE_ARGS}
+            -DCMAKE_INSTALL_PREFIX:STRING=${LIBVOLK_PREFIX}
+    )
+    file(MAKE_DIRECTORY ${LIBVOLK_INCLUDE_DIR})
+
+    add_library(Volk::volk INTERFACE IMPORTED GLOBAL)
+    set_target_properties(Volk::volk PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${LIBVOLK_INCLUDE_DIR}"
+            INTERFACE_LINK_LIBRARIES "${LIBVOLK_LIBRARIES}"
+    )
+endif ()
 
 # subdirectories
 add_subdirectory(src)

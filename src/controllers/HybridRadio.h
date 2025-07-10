@@ -10,7 +10,7 @@
 #include "../nrsc5/Station.h"
 #include "../audio/Device.h"
 #include "../audio/stream/StreamOutputPush.h"
-#include "../dsp/FirdecimQ15.h"
+#include "../dsp/ArbResampler.h"
 
 #include "PortSDR.h"
 
@@ -128,7 +128,7 @@ class HybridRadio final : public QObject
 		{
 			{
 				Modulation::Type::MOD_FM,
-				88.5
+				92.5
 			},
 			0
 		};

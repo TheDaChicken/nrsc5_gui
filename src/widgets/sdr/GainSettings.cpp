@@ -41,6 +41,16 @@ GainSettings::GainSettings(QWidget *parent) : QGroupBox(parent)
 	modes_button->addButton(mode_free_gain_);
 
 	modes_frame_->hide();
+
+	connect(mode_free_gain_,
+	        &QRadioButton::toggled,
+	        this,
+	        [this](bool checked)
+	        {
+		        freely_gain_mode_ = true;
+		        UpdateGainSliders();
+		        Logger::Log(info, "Gain mode changed to: Free");
+	        });
 }
 
 GainSettings::~GainSettings()
@@ -64,17 +74,33 @@ void GainSettings::UpdateGainModes()
 	// Create buttons for each gain mode
 	for (const std::string &modes : stream_->GetGainModes())
 	{
-		QRadioButton *button = new QRadioButton(this);
+		QRadioButton *gain_mode = new QRadioButton(this);
 
-		button->setText(QString::fromStdString(modes));
-		button->setCheckable(true);
-		button->setAutoExclusive(true);
+		gain_mode->setText(QString::fromStdString(modes));
+		gain_mode->setCheckable(true);
+		gain_mode->setAutoExclusive(true);
 
-		modes_layout_->addWidget(button);
-		modes_button->addButton(button);
+		modes_layout_->addWidget(gain_mode);
+		modes_button->addButton(gain_mode);
+
+		connect(gain_mode,
+		        &QRadioButton::toggled,
+		        this,
+		        [this, modes](bool checked)
+		        {
+			        int ret = stream_->SetGainModes(modes);
+			        if (ret < 0)
+			        {
+				        Logger::Log(err, "Failed to set gain mode: {}", modes);
+				        return;
+			        }
+		        	freely_gain_mode_ = false;
+			        UpdateGainSliders();
+			        Logger::Log(info, "Gain mode changed to: {}", modes);
+		        });
 	}
 
-	// Show free gain mode if there are any gain modes
+	// Show free gain mode if there are gain modes
 	if (!stream_->GetGainModes().empty())
 		modes_frame_->show();
 	else
@@ -121,7 +147,14 @@ void GainSettings::CreateGainSlider(const PortSDR::Gain &gain)
 	        this,
 	        [this, gain](const int value)
 	        {
-		        GainFreelyChanged(gain.stage, value);
+		        if (!freely_gain_mode_)
+		        {
+			        GainChanged(value);
+		        }
+		        else
+		        {
+			        GainFreelyChanged(gain.stage, value);
+		        }
 	        });
 }
 
@@ -166,6 +199,13 @@ void GainSettings::GainFreelyChanged(std::string_view stage, int value) const
 
 void GainSettings::GainChanged(const int value) const
 {
-	stream_->SetGain(value);
+	int ret = stream_->SetGain(value);
+	if (ret < 0)
+	{
+		Logger::Log(err, "Failed to set gain value: {}", value);
+		return;
+	}
+
+	Logger::Log(info, "Gain changed to value: {}", value);
 }
 

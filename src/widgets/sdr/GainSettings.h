@@ -27,11 +27,10 @@ class GainSettings : public QGroupBox
 		void ClearGainSliders();
 		void ClearGainModes();
 
-	private slots:
+	private:
 		void GainFreelyChanged(std::string_view stage, int value) const;
 		void GainChanged(int value) const;
 
-	private:
 		void UpdateGainSliders();
 		void UpdateGainModes();
 

@@ -4,6 +4,7 @@
 
 #ifndef NRSC5_GUI_LIB_UTILS_DATABUFFER_H_
 #define NRSC5_GUI_LIB_UTILS_DATABUFFER_H_
+#include <cstddef>
 
 template<typename T>
 class DataBuffer
