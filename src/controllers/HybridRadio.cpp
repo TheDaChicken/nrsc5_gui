@@ -144,7 +144,6 @@ UTILS::StatusCodes HybridRadio::Stop()
 	}
 
 	emit TunerStatus(TunerAction::Stop, UTILS::StatusCodes::Ok);
-
 	return UTILS::StatusCodes::Ok;
 }
 

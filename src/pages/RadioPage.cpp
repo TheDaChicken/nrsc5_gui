@@ -64,6 +64,7 @@ void RadioPage::UpdateTunerStatus(const TunerAction &action, const UTILS::Status
 			                        true);
 			SetCurrentWidget(status_view);
 			break;
+		case TunerAction::Open:
 		case TunerAction::Stop:
 			StatusPage()->SetStatus(ActionString(action),
 			                        false);
@@ -110,6 +111,8 @@ QString RadioPage::ActionString(const TunerAction &action) const
 			return tr("Opening tuner");
 		case TunerAction::Closing:
 			return tr("Closing tuner");
+		case TunerAction::Open:
+			return tr("Ready to start");
 		default:
 			return "";
 	}
