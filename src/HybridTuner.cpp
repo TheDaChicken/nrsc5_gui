@@ -247,6 +247,11 @@ void HybridTuner::SDRCallback(
 {
 	std::lock_guard lock(mutex_);
 
+	if (sdr_transfer.dropped_samples > 0)
+	{
+		Logger::Log(warn, "SDR Dropped samples: {}", sdr_transfer.dropped_samples);
+	}
+
 	switch (tuner_mode_)
 	{
 		case TunerMode::Native:
