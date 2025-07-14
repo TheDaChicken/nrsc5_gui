@@ -13,17 +13,9 @@
 #include "RadioChannel.h"
 #include "dsp/ArbResampler.h"
 #include "nrsc5/Decoder.h"
+#include "nrsc5/SDRProcessor.h"
 #include "utils/Error.h"
 #include "utils/MessageQueue.h"
-
-// Decide how to handle the sdr stream.
-// NRSC5 needs special handling per sdr device because of the sample rate
-enum class TunerMode
-{
-	Empty = -1, // No tuner mode set
-	Native = 0, // Use the native sample rate of the device
-	Resampler = 1, // Use a resampler to convert the sample rate
-};
 
 class HybridTuner final : public QObject
 {
@@ -65,23 +57,15 @@ class HybridTuner final : public QObject
 		void TunerStream(PortSDR::Stream *stream);
 
 	private:
-		TunerMode DecideTunerMode(const std::shared_ptr<PortSDR::Device> &device) const;
 		void SDRCallback(PortSDR::SDRTransfer &sdr_transfer);
 		void ProcessThread();
-		int SetupTunerNative();
-		int SetupTunerResampler();
-
-		TunerMode tuner_mode_ = TunerMode::Empty;
+		int SetupTunerNative(std::unique_ptr<PortSDR::Stream> &stream);
+		int SetupTunerResampler(const std::unique_ptr<PortSDR::Stream> &stream);
 
 		std::mutex mutex_;
-		std::unique_ptr<ArbResamplerQ15> resampler_;
-		std::vector<cint16_t> resampled_buffer_;
-		double resampler_rate_;
-
+		NRSC5::SDRProcessor nrsc5_decoder_;
 		std::unique_ptr<PortSDR::Stream> sdr_stream_;
 		TunerOpts tuner_opts_;
-
-		NRSC5::Decoder nrsc5_decoder_;
 };
 
 #endif //HYBRIDTUNER_H

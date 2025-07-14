@@ -90,6 +90,8 @@ set(SOURCE_FILES
         HybridTuner.cpp
         dsp/Firdes.cpp
         dsp/window.cpp
+        nrsc5/SDRProcessor.cpp
+        nrsc5/SDRProcessor.h
 )
 
 qt_add_library(${LIBRARY_NAME} OBJECT ${SOURCE_FILES})
