@@ -44,7 +44,6 @@ FetchContent_Declare(json
         GIT_TAG v3.11.3
         EXCLUDE_FROM_ALL
 )
-set(SDR_BACKEND_AIRSPY ON)
 FetchContent_Declare(PortSDR
         GIT_REPOSITORY https://github.com/thedachicken/PortSDR.git
         GIT_TAG master
@@ -63,7 +62,7 @@ if (NOT VOLK_FOUND)
     ExternalProject_Add(LibVolkExternal
             GIT_REPOSITORY https://github.com/gnuradio/volk.git
             GIT_TAG v3.2.0
-            PREFIX ${LIBAIRSPY_PREFIX}
+            PREFIX ${LIBVOLK_PREFIX}
             UPDATE_COMMAND ""
             BYPRODUCTS ${LIBVOLK_LIBRARIES}
             CMAKE_ARGS
