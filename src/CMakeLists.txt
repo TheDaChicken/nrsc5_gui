@@ -117,7 +117,7 @@ target_link_libraries(${LIBRARY_NAME}
 )
 target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-qt_add_executable(${EXECUTABLE_PROJECT} Main.cpp ${CMAKE_CURRENT_BINARY_DIR}/resources/Resources.qrc)
+qt_add_executable(${EXECUTABLE_PROJECT} Main.cpp ${CMAKE_SOURCE_DIR}/resources/Resources.qrc)
 target_link_libraries(${EXECUTABLE_PROJECT} PRIVATE ${LIBRARY_NAME})
 target_include_directories(${EXECUTABLE_PROJECT} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${LIBRARY_NAME}_autogen/include)
 set_target_properties(${EXECUTABLE_PROJECT} PROPERTIES
