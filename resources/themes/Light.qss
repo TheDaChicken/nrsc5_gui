@@ -1,0 +1,59 @@
+@ThemeMeta {
+    name: 'Light';
+    dependencies: 'Dark';
+}
+
+@ThemeVars {
+    --grey1: rgb(140,140,140);
+    --grey2: rgb(254,254,254);
+    --grey3: rgb(254,254,254);
+    --grey4: rgb(243,243,243);
+    --grey5: rgb(236,236,236);
+    --grey6: rgb(229,229,229);
+    --grey7: rgb(211,211,211);
+    --grey8: rgb(193,193,193);
+
+    --bg_window: #ffffff;
+    --bg_base: var(--grey6);
+    --bg_preview: var(--grey8);
+
+    --primary: rgb(140,181,255);
+    --primary_light: rgb(178,207,255);
+    --primary_dark: rgb(22,31,65);
+
+    --text: var(--black1);
+    --text_light: var(--black3);
+    --text_muted: var(--grey8);
+
+    --text_disabled: var(--text_muted);
+    --text_inactive: var(--text_light);
+}
+
+/* General Widgets */
+
+QFrame#StationInfoBar {
+    border: 0px solid transparent;
+    border-top: 1px solid rgb(243,243,243);
+}
+
+QHeaderView {
+    background-color: rgb(229,229,229);
+    border: none;
+}
+
+/* Buttons */
+
+QToolButton#MinusButton
+{
+    qproperty-icon: url(":/buttons/black/Minus.svg");
+}
+
+QToolButton#PlusButton
+{
+    qproperty-icon: url(":/buttons/black/Plus.svg");
+}
+
+ImageTextEdit#HDLogo
+{
+    qproperty-image: url(":/images/HDRadioLogo.svg");
+}
