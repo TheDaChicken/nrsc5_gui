@@ -64,7 +64,7 @@ if (NOT VOLK_FOUND)
             GIT_TAG v3.2.0
             PREFIX ${LIBVOLK_PREFIX}
             UPDATE_COMMAND ""
-            BYPRODUCTS ${LIBVOLK_LIBRARIES}
+            BUILD_BYPRODUCTS ${LIBVOLK_LIBRARIES}
             CMAKE_ARGS
             ${COMMON_CMAKE_ARGS}
             -DCMAKE_INSTALL_PREFIX:STRING=${LIBVOLK_PREFIX}
@@ -76,6 +76,7 @@ if (NOT VOLK_FOUND)
             INTERFACE_INCLUDE_DIRECTORIES "${LIBVOLK_INCLUDE_DIR}"
             INTERFACE_LINK_LIBRARIES "${LIBVOLK_LIBRARIES}"
     )
+    add_dependencies(Volk::volk LibVolkExternal)
 endif ()
 
 # subdirectories
