@@ -46,6 +46,11 @@ class Logger
 			GetInstance().LogInternal(level, fmt, std::forward<Args>(args)...);
 		}
 
+		static void Flush()
+		{
+			GetInstance().m_defaultLogger->flush();
+		}
+
 	private:
 		static Logger &GetInstance();
 		static spdlog::level::level_enum MapLogLevel(int level);

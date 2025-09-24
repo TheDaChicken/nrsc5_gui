@@ -1,32 +1,56 @@
 //
-// Created by TheDaChicken on 7/13/2025.
+// Created by TheDaChicken on 9/2/2025.
 //
 
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#ifndef APPLICATION_H
+#define APPLICATION_H
 
-#include "gui/AssetsManager.h"
-#include "gui/ImageManager.h"
-#include "gui/backends/GlfwImpl.h"
-#include "gui/imgui/Imgui.h"
-#include "gui/widgets/ButtonGroup.h"
+#include <SDL3/SDL_init.h>
 
-class Application final : public GlfwImpl::Callback {
+#include "gui/MainWindow.h"
+#include "gui/wrappers/GPUContext.h"
+#include "hybrid/external/HybridExternal.h"
+#include "hybrid/HybridInput.h"
+#include "hybrid/HybridSessionManager.h"
+#include "models/FavoriteList.h"
+#include "sql/DatabaseManager.h"
+
+class Application final
+{
 	public:
 		Application();
+		~Application();
 
-		void Run();
+		SDL_AppResult Initialize();
+
+		[[nodiscard]] bool IsQuit() const
+		{
+			return quit == SDL_APP_SUCCESS;
+		}
+
+		void SetQuit(const SDL_AppResult result)
+		{
+			quit = result;
+		}
+
+		void Render() const;
+		void ProcessEvent(const SDL_Event *event) const;
+
 	private:
-		void Render() override;
+		SDL_AppResult quit = SDL_APP_CONTINUE;
 
-		ScopedImgui m_imgui;
-		GlfwImpl m_glfwImpl;
+		std::shared_ptr<HybridExternal> external_service_;
+		std::shared_ptr<GPU::GPUContext> gpu_context_;
+		std::shared_ptr<ImageManager> image_manager_;
 
-		GUI::ImageManager image_manager_;
-		GUI::AssetsManager assets_manager_;
-		GUI::ButtonGroup button_group_;
+		DatabaseManager sql_manager;
 
-		ImFont *font_ = nullptr;
+		LotManager lot_manager_;
+		FavoriteList favorite_list_;
+
+		HybridInput input_;
+
+		std::unique_ptr<MainWindow> main_window_{};
 };
 
-#endif //MAINWINDOW_H
+#endif //APPLICATION_H

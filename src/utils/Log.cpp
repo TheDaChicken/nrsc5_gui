@@ -63,6 +63,7 @@ spdlog::level::level_enum Logger::MapLogLevel(int level)
 {
 	switch (level)
 	{
+		case LOGTRACE: return spdlog::level::trace;
 		case LOGDEBUG: return spdlog::level::debug;
 		case LOGINFO: return spdlog::level::info;
 		case LOGWARNING: return spdlog::level::warn;
