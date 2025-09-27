@@ -27,16 +27,33 @@ void DockStationPanel::Render(const Theme &theme)
 	frame_program_ = session ? session->GetState() : ProgramState{};
 	frame_programs_ = input_.Sessions().GetPrograms();
 
-	RenderStationHeader(theme);
+	ImGui::PushFont(theme.GetFont(FontType::Semibold),
+	                theme.font_large_size * 1.4f);
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetColorU32(ImGuiCol_WindowBg));
+	ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetColorU32(ImGuiCol_Separator));
+	ImGui::PushStyleVarX(ImGuiStyleVar_FramePadding, ImGui::GetStyle().ItemSpacing.x);
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ImGui::GetFontSize() / 2);
 
-	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_large_size * 1.4f);
+	const float footer_height = ImGui::GetFrameHeightWithSpacing();
+	const float start_pos = ImGui::GetCursorPosY();
 
+	ImGui::SetCursorPosY(start_pos + (ImGui::GetContentRegionAvail().y -
+		footer_height) + ImGui::GetStyle().ItemSpacing.y / 2.0f);
+	RenderControls(theme);
+	ImGui::SetCursorPosY(start_pos);
+
+	ImGui::PopStyleColor(2);
+	ImGui::PopStyleVar(3);
+	ImGui::PopFont();
+
+	ImGui::BeginChild("##Layout",
+	                  ImVec2(0, -footer_height));
 	{
-		const float bottom_height = ImGui::GetFrameHeightWithSpacing() +
-				ImGui::GetStyle().ItemSpacing.y;
+		RenderStationHeader(theme);
 
 		ImGui::BeginChild("RadioInfo",
-		                  ImVec2(0, -bottom_height),
+		                  ImVec2(0, 0),
 		                  ImGuiChildFlags_AlwaysUseWindowPadding);
 		RenderRadioInfo(theme);
 		ImGui::EndChild();
@@ -45,21 +62,16 @@ void DockStationPanel::Render(const Theme &theme)
 		const ImVec2 min = ImGui::GetItemRectMin();
 		const ImVec2 max = ImGui::GetItemRectMax();
 		// Create a border only on bottom and top
-		draw_list->AddLine(
-			ImVec2(min.x, max.y),
+		draw_list->AddRectFilled(
+			ImVec2(min.x, max.y - theme.separator_thickness),
 			ImVec2(max.x, max.y),
-			ImGui::GetColorU32(ImGuiCol_Border),
-			theme.separator_thickness);
-		draw_list->AddLine(
-			ImVec2(min.x, min.y),
+			ImGui::GetColorU32(ImGuiCol_Border));
+		draw_list->AddRectFilled(
+			ImVec2(min.x, min.y - theme.separator_thickness),
 			ImVec2(max.x, min.y),
-			ImGui::GetColorU32(ImGuiCol_Border),
-			theme.separator_thickness);
+			ImGui::GetColorU32(ImGuiCol_Border));
 	}
-
-	RenderControls(theme);
-
-	ImGui::PopFont();
+	ImGui::EndChild();
 }
 
 void DockStationPanel::RenderStationHeader(const Theme &theme) const
@@ -275,13 +287,6 @@ void DockStationPanel::RenderID3(const Theme &theme, const NRSC5::ID3 &id3)
 
 void DockStationPanel::RenderControls(const Theme &theme) const
 {
-	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetColorU32(ImGuiCol_WindowBg));
-	ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetColorU32(ImGuiCol_Separator));
-
-	ImGui::PushStyleVarX(ImGuiStyleVar_FramePadding, ImGui::GetStyle().ItemSpacing.x);
-	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ImGui::GetFontSize() / 2);
-
 	// ImGui::SetCursorPosY(ImGui::GetCursorPosY() +
 	// 	std::max(0.0f, (ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeight()) * 0.5f));
 	ImGui::BeginGroup();
@@ -312,7 +317,4 @@ void DockStationPanel::RenderControls(const Theme &theme) const
 	}
 
 	ImGui::EndGroup();
-
-	ImGui::PopStyleColor(2);
-	ImGui::PopStyleVar(3);
 }

@@ -1,25 +1,28 @@
 include(FindPackageHandleStandardArgs)
 
-if(NRSC5_STATIC)
+if (NRSC5_STATIC)
     set(NRSC5_LIBRARY_NAME nrsc5_static)
-else()
+else ()
     set(NRSC5_LIBRARY_NAME nrsc5)
-endif()
+endif ()
 
 find_library(NRSC5_LIBRARIES
         NAMES ${NRSC5_LIBRARY_NAME}
+        PATHS $ENV{NRSC5_ROOT}/lib
         DOC "NRSC5 library location"
-)
-
-find_path(NRSC5_INCLUDE_DIR
-        NAMES nrsc5.h
-        PATH_SUFFIXES include
-        DOC "NRSC5 include directory"
 )
 
 find_library(NRSC5_FAAD2
         NAMES libfaad_hdc.a libfaad_hdc.dll.a
         DOC "NRSC5 FAAD2 library location"
+        PATHS ${NRSC5_LIBRARY_DIR} $ENV{NRSC5_ROOT}/lib
+)
+
+find_path(NRSC5_INCLUDE_DIR
+        NAMES nrsc5.h
+        PATHS $ENV{NRSC5_ROOT}
+        PATH_SUFFIXES include
+        DOC "NRSC5 include directory"
 )
 
 if (NOT RTLSDR_FOUND)
@@ -34,7 +37,9 @@ find_package_handle_standard_args(NRSC5 DEFAULT_MSG NRSC5_INCLUDE_DIR NRSC5_LIBR
 
 if (NRSC5_FOUND)
     add_library(nrsc5::faad2_hdc INTERFACE IMPORTED)
-    set_target_properties(nrsc5::faad2_hdc PROPERTIES INTERFACE_LINK_LIBRARIES "${NRSC5_FAAD2}")
+    set_target_properties(nrsc5::faad2_hdc PROPERTIES
+            INTERFACE_LINK_LIBRARIES "${NRSC5_FAAD2}"
+    )
 
     add_library(nrsc5::nrsc5 INTERFACE IMPORTED)
     set_target_properties(nrsc5::nrsc5 PROPERTIES

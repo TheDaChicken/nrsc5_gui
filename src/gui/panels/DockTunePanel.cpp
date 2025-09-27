@@ -41,13 +41,8 @@ bool DockTunePanel::Render(const Theme &theme)
 	const float tune_height = total_height * (1.0f / total_weight);
 
 	RenderBands(band_height);
-
-	ImGui::BeginChild("Freq", ImVec2(0, freq_height));
-	RenderFreq();
-	ImGui::EndChild();
-
+	RenderFreq(freq_height);
 	RenderButtons(buttons_height);
-
 	const bool tuned = RenderTuneButton(tune_height);
 
 	ImGui::PopFont();
@@ -156,12 +151,14 @@ void DockTunePanel::RenderButtons(const float height)
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
 }
 
-void DockTunePanel::RenderFreq() const
+void DockTunePanel::RenderFreq(float height) const
 {
+	const ImVec2 size = {ImGui::GetContentRegionAvail().x, height};
+
+	ImGui::Dummy(size);
 	ImGui::PushFont(nullptr, ImGui::GetFontSize() * 1.1f);
 
 	std::string frequency;
-
 	if (state_.selected_freq != 0)
 	{
 		frequency = fmt::format(
@@ -174,20 +171,22 @@ void DockTunePanel::RenderFreq() const
 		frequency = "Select a frequency";
 	}
 
+	const ImVec2 pos = ImGui::GetItemRectMin();
+
 	// Center text
 	const ImVec2 text_size = ImGui::CalcTextSize(
 		frequency.data(),
 		frequency.data() + frequency.size()
 	);
-	const float avail_x = ImGui::GetContentRegionAvail().x;
-	const float avail_y = ImGui::GetContentRegionAvail().y;
+	const ImVec2 center = {
+		pos.x + (size.x - text_size.x) * 0.5f,
+		pos.y + (size.y - text_size.y) * 0.5f
+	};
 
-	ImGui::SetCursorPos({
-		ImGui::GetCursorPosX() + (avail_x - text_size.x) * 0.5f,
-		ImGui::GetCursorPosY() + (avail_y - text_size.y) * 0.5f,
-	});
-
-	ImGui::TextUnformatted(
+	ImDrawList *draw_list = ImGui::GetWindowDrawList();
+	draw_list->AddText(
+		center,
+		ImGui::GetColorU32(ImGuiCol_Text),
 		frequency.data(),
 		frequency.data() + frequency.size()
 	);

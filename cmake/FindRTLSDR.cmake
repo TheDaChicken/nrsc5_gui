@@ -24,13 +24,13 @@ find_package_handle_standard_args(RTLSDR DEFAULT_MSG
         RTLSDR_INCLUDE_DIR RTLSDR_LIBRARIES
 )
 
-if (RTLSDR_FOUND)
+if (RTLSDR_FOUND AND NOT TARGET rtlsdr::rtlsdr)
     add_library(rtlsdr::rtlsdr INTERFACE IMPORTED)
     set_target_properties(rtlsdr::rtlsdr PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${RTLSDR_INCLUDE_DIR}"
             INTERFACE_LINK_LIBRARIES "${RTLSDR_LIBRARIES}"
     )
-    target_link_libraries(rtlsdr::rtlsdr INTERFACE libusb::libusb)
+    target_link_libraries(rtlsdr::rtlsdr INTERFACE LibUSB::LibUSB)
 
     mark_as_advanced(
             RTLSDR_LIBRARIES
