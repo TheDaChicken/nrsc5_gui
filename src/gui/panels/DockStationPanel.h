@@ -30,7 +30,7 @@ class DockStationPanel
 			return fallback;
 		}
 
-		void RenderStationHeader(const Theme &theme) const;
+		void RenderStationHeader(const Theme &theme);
 		void RenderRadioInfo(const Theme &theme) const;
 
 		void RenderStationLogo(
@@ -38,7 +38,7 @@ class DockStationPanel
 		void RenderStationDetails(
 			const Theme &theme) const;
 		void RenderProgramList(
-			const Theme &theme) const;
+			const Theme &theme);
 		void RenderProgramNumbers(
 			const std::map<unsigned int, ProgramState> &programs) const;
 

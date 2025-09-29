@@ -4,42 +4,55 @@
 
 #include "Navigation.h"
 
+#include "gui/Util.h"
 #include "gui/managers/ThemeManager.h"
 
 bool Navigation::BeginNavigation(const Theme &theme, const std::string &id)
 {
-	//ImGui::PushStyleVarY(ImGuiStyleVar_CellPadding, 0);
+	ImGui::PushStyleVarY(ImGuiStyleVar_CellPadding, 0);
+
 	const bool success = ImGui::BeginTable(
 		id.c_str(),
 		2,
-		ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp |
+		ImGuiTableFlags_Resizable |
+		ImGuiTableFlags_SizingStretchProp |
 		ImGuiTableFlags_NoSavedSettings);
 
 	if (success)
 	{
 		ImGui::TableSetupColumn("Nav", ImGuiTableColumnFlags_WidthStretch, 2.0f);
 		ImGui::TableSetupColumn("Center", ImGuiTableColumnFlags_WidthStretch, 5.0f);
+
+		ImGui::TableNextRow();
 	}
+
+	ImGui::PopStyleVar();
 	return success;
 }
 
 void Navigation::BeginNavList()
 {
 	ImGui::TableNextColumn();
-	ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg,
-	                       ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_FrameBg)));
+	ImGui::TableSetBgColor(
+		ImGuiTableBgTarget_CellBg,
+		ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_FrameBg)));
+	ImGui::Spacing();
 }
 
 void Navigation::BeginCenter()
 {
 	ImGui::TableNextColumn();
+
+	ImGui::PushStyleVarY(ImGuiStyleVar_WindowPadding, ImGui::GetStyle().ItemSpacing.y);
 	ImGui::BeginChild("Center",
-	                  ImVec2(0, 0));
+	                  {0, 0},
+	                  ImGuiChildFlags_AlwaysUseWindowPadding);
 }
 
 void Navigation::EndNav()
 {
 	ImGui::EndChild();
+	ImGui::PopStyleVar();
 	ImGui::EndTable();
 }
 
@@ -49,7 +62,6 @@ bool Navigation::RenderHeader(
 	const std::string_view name,
 	const std::string_view sub_text)
 {
-	ImGui::Spacing();
 	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_large_size);
 
 	bool clicked = false;
@@ -70,10 +82,10 @@ bool Navigation::RenderHeader(
 
 			// Draw the icon inside that space, vertically centered
 			const ImVec2 start_pos = {
-				ImGui::GetItemRectMin().x + (icon_space - icon->GetInlineSize().x) * 0.5f,
+				ImGui::GetItemRectMin().x + Center(icon_space, GetInlineSize(*icon).x),
 				ImGui::GetItemRectMin().y
 			};
-			icon->DrawInline(start_pos);
+			DrawInline(*icon, start_pos);
 		}
 		else
 		{

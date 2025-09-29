@@ -46,7 +46,8 @@ void HybridSessionManager::Unsubscribe(const std::shared_ptr<HybridSession> &ses
 			{
 				const auto locked = ptr.lock();
 				return locked && locked == session;
-			}), subscriptions_.end());
+			}),
+		subscriptions_.end());
 }
 
 void HybridSessionManager::PushCurrentProgramData(const std::shared_ptr<HybridSession> &session)

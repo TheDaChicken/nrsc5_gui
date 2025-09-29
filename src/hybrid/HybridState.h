@@ -14,6 +14,7 @@ struct ProgramState
 	unsigned int type = NRSC5_PROGRAM_TYPE_UNDEFINED;
 
 	std::string name;
+	std::string formatted_name;
 
 	TextureHandle station_logo;
 	TextureHandle primary_image;

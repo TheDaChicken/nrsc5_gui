@@ -126,7 +126,7 @@ bool DockFavoritesPanel::RenderItems(const Theme &theme)
 		item.name = favorite_item.name;
 		item.image = icon.get();
 
-		if (ListView::RenderItem(theme, item, i == m_selectedItem))
+		if (ListView::RenderItem(item, i == m_selectedItem))
 		{
 			changed = true;
 			m_selectedItem = i;

@@ -40,7 +40,7 @@ void SettingsView::RenderSettingList(const Theme &theme)
 
 	for (int i = 0; i < 4; ++i)
 	{
-		if (ListView::RenderItem(theme, items[i], i == selected_setting_))
+		if (ListView::RenderItem(items[i], i == selected_setting_))
 			selected_setting_ = i;
 	}
 

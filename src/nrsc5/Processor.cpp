@@ -4,6 +4,8 @@
 
 #include "Processor.h"
 
+#include <fstream>
+
 #include "dsp/Firdes.h"
 #include "dsp/Window.h"
 
@@ -37,14 +39,10 @@ tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> NRSC5::Processor::Open
 	if (!supported)
 		return tl::unexpected(supported.error());
 
-	if (supported->tuner_mode == TunerMode::ArbResampler)
-	{
-		auto ret = CreateResamplerQ15(*supported);
-		if (ret != StreamStatus_Ok)
-			return tl::unexpected(StreamStatus_ResamplerFailed);
-	}
-
 	tuner_mode_ = supported->tuner_mode;
+
+	stream.open("test.out", std::ios::binary);
+
 	return supported;
 }
 
@@ -77,6 +75,7 @@ void NRSC5::Processor::Process(const void *data, const size_t frame_size)
 		}
 		case TunerMode::ArbResampler:
 		{
+			Resample(data, frame_size);
 			break;
 		}
 		default:
@@ -89,17 +88,36 @@ void NRSC5::Processor::Process(const void *data, const size_t frame_size)
 
 void NRSC5::Processor::Resample(const void *data, const size_t frame_size)
 {
-	const std::size_t resampled_buffer_size = std::round(frame_size * resampler_rate_ + 1);
+	const std::size_t resample_size = std::ceil(frame_size * resampler_rate_) + FILTER_TAP_COUNT;
+
+	auto in = static_cast<const cint16_t *>(data);
+
+	if (in_floats)
+	{
+		if (transit_buffer.size() < frame_size)
+			transit_buffer.resize(frame_size);
+
+		const auto float_ptr = static_cast<const float *>(data);
+		auto out_ptr = reinterpret_cast<int16_t *>(transit_buffer.data());
+
+		for (size_t i = 0; i < frame_size * 2.0; i++)
+		{
+			out_ptr[i] = static_cast<int16_t>(float_ptr[i] * 32768.0f);
+		}
+
+		in = transit_buffer.data();
+
+		stream.write(reinterpret_cast<const std::ostream::char_type *>(transit_buffer.data()),
+		             frame_size * sizeof(cint16_t));
+	}
 
 	// Reserve space for output
-	if (resampled_buffer_.size() < resampled_buffer_size)
-	{
-		resampled_buffer_.resize(resampled_buffer_size);
-	}
+	if (resampled_buffer_.size() < resample_size)
+		resampled_buffer_.resize(resample_size);
 
 	const unsigned int resampled_size = resampler_stream_->IProcess(
 		resampled_buffer_.data(),
-		data,
+		in,
 		frame_size);
 	if (resampled_size > 0)
 	{
@@ -110,7 +128,7 @@ void NRSC5::Processor::Resample(const void *data, const size_t frame_size)
 	}
 }
 
-int ConvertToNRSC5Mode(Band::Type mode)
+int ConvertToNRSC5Mode(const Band::Type mode)
 {
 	switch (mode)
 	{
@@ -155,11 +173,12 @@ tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> NRSC5::Processor::Resa
 	const StreamCapabilities &params)
 {
 	StreamSupported supported{};
+	supported.tuner_mode = TunerMode::ArbResampler;
 
 	assert(!params.sample_rates.empty());
 
 	// Find the first sample rate bigger than NRSC5_SAMPLE_RATE_CS16_FM
-	const auto iterator = std::find_if(
+	const auto samp_iter = std::find_if(
 		params.sample_rates.begin(),
 		params.sample_rates.end(),
 		[](const uint32_t rate)
@@ -167,12 +186,40 @@ tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> NRSC5::Processor::Resa
 			return rate >= NRSC5_SAMPLE_RATE_CS16_FM;
 		});
 
-	if (iterator == params.sample_rates.end())
+	if (samp_iter == params.sample_rates.end())
 		return tl::unexpected(StreamStatus_UnsupportedSampleRate);
 
-	supported.tuner_mode = TunerMode::ArbResampler;
-	supported.sample_format = PortSDR::SAMPLE_FORMAT_IQ_INT16;
-	supported.sample_rate = *iterator;
+	Logger::Log(debug, "SDR Sample Rate chosen: {}", *samp_iter);
+
+	supported.sample_rate = *samp_iter;
+
+	if (std::find(
+		params.sample_formats.begin(),
+		params.sample_formats.end(),
+		PortSDR::SAMPLE_FORMAT_IQ_INT16) != params.sample_formats.end())
+	{
+		supported.sample_format = PortSDR::SAMPLE_FORMAT_IQ_INT16;
+
+		auto ret = CreateResamplerQ15(supported);
+		if (ret != StreamStatus_Ok)
+			return tl::unexpected(StreamStatus_ResamplerFailed);
+
+		in_floats = false;
+	}
+
+	if (std::find(
+		params.sample_formats.begin(),
+		params.sample_formats.end(),
+		PortSDR::SAMPLE_FORMAT_IQ_FLOAT32) != params.sample_formats.end())
+	{
+		supported.sample_format = PortSDR::SAMPLE_FORMAT_IQ_FLOAT32;
+
+		auto ret = CreateResamplerQ15(supported);
+		if (ret != StreamStatus_Ok)
+			return tl::unexpected(StreamStatus_ResamplerFailed);
+
+		in_floats = true;
+	}
 
 	return supported;
 }

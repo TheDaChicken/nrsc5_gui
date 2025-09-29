@@ -10,14 +10,14 @@ HybridInput::HybridInput()
 {
 }
 
-void HybridInput::OpenSDR(const std::shared_ptr<PortSDR::Device> &device)
+bool HybridInput::OpenSDR(const std::shared_ptr<PortSDR::Device> &device)
 {
 	auto input = std::make_unique<SDRInput>();
 	if (!input->Open(device))
 	{
 		Logger::Log(err,
 		            "Failed to open SDR device");
-		return;
+		return false;
 	}
 
 	auto controller = std::make_shared<HybridController>();
@@ -28,7 +28,7 @@ void HybridInput::OpenSDR(const std::shared_ptr<PortSDR::Device> &device)
 		Logger::Log(err,
 		            "Failed to open HybridController for device: {}",
 		            static_cast<int>(supported.error()));
-		return;
+		return false;
 	}
 
 	auto format_result = input->SetSampleFormat(supported->sample_format);
@@ -38,7 +38,7 @@ void HybridInput::OpenSDR(const std::shared_ptr<PortSDR::Device> &device)
 		            "Failed to set sample format {}: {}",
 		            static_cast<int>(supported->sample_format),
 		            format_result.error());
-		return;
+		return false;
 	}
 
 	auto rate_result = input->SetSampleRate(supported->sample_rate);
@@ -48,7 +48,7 @@ void HybridInput::OpenSDR(const std::shared_ptr<PortSDR::Device> &device)
 		            "Failed to set sample rate {}: {}",
 		            supported->sample_rate,
 		            rate_result.error());
-		return;
+		return false;
 	}
 
 	// Only now attach listener
@@ -77,6 +77,7 @@ void HybridInput::OpenSDR(const std::shared_ptr<PortSDR::Device> &device)
 
 	input_ = std::move(input);
 	controller_ = std::move(controller);
+	return true;
 }
 
 void HybridInput::OpenFile(const std::string &path)

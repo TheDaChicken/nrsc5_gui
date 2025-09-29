@@ -92,6 +92,7 @@ void HybridSession::SendStation(const StationIdentity &identity)
 {
 	identity_ = identity;
 	FetchStationImage();
+	UpdateProgramName();
 }
 
 void HybridSession::FetchStationImage()
@@ -118,10 +119,24 @@ void HybridSession::FetchPrimaryImage(const int xhdr)
 	program_.primary_image = external_service_->FetchImageAsync(query);
 }
 
+void HybridSession::UpdateProgramName()
+{
+	if (identity_.name.empty())
+		return;
+
+	program_.formatted_name = fmt::format(
+		"{}-HD{}",
+		identity_.name,
+		NRSC5::FriendlyProgramId(program_.id)
+	);
+}
+
 void HybridSession::OnProgramUpdate(const StationProgramFrame *ptr)
 {
 	program_.type = ptr->type;
 	program_.id = ptr->id;
+
+	UpdateProgramName();
 }
 
 void HybridSession::OnProgramStateChange(const ProgramChangeFrame *frame)

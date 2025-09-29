@@ -5,15 +5,12 @@
 #include "ListView.h"
 
 bool ListView::RenderItem(
-	const Theme &theme,
 	const Item &item,
 	const bool selected)
 {
 	bool changed = false;
 	const char *view_text = item.name.data();
-
-	ImDrawList *draw_list = ImGui::GetWindowDrawList();
-	const float icon_size = ImGui::GetFontSize() * 2.3f;
+	const float icon_size = ImGui::GetFontSize() * 2.0f;
 
 	const ImVec2 content_size = {
 		ImGui::GetContentRegionAvail().x > 100 ? ImGui::GetContentRegionAvail().x : 100,
@@ -23,19 +20,23 @@ bool ListView::RenderItem(
 	if (ImGui::InvisibleButton(view_text, content_size))
 		changed = true;
 
-	ImVec2 pos = ImGui::GetItemRectMin();
+	ImDrawList *draw_list = ImGui::GetWindowDrawList();
+
 	const ImVec2 pos_max = ImGui::GetItemRectMax();
+	ImVec2 pos = ImGui::GetItemRectMin();
 
 	const bool highlighted = ImGui::IsItemHovered();
 	const bool out_held = ImGui::IsItemActive() && ImGui::IsMouseReleased(ImGuiMouseButton_Left);
 
 	if (selected || highlighted)
 	{
-		const ImU32 col = ImGui::GetColorU32((out_held && highlighted)
-			                                     ? ImGuiCol_HeaderActive
-			                                     : highlighted
-				                                       ? ImGuiCol_HeaderHovered
-				                                       : ImGuiCol_Header);
+		const ImU32 col = ImGui::GetColorU32(
+			(out_held && highlighted)
+				? ImGuiCol_HeaderActive
+				: highlighted
+					  ? ImGuiCol_HeaderHovered
+					  : ImGuiCol_Header);
+
 		draw_list->AddRectFilled(
 			pos,
 			pos_max,
@@ -48,14 +49,10 @@ bool ListView::RenderItem(
 
 	const ImVec2 icon_space = {icon_size, icon_size};
 	const ImVec2 text_size = ImGui::CalcTextSize(view_text);
-	const ImVec2 contents_size{
-		(item.image ? icon_space.x : 0) + ImGui::GetStyle().ItemInnerSpacing.x + text_size.x,
-		content_size.y
-	};
 
 	if (item.image)
 	{
-		const float image_center = (contents_size.y - icon_space.y) / 2.0f;
+		const float image_center = (content_size.y - icon_space.y) / 2.0f;
 
 		draw_list->AddImage((intptr_t)item.image->ptr.get(),
 		                    ImVec2{pos.x, pos.y + image_center},

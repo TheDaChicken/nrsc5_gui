@@ -5,6 +5,7 @@
 #ifndef NRSC5PROCESSOR_H
 #define NRSC5PROCESSOR_H
 
+#include <fstream>
 #include <memory>
 #include <PortSDR.h>
 
@@ -74,20 +75,26 @@ class Processor
 		void SetMode(Band::Type mode) const;
 
 	private:
-		static tl::expected<StreamSupported, StreamStatus> SelectStream(const StreamCapabilities &params);
 		static tl::expected<StreamSupported, StreamStatus> NativeStream(const StreamCapabilities &params);
-		static tl::expected<StreamSupported, StreamStatus> ResamplerStream(const StreamCapabilities &params);
+
+		tl::expected<StreamSupported, StreamStatus> SelectStream(const StreamCapabilities &params);
+		tl::expected<StreamSupported, StreamStatus> ResamplerStream(const StreamCapabilities &params);
 
 		StreamStatus CreateResamplerQ15(
 			const StreamSupported &supported);
 
 		std::unique_ptr<nrsc5_t, decltype(&nrsc5_close)> nrsc5_decoder_;
+
 		TunerMode tuner_mode_ = TunerMode::Empty;
 
-		std::unique_ptr<IFilterStream> resampler_stream_{};
+		std::unique_ptr<IFilterStream> resampler_stream_;
 		HistoryBuffer<cint16_t> resampler_history_;
 		std::vector<cint16_t> resampled_buffer_;
+		std::vector<cint16_t> transit_buffer;
+
 		double resampler_rate_ = 0;
+		bool in_floats = false;
+		std::ofstream stream;
 };
 } // namespace NRSC5
 

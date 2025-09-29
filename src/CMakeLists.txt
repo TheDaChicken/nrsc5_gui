@@ -133,6 +133,9 @@ add_executable(${PROJECT_NAME}
         Application.h
         gui/MainWindow.cpp
         gui/MainWindow.h
+        gui/Util.h
+        gui/utils/TextRender.cpp
+        gui/utils/TextRender.h
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

@@ -18,7 +18,7 @@ struct Item
 	const GPU::Texture* image;
 };
 
-bool RenderItem(const Theme& theme, const Item &item, bool selected);
+bool RenderItem(const Item &item, bool selected);
 };
 
 #endif //LISTVIEW_H

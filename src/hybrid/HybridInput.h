@@ -28,7 +28,7 @@ class HybridInput
 
 		explicit HybridInput();
 
-		void OpenSDR(const std::shared_ptr<PortSDR::Device> &device);
+		bool OpenSDR(const std::shared_ptr<PortSDR::Device> &device);
 		void OpenFile(const std::string &path);
 
 		void SetChannel(const Station &station);

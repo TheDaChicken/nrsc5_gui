@@ -9,7 +9,7 @@
 
 std::unordered_map<std::string, ImFont *> fonts;
 
-static ImFont *GetOrLoadFont(const std::filesystem::path &path, const ImFontConfig* font_cfg_template)
+static ImFont *GetOrLoadFont(const std::filesystem::path &path, const float font_size, const ImFontConfig *font_cfg_template)
 {
 	const std::string name = path.filename().string();
 
@@ -20,7 +20,10 @@ static ImFont *GetOrLoadFont(const std::filesystem::path &path, const ImFontConf
 	const std::string path_str = path.string();
 
 	// Load new font
-	ImFont *font = ImGui::GetIO().Fonts->AddFontFromFileTTF(path_str.c_str(), 18, font_cfg_template);
+	ImFont *font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+		path_str.c_str(),
+		font_size,
+		font_cfg_template);
 	if (!font)
 	{
 		Logger::Log(err, "Failed to load font '{}'", path_str);
@@ -70,13 +73,13 @@ bool ThemeManager::LoadTheme(const ThemeOptions &opt)
 
 	theme.style = opt.style;
 	theme.name = opt.name;
-	theme.navigation_x = opt.navigation_x;
 	theme.list_item_multiplier = opt.list_item_multiplier;
 	theme.separator_thickness = opt.separator_thickness;
 
 	theme.font_small_size = opt.font_small_size;
 	theme.font_medium_size = opt.font_medium_size;
 	theme.font_large_size = opt.font_large_size;
+	theme.font_very_large_size = opt.font_very_large_size;
 
 	for (int i = 0; i < opt.fonts.size(); i++)
 	{
@@ -91,7 +94,7 @@ bool ThemeManager::LoadTheme(const ThemeOptions &opt)
 			return false;
 		}
 
-		theme.fonts[i] = GetOrLoadFont(font.value(), nullptr);
+		theme.fonts[i] = GetOrLoadFont(font.value(), theme.font_small_size, nullptr);
 		if (!theme.fonts[i])
 		{
 			Logger::Log(err, "Failed to load bold font");
@@ -212,12 +215,12 @@ ThemeOptions ThemeManager::GetLightTheme()
 {
 	ThemeOptions light{
 		.name = "Light",
-		.navigation_x = 300,
 		.list_item_multiplier = 3.2f,
 		.separator_thickness = 2.0f,
-		.font_small_size = 18,
-		.font_medium_size = 18 * 1.2f,
-		.font_large_size = 18 * 1.5f,
+		.font_small_size = 22.0f,
+		.font_medium_size = 25.0f,
+		.font_large_size = 27.0f,
+		.font_very_large_size = 34.0f,
 		.fonts = {
 			"fonts/OpenSans-SemiBold.ttf",
 			"fonts/OpenSans-Bold.ttf"
@@ -242,11 +245,12 @@ ThemeOptions ThemeManager::GetLightTheme()
 
 	light.style.FrameRounding = light.font_small_size / 2;
 	light.style.WindowPadding = ImVec2{20, 16};
-	light.style.FramePadding = ImVec2{10, 10};
-	light.style.ItemSpacing = ImVec2{20, 10};
-	light.style.ItemInnerSpacing = ImVec2{10, 10};
+	light.style.FramePadding = ImVec2{12, 12};
+	light.style.ItemSpacing = ImVec2{20, 12};
+	light.style.ItemInnerSpacing = ImVec2{10, 12};
 	light.style.CellPadding = ImVec2{4, 2};
 	light.style.IndentSpacing = light.font_small_size + light.style.FramePadding.x * 2.0f;
+	light.style.FrameBorderSize = 1.0f;
 
 	// Base style
 	ImGui::StyleColorsLight(&light.style);

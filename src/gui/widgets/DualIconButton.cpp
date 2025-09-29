@@ -7,13 +7,15 @@
 #include <imgui.h>
 #include <spdlog/spdlog.h>
 
+#include "gui/Util.h"
+
 GUI::DualIconButton::Result GUI::DualIconButton::Render() const
 {
 	auto res = Result::None;
 
 	const float text_size = ImGui::CalcTextSize(label.c_str()).x;
-	const float left_icon = left.icon ? left.icon->GetInlineSize().x : 0;
-	const float right_icon = right.icon ? right.icon->GetInlineSize().x : 0;
+	const float left_icon = left.icon ? GetInlineSize(*left.icon).x : 0;
+	const float right_icon = right.icon ? GetInlineSize(*right.icon).x : 0;
 	float child_width = text_size + ImGui::GetStyle().FramePadding.x * 2.0f;
 
 	if (left.icon)
@@ -40,7 +42,7 @@ GUI::DualIconButton::Result GUI::DualIconButton::Render() const
 	// Padding from left
 	pos.x += ImGui::GetStyle().FramePadding.x;
 	// Center vertically
-	pos.y = pos.y + std::max(0.0f, ImGui::GetItemRectSize().y - ImGui::GetFontSize()) * 0.5f;
+	pos.y = pos.y + Center(ImGui::GetItemRectSize().y, ImGui::GetFontSize());
 
 	const ImVec2 icon_left_min{pos};
 	const ImVec2 icon_left_max{pos.x + left_icon, pos.y + ImGui::GetFontSize()};
@@ -49,7 +51,7 @@ GUI::DualIconButton::Result GUI::DualIconButton::Render() const
 
 	if (left.icon)
 	{
-		left.icon->DrawInline(pos);
+		DrawInline(*left.icon, pos);
 
 		pos.x += left_icon + ImGui::GetStyle().ItemSpacing.x;
 	}
@@ -65,7 +67,7 @@ GUI::DualIconButton::Result GUI::DualIconButton::Render() const
 	{
 		ImGui::SameLine();
 
-		right.icon->DrawInline(pos);
+		DrawInline(*right.icon, pos);
 	}
 
 	if (ImGui::IsItemClicked())

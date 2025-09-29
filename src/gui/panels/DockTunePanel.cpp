@@ -4,6 +4,8 @@
 
 #include "DockTunePanel.h"
 
+#include "gui/Util.h"
+
 static int64_t numDigits(const int64_t n)
 {
 	if (n == 0)
@@ -28,26 +30,22 @@ DockTunePanel::DockTunePanel(HybridInput &input)
 
 bool DockTunePanel::Render(const Theme &theme)
 {
-	ImGui::BeginGroup();
-	ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, 0);
 	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_large_size);
 
-	const float total_height = ImGui::GetContentRegionAvail().y;
-	constexpr float total_weight = 1 + 2 + 4 + 1;
+	ImGui::BeginGroup();
 
-	const float band_height = total_height * (1.0f / total_weight);
-	const float freq_height = total_height * (2.0f / total_weight);
-	const float buttons_height = total_height * (4.0f / total_weight);
-	const float tune_height = total_height * (1.0f / total_weight);
+	RenderBands();
 
-	RenderBands(band_height);
-	RenderFreq(freq_height);
-	RenderButtons(buttons_height);
-	const bool tuned = RenderTuneButton(tune_height);
+	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_very_large_size);
+	RenderFreq();
+	ImGui::PopFont();
+
+	RenderButtons();
+	const bool tuned = RenderTuneButton();
+
+	ImGui::EndGroup();
 
 	ImGui::PopFont();
-	ImGui::PopStyleVar();
-	ImGui::EndGroup();
 	return tuned;
 }
 
@@ -65,25 +63,21 @@ void DockTunePanel::UpdateState(const Band::Type selected)
 	selected_band_ = selected;
 }
 
-void DockTunePanel::RenderBand(const std::string &label, const Band::Type band, const float height)
+void DockTunePanel::RenderBand(const std::string &label, const Band::Type band)
 {
 	if (band == selected_band_)
 		ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_HeaderActive]);
 	else
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 
-	if (ImGui::Button(label.c_str(), ImVec2(-FLT_MIN, height)))
+	if (ImGui::Button(label.c_str(), ImVec2(-FLT_MIN, 0)))
 		UpdateState(band);
 
 	ImGui::PopStyleColor();
 }
 
-void DockTunePanel::RenderBands(const float height)
+void DockTunePanel::RenderBands()
 {
-	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-
-	const float row_height = GetRowHeight(height, 1);
-
 	ImGui::BeginTable("#TunePanel",
 	                  2,
 	                  ImGuiTableFlags_SizingStretchSame |
@@ -93,16 +87,15 @@ void DockTunePanel::RenderBands(const float height)
 		ImGui::TableSetupColumn("Band");
 
 		ImGui::TableNextColumn();
-		RenderBand("FM", Band::FM, row_height);
+		RenderBand("FM", Band::FM);
 		ImGui::TableNextColumn();
-		RenderBand("AM", Band::AM, row_height);
+		RenderBand("AM", Band::AM);
 
 		ImGui::EndTable();
 	}
-	ImGui::PopStyleVar();
 }
 
-void DockTunePanel::RenderButtons(const float height)
+void DockTunePanel::RenderButtons()
 {
 	const int64_t used_digit = numDigits(state_.selected_freq);
 	const int64_t min_digit = removeDigits(
@@ -113,10 +106,6 @@ void DockTunePanel::RenderButtons(const float height)
 		numDigits(state_.freq_max) - used_digit - 1);
 
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
-
-	const float total_height = height - ImGui::GetStyle().FramePadding.y * 2.0f;
-	constexpr int rows = 10 / 5;
-	const float rows_height = GetRowHeight(total_height, rows);
 
 	ImGui::BeginTable("#TuneButtons",
 	                  5,
@@ -140,7 +129,7 @@ void DockTunePanel::RenderButtons(const float height)
 		if (!enabled_button)
 			ImGui::BeginDisabled();
 
-		if (ImGui::Button(freq_str.c_str(), ImVec2(-FLT_MIN, rows_height)))
+		if (ImGui::Button(freq_str.c_str(), ImVec2(-FLT_MIN, 0)))
 			state_.selected_freq = prefix;
 
 		if (!enabled_button)
@@ -151,12 +140,11 @@ void DockTunePanel::RenderButtons(const float height)
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
 }
 
-void DockTunePanel::RenderFreq(float height) const
+void DockTunePanel::RenderFreq() const
 {
-	const ImVec2 size = {ImGui::GetContentRegionAvail().x, height};
+	const ImVec2 size = {ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 5.0f};
 
 	ImGui::Dummy(size);
-	ImGui::PushFont(nullptr, ImGui::GetFontSize() * 1.1f);
 
 	std::string frequency;
 	if (state_.selected_freq != 0)
@@ -179,8 +167,8 @@ void DockTunePanel::RenderFreq(float height) const
 		frequency.data() + frequency.size()
 	);
 	const ImVec2 center = {
-		pos.x + (size.x - text_size.x) * 0.5f,
-		pos.y + (size.y - text_size.y) * 0.5f
+		pos.x + Center(size.x, text_size.x),
+		pos.y + Center(size.y, text_size.y)
 	};
 
 	ImDrawList *draw_list = ImGui::GetWindowDrawList();
@@ -190,11 +178,9 @@ void DockTunePanel::RenderFreq(float height) const
 		frequency.data(),
 		frequency.data() + frequency.size()
 	);
-
-	ImGui::PopFont();
 }
 
-bool DockTunePanel::RenderTuneButton(const float height)
+bool DockTunePanel::RenderTuneButton()
 {
 	bool selected_tuned = false;
 	const bool finished = state_.selected_freq >= state_.freq_min && state_.selected_freq <= state_.freq_max;
@@ -202,7 +188,7 @@ bool DockTunePanel::RenderTuneButton(const float height)
 	if (!finished)
 		ImGui::BeginDisabled();
 
-	if (ImGui::Button("Tune", ImVec2(-FLT_MIN, height)))
+	if (ImGui::Button("Tune", ImVec2(-FLT_MIN, 0)))
 	{
 		Station station;
 		station.freq = static_cast<uint32_t>(
@@ -220,13 +206,4 @@ bool DockTunePanel::RenderTuneButton(const float height)
 	if (!finished)
 		ImGui::EndDisabled();
 	return selected_tuned;
-}
-
-float DockTunePanel::GetRowHeight(const float avail_height, const float rows)
-{
-	const float item_spacing = ImGui::GetStyle().ItemSpacing.y; // spacing between rows
-	const float cell_spacing = ImGui::GetStyle().CellPadding.y * 2.0f;
-	const float total_spacing = item_spacing * (rows - 1) + cell_spacing * rows;
-
-	return std::max(avail_height - total_spacing, 0.0f) / rows;
 }

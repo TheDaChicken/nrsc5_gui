@@ -18,12 +18,11 @@ class DockTunePanel
 	private:
 		void UpdateState(Band::Type selected);
 
-		void RenderBand(const std::string &label, Band::Type band, float height);
-		void RenderBands(float height);
-		void RenderButtons(float height);
-		void RenderFreq(float height) const;
-		bool RenderTuneButton(float height);
-		static float GetRowHeight(float avail_height, float rows);
+		void RenderBand(const std::string &label, Band::Type band);
+		void RenderBands();
+		void RenderButtons();
+		void RenderFreq() const;
+		bool RenderTuneButton();
 
 		struct FreqState
 		{

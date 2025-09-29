@@ -51,13 +51,13 @@ struct ThemeOptions
 
 	ImGuiStyle style;
 
-	float navigation_x;
 	float list_item_multiplier;
 	float separator_thickness;
 
 	float font_small_size;
 	float font_medium_size;
 	float font_large_size;
+	float font_very_large_size;
 
 	std::array<std::string, static_cast<int>(FontType::COUNT)> fonts;
 	std::array<std::string, static_cast<int>(IconType::COUNT)> icons;
@@ -73,8 +73,8 @@ struct Theme
 	float font_small_size;
 	float font_medium_size;
 	float font_large_size;
+	float font_very_large_size;
 
-	float navigation_x;
 	float list_item_multiplier;
 	float separator_thickness;
 
@@ -108,12 +108,6 @@ struct Theme
 			throw std::out_of_range("Image type index out of range");
 		return fonts[index];
 	}
-};
-
-struct TextEnter
-{
-
-	std::string line;
 };
 
 class ThemeManager

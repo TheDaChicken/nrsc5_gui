@@ -59,60 +59,10 @@ struct SVGImage
 		return texture;
 	}
 
-	GPU::Texture &GetTextureByFontHeight()
-	{
-		return UpdateSize(ImGui::GetFontSize());
-	}
-
-	ImVec2 GetInlineSize()
-	{
-		UpdateSize(GlyphSize());
-		return {static_cast<float>(texture.width), ImGui::GetFontSize()};
-	}
-
-	void PlaceInLineText()
-	{
-		ImGui::Dummy(GetInlineSize());
-		DrawInline(ImGui::GetItemRectMin());
-	}
-
-	void DrawInline(const ImVec2& p)
-	{
-		UpdateSize(GlyphSize());
-		if (!texture.ptr)
-			return;
-
-		const ImFontBaked *font_baked = ImGui::GetFontBaked();
-		const float baseline = p.y + font_baked->Ascent;
-
-		const ImVec2 p1(p.x, baseline - texture.height);
-		const ImVec2 p2(p.x + texture.width, baseline);
-
-		ImGui::GetWindowDrawList()->AddImage((intptr_t)texture.ptr.get(), p1, p2);
-	}
-
 	SVGDecoder decoder;
 	std::filesystem::path path;
 	std::shared_ptr<GPU::TextureUploader> uploader_;
 	GPU::Texture texture;
-
-	private:
-		[[nodiscard]] float GlyphSize(char refGlyph = 'R')
-		{
-			ImFontBaked *font_baked = ImGui::GetFontBaked();
-			const ImFontGlyph *glyph = font_baked->FindGlyph(refGlyph);
-			float glyph_height;
-			if (!glyph)
-			{
-				glyph_height = font_baked->Ascent - font_baked->Descent;
-			}
-			else
-			{
-				// Height using glyph's bounding box from baseline
-				glyph_height = glyph->Y1 - glyph->Y0;
-			}
-			return glyph_height;
-		}
 };
 }
 

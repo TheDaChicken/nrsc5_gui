@@ -28,7 +28,7 @@ class DockInputPanel
 		void Render(const Theme &theme);
 
 	private:
-		void RenderSDRCombo();
+		void RenderSDRDevices();
 		void RenderSDRGainModes();
 		void RenderGains();
 
@@ -36,6 +36,7 @@ class DockInputPanel
 
 		HybridInput &input_;
 
+		std::vector<std::shared_ptr<PortSDR::Device>> available_devices_;
 		std::shared_ptr<PortSDR::Device> selected_device_;
 		PortSDR::PortSDR sdr;
 		bool freely_gain = true;

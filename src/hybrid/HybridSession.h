@@ -55,9 +55,9 @@ class HybridSession
 		{
 			return program_;
 		}
-		void OnProgramUpdate(const StationProgramFrame *ptr);
-
 	private:
+		void UpdateProgramName();
+		void OnProgramUpdate(const StationProgramFrame *ptr);
 		void OnProgramStateChange(const ProgramChangeFrame *frame);
 		void OnId3Update(const StationId3Frame *frame);
 

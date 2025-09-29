@@ -4,7 +4,6 @@
 
 #include "MainWindow.h"
 
-#include <imgui_internal.h>
 #include <SDL3/SDL_timer.h>
 
 SDL_AppResult MainWindow::InitWindow(const std::shared_ptr<GPU::GPUContext> &gpu_device)
@@ -91,7 +90,9 @@ void MainWindow::RenderLayout()
 	const Theme &theme = theme_manager_->GetCurrentTheme();
 
 	RenderButtons(theme);
-	ImGui::SameLine(0.0, 0.0f);
+
+	ImGui::SameLine(0.0f, 0.0f);
+
 	RenderCenter(theme);
 }
 

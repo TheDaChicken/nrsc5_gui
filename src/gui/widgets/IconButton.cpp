@@ -16,7 +16,7 @@ bool GUI::IconButton::Render(const bool checked) const
 	if (!icon)
 		return false;
 
-	const GPU::Texture &image = icon->GetTextureByFontHeight();
+	const GPU::Texture &image = icon->UpdateSize(ImGui::GetFontSize());
 
 	if (ImGui::InvisibleButton(id.c_str(),
 	                           {
@@ -42,7 +42,10 @@ bool GUI::IconButton::Render(const bool checked) const
 
 	draw_list->AddImage(
 		(intptr_t)image.ptr.get(),
-		ImVec2(center_pos.x - image.width * 0.5f, center_pos.y - image.height * 0.5f),
-		ImVec2(center_pos.x + image.width * 0.5f, center_pos.y + image.height * 0.5f));
+		ImVec2(center_pos.x - static_cast<float>(image.width) * 0.5f,
+		       center_pos.y - image.height * 0.5f),
+		ImVec2(center_pos.x + static_cast<float>(image.width) * 0.5f,
+		       center_pos.y + image.height * 0.5f));
+
 	return updated;
 }

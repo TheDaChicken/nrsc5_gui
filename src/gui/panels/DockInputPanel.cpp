@@ -17,14 +17,21 @@ DockInputPanel::DockInputPanel(HybridInput &input)
 {
 	selected_device_ = std::make_shared<PortSDR::Device>();
 	selected_device_->name = "No Device Selected";
+	selected_device_->index = -1;
+
+	available_devices_ = sdr.GetDevices();
 }
 
 void DockInputPanel::Render(const Theme &theme)
 {
-	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_medium_size);
+	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_small_size);
 
 	ImGui::BeginGroup();
-	RenderSDRCombo();
+	if (ImGui::BeginCombo("SDRDevices", selected_device_->name.c_str()))
+	{
+		RenderSDRDevices();
+		ImGui::EndCombo();
+	}
 	RenderSDRGainModes();
 	RenderGains();
 	ImGui::EndGroup();
@@ -32,39 +39,41 @@ void DockInputPanel::Render(const Theme &theme)
 	ImGui::PopFont();
 }
 
-void DockInputPanel::RenderSDRCombo()
+void DockInputPanel::RenderSDRDevices()
 {
-	if (!ImGui::BeginCombo("SDRDevices", selected_device_->name.c_str()))
-		return;
+	static float timer = 0.0f;
+	timer += ImGui::GetIO().DeltaTime;
 
-	const std::vector<std::shared_ptr<PortSDR::Device> > sdr_devices = sdr.GetDevices();
-	if (sdr_devices.empty())
+	if (timer >= 1.0f) // refresh every 1.0 seconds
+	{
+		available_devices_ = sdr.GetDevices();
+		timer = 0.0f;
+	}
+
+	if (selected_device_->index != -1)
+		ImGui::Selectable(selected_device_->name.c_str(), true);
+	else if (available_devices_.empty())
 		ImGui::Text("No SDR devices found");
 
-	for (int i = 0; i < sdr_devices.size(); i++)
+	for (int i = 0; i < available_devices_.size(); i++)
 	{
-		const auto &device = sdr_devices[i];
+		const auto &device = available_devices_[i];
 		const std::string name = device->name;
 
 		ImGui::PushID(i);
 
-		if (device->unavailable)
+		if (ImGui::Selectable(name.c_str(), false))
 		{
-			ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-			ImGui::TextUnformatted(name.data(), name.data() + name.size());
-			ImGui::PopStyleColor();
-		}
-		else if (ImGui::Selectable(name.c_str(), device == selected_device_))
-		{
-			selected_device_ = device;
-
-			input_.OpenSDR(device);
+			if (input_.OpenSDR(device))
+			{
+				selected_device_ = device;
+				available_devices_.erase(available_devices_.begin() + i);
+				i++;
+			}
 		}
 
 		ImGui::PopID();
 	}
-
-	ImGui::EndCombo();
 }
 
 void DockInputPanel::RenderSDRGainModes()
