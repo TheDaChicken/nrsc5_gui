@@ -70,11 +70,13 @@ class Processor
 			nrsc5_set_callback(nrsc5_decoder_.get(), callback, opaque);
 		}
 
-		void Process(const void *data, size_t size);
-		void Resample(const void *data, size_t frame_size);
 		void SetMode(Band::Type mode) const;
+		void Process(const void *data, size_t size);
 
 	private:
+		const void *ConvertSamples(const void *data, size_t size);
+		void Resample(const void *data, size_t frame_size);
+
 		static tl::expected<StreamSupported, StreamStatus> NativeStream(const StreamCapabilities &params);
 
 		tl::expected<StreamSupported, StreamStatus> SelectStream(const StreamCapabilities &params);

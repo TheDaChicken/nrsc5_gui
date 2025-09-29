@@ -75,7 +75,7 @@ void NRSC5::Processor::Process(const void *data, const size_t frame_size)
 		}
 		case TunerMode::ArbResampler:
 		{
-			Resample(data, frame_size);
+			Resample(ConvertSamples(data, frame_size), frame_size);
 			break;
 		}
 		default:
@@ -86,46 +86,25 @@ void NRSC5::Processor::Process(const void *data, const size_t frame_size)
 	}
 }
 
-void NRSC5::Processor::Resample(const void *data, const size_t frame_size)
+const void *NRSC5::Processor::ConvertSamples(const void *data, const size_t frame_size)
 {
-	const std::size_t resample_size = std::ceil(frame_size * resampler_rate_) + FILTER_TAP_COUNT;
-
-	auto in = static_cast<const cint16_t *>(data);
-
 	if (in_floats)
 	{
 		if (transit_buffer.size() < frame_size)
 			transit_buffer.resize(frame_size);
 
 		const auto float_ptr = static_cast<const float *>(data);
-		auto out_ptr = reinterpret_cast<int16_t *>(transit_buffer.data());
+		const auto out_ptr = reinterpret_cast<int16_t *>(transit_buffer.data());
 
 		for (size_t i = 0; i < frame_size * 2.0; i++)
 		{
 			out_ptr[i] = static_cast<int16_t>(float_ptr[i] * 32768.0f);
 		}
 
-		in = transit_buffer.data();
-
-		stream.write(reinterpret_cast<const std::ostream::char_type *>(transit_buffer.data()),
-		             frame_size * sizeof(cint16_t));
+		return transit_buffer.data();
 	}
 
-	// Reserve space for output
-	if (resampled_buffer_.size() < resample_size)
-		resampled_buffer_.resize(resample_size);
-
-	const unsigned int resampled_size = resampler_stream_->IProcess(
-		resampled_buffer_.data(),
-		in,
-		frame_size);
-	if (resampled_size > 0)
-	{
-		nrsc5_pipe_samples_cs16(
-			nrsc5_decoder_.get(),
-			reinterpret_cast<const int16_t *>(resampled_buffer_.data()),
-			resampled_size * 2);
-	}
+	return data;
 }
 
 int ConvertToNRSC5Mode(const Band::Type mode)
@@ -145,6 +124,31 @@ void NRSC5::Processor::SetMode(const Band::Type mode) const
 {
 	// TODO: The sample rate changes based on mode
 	nrsc5_set_mode(nrsc5_decoder_.get(), ConvertToNRSC5Mode(mode));
+}
+
+void NRSC5::Processor::Resample(const void *data, const size_t frame_size)
+{
+	const std::size_t max_resample_size = std::ceil(
+		frame_size * resampler_rate_) + FILTER_TAP_COUNT;
+
+	// Reserve space for output
+	if (resampled_buffer_.size() < max_resample_size)
+		resampled_buffer_.resize(max_resample_size);
+
+	const unsigned int resampled_size = resampler_stream_->IProcess(
+		resampled_buffer_.data(),
+		data,
+		frame_size);
+	if (resampled_size > 0)
+	{
+		nrsc5_pipe_samples_cs16(
+			nrsc5_decoder_.get(),
+			reinterpret_cast<const int16_t *>(resampled_buffer_.data()),
+			resampled_size * 2);
+
+		stream.write(reinterpret_cast<const std::ostream::char_type *>(resampled_buffer_.data()),
+		             resampled_size * sizeof(cint16_t));
+	}
 }
 
 tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> NRSC5::Processor::SelectStream(
