@@ -97,7 +97,7 @@ class HybridController final
 		explicit HybridController();
 		~HybridController();
 
-		tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> Open(const NRSC5::StreamCapabilities &input);
+		tl::expected<void, NRSC5::StreamStatus> Open(const NRSC5::StreamSupported &input);
 
 		void Reset(double freq);
 		void SetMode(Band::Type mode);
@@ -109,6 +109,10 @@ class HybridController final
 
 	private:
 		static void NRSC5Callback(const nrsc5_event_t *evt, void *opaque);
+
+		std::unique_ptr<nrsc5_t, decltype(&nrsc5_close)> nrsc5_decoder_;
+
+		TunerMode tuner_mode_ = TunerMode::Empty;
 
 		std::mutex mutex_;
 		NRSC5::Processor stream_processor_;

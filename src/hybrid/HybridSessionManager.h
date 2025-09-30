@@ -5,8 +5,6 @@
 #ifndef HYBRIDSTREAM_H
 #define HYBRIDSTREAM_H
 
-#include <set>
-
 #include "gui/managers/EventsDispatcher.h"
 #include "external/HybridExternal.h"
 #include "HybridSession.h"
@@ -22,6 +20,7 @@ class HybridSessionManager
 
 		void HandleEvents(const std::unique_ptr<EventData> &ptr);
 		void HandleAudio(const std::unique_ptr<StationAudioFrame> &audio_frame) const;
+
 
 		[[nodiscard]] const HybridState &GetState() const
 		{

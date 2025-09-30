@@ -60,34 +60,28 @@ enum StreamStatus
 class Processor
 {
 	public:
+		struct OutBuffer
+		{
+			const void *data;
+			std::size_t size;
+		};
+
+		static tl::expected<StreamSupported, StreamStatus> SelectStream(const StreamCapabilities &params);
+
 		Processor();
 
-		tl::expected<StreamSupported, StreamStatus> Open(const StreamCapabilities &params);
-		tl::expected<void, StreamStatus> Reset(float freq) const;
-
-		void SetCallback(const nrsc5_callback_t callback, void *opaque)
-		{
-			nrsc5_set_callback(nrsc5_decoder_.get(), callback, opaque);
-		}
+		tl::expected<void, StreamStatus> Open(const StreamSupported &stream_supported);
+		tl::expected<void, StreamStatus> Reset() const;
 
 		void SetMode(Band::Type mode) const;
-		void Process(const void *data, size_t size);
+		OutBuffer Process(const void *data, size_t size);
 
 	private:
-		const void *ConvertSamples(const void *data, size_t size);
-		void Resample(const void *data, size_t frame_size);
-
 		static tl::expected<StreamSupported, StreamStatus> NativeStream(const StreamCapabilities &params);
-
-		tl::expected<StreamSupported, StreamStatus> SelectStream(const StreamCapabilities &params);
-		tl::expected<StreamSupported, StreamStatus> ResamplerStream(const StreamCapabilities &params);
+		static tl::expected<StreamSupported, StreamStatus> ResamplerStream(const StreamCapabilities &params);
 
 		StreamStatus CreateResamplerQ15(
 			const StreamSupported &supported);
-
-		std::unique_ptr<nrsc5_t, decltype(&nrsc5_close)> nrsc5_decoder_;
-
-		TunerMode tuner_mode_ = TunerMode::Empty;
 
 		std::unique_ptr<IFilterStream> resampler_stream_;
 		HistoryBuffer<cint16_t> resampler_history_;
@@ -96,7 +90,6 @@ class Processor
 
 		double resampler_rate_ = 0;
 		bool in_floats = false;
-		std::ofstream stream;
 };
 } // namespace NRSC5
 

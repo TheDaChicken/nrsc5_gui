@@ -10,7 +10,8 @@
 HybridExternal::HybridExternal(
 	const std::shared_ptr<ImageManager> &image_manager,
 	DatabaseManager &db_manager)
-	: image_manager_(image_manager), lot_service_(db_manager)
+	: image_manager_(image_manager),
+	  lot_service_(db_manager)
 {
 	assert(image_manager_);
 }

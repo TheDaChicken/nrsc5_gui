@@ -16,7 +16,7 @@ class IFilterStream
 		virtual ~IFilterStream() = default;
 
 		virtual void Reset() = 0;
-		virtual void SetFilter(std::unique_ptr<IFilterBlock> filter) = 0;
+		virtual void SetFilter(std::shared_ptr<IFilterBlock> filter) = 0;
 
 		virtual unsigned int IProcess(void *output, const void *input,
 		                              unsigned int len) = 0;
@@ -26,12 +26,18 @@ template<typename IN_T>
 class FilterStream final : public IFilterStream
 {
 	public:
+		struct StreamOut
+		{
+			void* data;
+			int size;
+		};
+
 		void Reset()
 		{
 			history_.Reset();
 		}
 
-		void SetFilter(std::unique_ptr<IFilterBlock> filter)
+		void SetFilter(std::shared_ptr<IFilterBlock> filter)
 		{
 			filter_ = std::move(filter);
 			history_.SetHistorySize(filter_->BlockSize());
@@ -76,6 +82,7 @@ class FilterStream final : public IFilterStream
 	private:
 		HistoryBuffer<IN_T> history_;
 		std::shared_ptr<IFilterBlock> filter_;
+		std::vector<IN_T> buffer_;
 };
 
 #endif //IFILTER_H

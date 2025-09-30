@@ -9,29 +9,67 @@
 
 #include <fmt/chrono.h>
 
-HybridController::HybridController()
+static std::unique_ptr<nrsc5_t, decltype(&nrsc5_close)> nrsc5_open_pipe()
 {
-	stream_processor_.SetCallback(NRSC5Callback, this);
+	nrsc5_t *st;
+	// This won't happen. The function always returns 0.
+	if (const int ret = nrsc5_open_pipe(&st); ret < 0)
+		throw std::runtime_error("Failed to open NRSC5 pipe");
+
+	return {st, nrsc5_close};
+}
+
+HybridController::HybridController()
+	: nrsc5_decoder_(nrsc5_open_pipe())
+{
+	nrsc5_set_callback(nrsc5_decoder_.get(), NRSC5Callback, this);
 }
 
 HybridController::~HybridController()
 = default;
 
-tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> HybridController::Open(
-	const NRSC5::StreamCapabilities &input)
+tl::expected<void, NRSC5::StreamStatus> HybridController::Open(
+	const NRSC5::StreamSupported &input)
 {
+	tuner_mode_ = input.tuner_mode;
+
 	return stream_processor_.Open(input);
 }
 
 void HybridController::Reset(const double freq)
 {
 	std::lock_guard lock(mutex_);
-	stream_processor_.Reset(freq);
+
+	if (int ret = nrsc5_set_frequency(nrsc5_decoder_.get(), freq);
+		ret < 0)
+	{
+		Logger::Log(err, "Failed to reset NRSC5 Decoder {}", ret);
+		//return tl::unexpected(StreamStatus_Error);
+	}
+
+	stream_processor_.Reset();
+}
+
+int ConvertToNRSC5Mode(const Band::Type mode)
+{
+	switch (mode)
+	{
+		case Band::FM:
+			return NRSC5_MODE_FM;
+		case Band::AM:
+			return NRSC5_MODE_AM;
+		default:
+			return NRSC5_MODE_FM;
+	}
 }
 
 void HybridController::SetMode(Band::Type mode)
 {
 	std::lock_guard lock(mutex_);
+
+	// TODO: The sample rate changes based on mode
+	nrsc5_set_mode(nrsc5_decoder_.get(), ConvertToNRSC5Mode(mode));
+
 	stream_processor_.SetMode(mode);
 }
 
@@ -44,7 +82,35 @@ void HybridController::ProcessSamples(
 	}
 
 	std::lock_guard lock(mutex_);
-	stream_processor_.Process(sdr_transfer.data, sdr_transfer.frame_size);
+
+	switch (tuner_mode_)
+	{
+		case TunerMode::Native:
+		{
+			nrsc5_pipe_samples_cu8(
+				nrsc5_decoder_.get(),
+				static_cast<const uint8_t *>(sdr_transfer.data),
+				sdr_transfer.frame_size * 2);
+			break;
+		}
+		case TunerMode::ArbResampler:
+		{
+			auto [data, size] = stream_processor_.Process(
+				sdr_transfer.data,
+				sdr_transfer.frame_size);
+
+			nrsc5_pipe_samples_cs16(
+				nrsc5_decoder_.get(),
+				static_cast<const int16_t *>(data),
+				size * 2);
+			break;
+		}
+		default:
+		{
+			Logger::Log(err, "Unsupported tuner mode: {}", static_cast<int>(tuner_mode_));
+			break;
+		}
+	}
 }
 
 void HybridController::NRSC5Callback(const nrsc5_event_t *evt, void *opaque)

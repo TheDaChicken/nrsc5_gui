@@ -17,96 +17,45 @@ inline int16_t FloatToQ15(const float x)
 	return static_cast<int16_t>(std::clamp(x, -1.0f, 1.0f) * 32767.0f);
 }
 
-static std::unique_ptr<nrsc5_t, decltype(&nrsc5_close)> nrsc5_open_pipe()
+tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> NRSC5::Processor::SelectStream(
+	const StreamCapabilities &params)
 {
-	nrsc5_t *st;
-	// This won't happen. The function always returns 0.
-	if (const int ret = nrsc5_open_pipe(&st); ret < 0)
-		throw std::runtime_error("Failed to open NRSC5 pipe");
-
-	return {st, nrsc5_close};
+	switch (params.type)
+	{
+		case PortSDR::Host::RTL_SDR:
+			return NativeStream(params);
+		default:
+			return ResamplerStream(params);
+	}
 }
 
 NRSC5::Processor::Processor()
-	: nrsc5_decoder_(nrsc5_open_pipe())
 {
+	resampler_stream_ = std::make_unique<FilterStream<cint16_t> >();
 }
 
-tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> NRSC5::Processor::Open(
-	const StreamCapabilities &params)
+tl::expected<void, NRSC5::StreamStatus> NRSC5::Processor::Open(const StreamSupported &stream_supported)
 {
-	auto supported = SelectStream(params);
-	if (!supported)
-		return tl::unexpected(supported.error());
+	const auto ret = CreateResamplerQ15(stream_supported);
+	if (ret != StreamStatus_Ok)
+		return tl::unexpected(StreamStatus_ResamplerFailed);
 
-	tuner_mode_ = supported->tuner_mode;
-
-	stream.open("test.out", std::ios::binary);
-
-	return supported;
+	in_floats = stream_supported.sample_format == PortSDR::SAMPLE_FORMAT_IQ_FLOAT32;
+	return {};
 }
 
-tl::expected<void, NRSC5::StreamStatus> NRSC5::Processor::Reset(const float freq) const
+tl::expected<void, NRSC5::StreamStatus> NRSC5::Processor::Reset() const
 {
-	if (int ret = nrsc5_set_frequency(nrsc5_decoder_.get(), freq);
-		ret < 0)
-	{
-		Logger::Log(err, "Failed to reset NRSC5 Decoder {}", ret);
-		return tl::unexpected(StreamStatus_Error);
-	}
-
 	if (resampler_stream_)
 		resampler_stream_->Reset();
 
 	return {};
 }
 
-void NRSC5::Processor::Process(const void *data, const size_t frame_size)
+NRSC5::Processor::OutBuffer NRSC5::Processor::Process(const void *data, const size_t frame_size)
 {
-	switch (tuner_mode_)
-	{
-		case TunerMode::Native:
-		{
-			nrsc5_pipe_samples_cu8(
-				nrsc5_decoder_.get(),
-				static_cast<const uint8_t *>(data),
-				frame_size * 2);
-			break;
-		}
-		case TunerMode::ArbResampler:
-		{
-			Resample(ConvertSamples(data, frame_size), frame_size);
-			break;
-		}
-		default:
-		{
-			Logger::Log(err, "Unsupported tuner mode: {}", static_cast<int>(tuner_mode_));
-			break;
-		}
-	}
-}
+	const void *in = data;
 
-int ConvertToNRSC5Mode(const Band::Type mode)
-{
-	switch (mode)
-	{
-		case Band::FM:
-			return NRSC5_MODE_FM;
-		case Band::AM:
-			return NRSC5_MODE_AM;
-		default:
-			return NRSC5_MODE_FM;
-	}
-}
-
-void NRSC5::Processor::SetMode(const Band::Type mode) const
-{
-	// TODO: The sample rate changes based on mode
-	nrsc5_set_mode(nrsc5_decoder_.get(), ConvertToNRSC5Mode(mode));
-}
-
-const void *NRSC5::Processor::ConvertSamples(const void *data, const size_t frame_size)
-{
 	if (in_floats)
 	{
 		if (transit_buffer.size() < frame_size)
@@ -120,14 +69,9 @@ const void *NRSC5::Processor::ConvertSamples(const void *data, const size_t fram
 			out_ptr[i] = static_cast<int16_t>(float_ptr[i] * 32768.0f);
 		}
 
-		return transit_buffer.data();
+		in = transit_buffer.data();
 	}
 
-	return data;
-}
-
-void NRSC5::Processor::Resample(const void *data, const size_t frame_size)
-{
 	const std::size_t max_resample_size = std::ceil(
 		frame_size * resampler_rate_) + FILTER_TAP_COUNT;
 
@@ -137,30 +81,13 @@ void NRSC5::Processor::Resample(const void *data, const size_t frame_size)
 
 	const unsigned int resampled_size = resampler_stream_->IProcess(
 		resampled_buffer_.data(),
-		data,
+		in,
 		frame_size);
-	if (resampled_size > 0)
-	{
-		nrsc5_pipe_samples_cs16(
-			nrsc5_decoder_.get(),
-			reinterpret_cast<const int16_t *>(resampled_buffer_.data()),
-			resampled_size * 2);
-
-		stream.write(reinterpret_cast<const std::ostream::char_type *>(resampled_buffer_.data()),
-		             resampled_size * sizeof(cint16_t));
-	}
+	return {resampled_buffer_.data(), resampled_size};
 }
 
-tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> NRSC5::Processor::SelectStream(
-	const StreamCapabilities &params)
+void NRSC5::Processor::SetMode(const Band::Type mode) const
 {
-	switch (params.type)
-	{
-		case PortSDR::Host::RTL_SDR:
-			return NativeStream(params);
-		default:
-			return ResamplerStream(params);
-	}
 }
 
 tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> NRSC5::Processor::NativeStream(
@@ -203,12 +130,6 @@ tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> NRSC5::Processor::Resa
 		PortSDR::SAMPLE_FORMAT_IQ_INT16) != params.sample_formats.end())
 	{
 		supported.sample_format = PortSDR::SAMPLE_FORMAT_IQ_INT16;
-
-		auto ret = CreateResamplerQ15(supported);
-		if (ret != StreamStatus_Ok)
-			return tl::unexpected(StreamStatus_ResamplerFailed);
-
-		in_floats = false;
 	}
 
 	if (std::find(
@@ -217,12 +138,6 @@ tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> NRSC5::Processor::Resa
 		PortSDR::SAMPLE_FORMAT_IQ_FLOAT32) != params.sample_formats.end())
 	{
 		supported.sample_format = PortSDR::SAMPLE_FORMAT_IQ_FLOAT32;
-
-		auto ret = CreateResamplerQ15(supported);
-		if (ret != StreamStatus_Ok)
-			return tl::unexpected(StreamStatus_ResamplerFailed);
-
-		in_floats = true;
 	}
 
 	return supported;
@@ -249,7 +164,6 @@ NRSC5::Processor::CreateResamplerQ15(
 	}
 
 	resampler_rate_ = NRSC5_SAMPLE_RATE_CS16_FM / static_cast<double>(supported.sample_rate);
-	resampler_stream_ = std::make_unique<FilterStream<cint16_t> >();
 	resampler_stream_->SetFilter(std::make_unique<ArbResampler<cint16_t, cint16_t> >(
 		resampler_rate_,
 		taps,

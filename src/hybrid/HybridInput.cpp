@@ -20,14 +20,11 @@ bool HybridInput::OpenSDR(const std::shared_ptr<PortSDR::Device> &device)
 		return false;
 	}
 
-	auto controller = std::make_shared<HybridController>();
-
-	const auto supported = controller->Open(input->GetCapabilities());
+	const auto supported =
+			NRSC5::Processor::SelectStream(input->GetCapabilities());
 	if (!supported)
 	{
-		Logger::Log(err,
-		            "Failed to open HybridController for device: {}",
-		            static_cast<int>(supported.error()));
+		Logger::Log(err, "Failed to find a good format");
 		return false;
 	}
 
@@ -48,6 +45,17 @@ bool HybridInput::OpenSDR(const std::shared_ptr<PortSDR::Device> &device)
 		            "Failed to set sample rate {}: {}",
 		            supported->sample_rate,
 		            rate_result.error());
+		return false;
+	}
+
+	auto controller = std::make_shared<HybridController>();
+
+	const auto ret = controller->Open(*supported);
+	if (!ret)
+	{
+		Logger::Log(err,
+		            "Failed to open HybridController for device: {}",
+		            static_cast<int>(ret.error()));
 		return false;
 	}
 

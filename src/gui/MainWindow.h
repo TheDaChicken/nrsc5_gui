@@ -68,9 +68,6 @@ class MainWindow final
 		DockInputPanel dock_input_panel_;
 		DockAudioPanel dock_audio_panel_;
 
-		//std::unique_ptr<RadioView> radio_view_;
-		//std::unique_ptr<SettingsView> settings_view_;
-
 		std::array<AppsList, 3> apps_list_ =
 		{
 			{

@@ -47,7 +47,10 @@ class ArbResampler final : public IFilterBlock
 		int ProcessBlock(IN_T *output, const IN_T *input, unsigned int n_to_read, int &consumed_samples);
 		int ProcessBlock(void *output, const void *input, unsigned int n_to_read, int &consumed_samples) override
 		{
-			return ProcessBlock(static_cast<IN_T *>(output), static_cast<const IN_T *>(input), n_to_read, consumed_samples);
+			return ProcessBlock(static_cast<IN_T *>(output),
+			                    static_cast<const IN_T *>(input),
+			                    n_to_read,
+			                    consumed_samples);
 		}
 
 		[[nodiscard]] int BlockSize() const override
