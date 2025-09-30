@@ -62,9 +62,9 @@ void MainWindow::Render()
 	ImGuiWindowFlags flags = 0;
 	const ImGuiViewport *viewport = ImGui::GetMainViewport();
 
-	ImGui::SetNextWindowPos(viewport->Pos);
-	ImGui::SetNextWindowSize(viewport->Size);
-	flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize;
+	// ImGui::SetNextWindowPos(viewport->Pos);
+	// ImGui::SetNextWindowSize(viewport->Size);
+	// flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 	ImGui::Begin("MainWindow",
@@ -149,21 +149,6 @@ void MainWindow::RenderButtons(const Theme &theme)
 	ImGui::PopStyleVar();
 	ImGui::PopFont();
 }
-
-// void MainWindow::RenderNavigation(const Theme &theme)
-// {
-// 	switch (left_buttons_id)
-// 	{
-// 		case 0:
-// 			radio_view_->RenderNavigation(theme);
-// 			break;
-// 		case 2:
-// 			settings_view_->RenderSettingList(theme);
-// 			break;
-// 		default:
-// 			break;
-// 	}
-// }
 
 void MainWindow::RenderCenter(const Theme &theme) const
 {

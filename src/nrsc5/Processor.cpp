@@ -86,6 +86,25 @@ void NRSC5::Processor::Process(const void *data, const size_t frame_size)
 	}
 }
 
+int ConvertToNRSC5Mode(const Band::Type mode)
+{
+	switch (mode)
+	{
+		case Band::FM:
+			return NRSC5_MODE_FM;
+		case Band::AM:
+			return NRSC5_MODE_AM;
+		default:
+			return NRSC5_MODE_FM;
+	}
+}
+
+void NRSC5::Processor::SetMode(const Band::Type mode) const
+{
+	// TODO: The sample rate changes based on mode
+	nrsc5_set_mode(nrsc5_decoder_.get(), ConvertToNRSC5Mode(mode));
+}
+
 const void *NRSC5::Processor::ConvertSamples(const void *data, const size_t frame_size)
 {
 	if (in_floats)
@@ -105,25 +124,6 @@ const void *NRSC5::Processor::ConvertSamples(const void *data, const size_t fram
 	}
 
 	return data;
-}
-
-int ConvertToNRSC5Mode(const Band::Type mode)
-{
-	switch (mode)
-	{
-		case Band::FM:
-			return NRSC5_MODE_FM;
-		case Band::AM:
-			return NRSC5_MODE_AM;
-		default:
-			return NRSC5_MODE_FM;
-	}
-}
-
-void NRSC5::Processor::SetMode(const Band::Type mode) const
-{
-	// TODO: The sample rate changes based on mode
-	nrsc5_set_mode(nrsc5_decoder_.get(), ConvertToNRSC5Mode(mode));
 }
 
 void NRSC5::Processor::Resample(const void *data, const size_t frame_size)
@@ -249,13 +249,13 @@ NRSC5::Processor::CreateResamplerQ15(
 	}
 
 	resampler_rate_ = NRSC5_SAMPLE_RATE_CS16_FM / static_cast<double>(supported.sample_rate);
-	Logger::Log(debug, "ArbResampler rate: {}", resampler_rate_);
-
 	resampler_stream_ = std::make_unique<FilterStream<cint16_t> >();
 	resampler_stream_->SetFilter(std::make_unique<ArbResampler<cint16_t, cint16_t> >(
 		resampler_rate_,
 		taps,
 		FILTER_TAP_COUNT));
+
+	Logger::Log(debug, "ArbResampler rate: {}", resampler_rate_);
 
 	resampled_buffer_ = std::vector<cint16_t>(1024);
 	return StreamStatus_Ok;

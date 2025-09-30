@@ -112,6 +112,9 @@ class HybridController final
 
 		std::mutex mutex_;
 		NRSC5::Processor stream_processor_;
+		std::queue<PortSDR::SDRTransfer> buffer_;
+		std::thread process_thread;
+		std::atomic<bool> stop_ = false;
 };
 
 #endif //HYBRIDTUNER_H

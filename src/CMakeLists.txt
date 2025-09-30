@@ -68,7 +68,7 @@ add_library(${PROJECT_NAME}-lib STATIC
         utils/ThreadPool.h
         utils/RingBuffer.cpp
         utils/RingBuffer.h
-        utils/expected.hpp
+        utils/Expected.hpp
 
         gui/managers/ImageManager.cpp
         gui/managers/ImageManager.h

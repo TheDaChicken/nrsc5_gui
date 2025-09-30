@@ -60,9 +60,10 @@ bool ListView::RenderItem(
 			                    pos.x + icon_space.x,
 			                    pos.y + image_center + icon_space.y
 		                    });
-
-		pos.x += icon_space.x + ImGui::GetStyle().ItemInnerSpacing.x;
+		pos.x += icon_space.x;
 	}
+
+	pos.x += ImGui::GetStyle().ItemInnerSpacing.x;
 
 	const float text_center = (content_size.y - text_size.y) / 2.0f;
 

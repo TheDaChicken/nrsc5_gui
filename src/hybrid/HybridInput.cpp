@@ -52,12 +52,13 @@ bool HybridInput::OpenSDR(const std::shared_ptr<PortSDR::Device> &device)
 	}
 
 	// Only now attach listener
-	input->SetListener([this, controller](PortSDR::SDRTransfer &transfer)
+	input->SetListener([controller](PortSDR::SDRTransfer &transfer)
 	{
 		Logger::Log(trace,
 		            "SDR Transfer: frame_size={} dropped_samples={}",
 		            transfer.frame_size,
 		            transfer.dropped_samples);
+
 		controller->ProcessSamples(transfer);
 	});
 

@@ -8,6 +8,9 @@
 #include <gtest/gtest.h>
 
 #include "sql/DatabaseManager.h"
+#include "sql/LotTable.h"
+#include "sql/SchemaTable.h"
+#include "sql/SettingsTable.h"
 
 TEST(ConnectionPool, Init)
 {
@@ -57,13 +60,15 @@ TEST(Database, Schema)
 	DatabaseManager pool;
 	EXPECT_TRUE(pool.Open(":memory:", 1)) << "Failed to initialize connection pool";
 
-	auto db = pool.AcquireSchema();
+	auto db = pool.PopConnection();
 	ASSERT_TRUE(db) << "Failed to get connection";
 
-	EXPECT_THAT(db->GetSchemaVersion(),
-	            testing::Optional(testing::Eq(db->GetSupportedSchema()))) << "Failed to get schema version";
-	EXPECT_TRUE(db->SetSchemaVersion(5));
-	EXPECT_THAT(db->GetSchemaVersion(), testing::Optional(testing::Eq(5))) << "Failed to get new schema version";
+	SchemaTable schema(*db);
+
+	EXPECT_THAT(schema.GetSchemaVersion(),
+	            testing::Optional(testing::Eq(schema.GetSupportedSchema()))) << "Failed to get schema version";
+	EXPECT_TRUE(schema.SetSchemaVersion(5));
+	EXPECT_THAT(schema.GetSchemaVersion(), testing::Optional(testing::Eq(5))) << "Failed to get new schema version";
 }
 
 TEST(Database, Settings)
@@ -71,19 +76,21 @@ TEST(Database, Settings)
 	DatabaseManager pool;
 	EXPECT_TRUE(pool.Open(":memory:", 1)) << "Failed to initialize connection pool";
 
-	auto db = pool.AcquireSettings();
+	auto db = pool.PopConnection();
 	ASSERT_TRUE(db) << "Failed to get connection";
 
-	EXPECT_EQ(db->GetSettingValue("nonexistent"), tl::unexpected(Lite_Done));
+	SettingsTable settings(*db);
 
-	EXPECT_TRUE(db->SetSettingValue("key1", "value1"));
-	EXPECT_THAT(db->GetSettingValue("key1"), testing::Optional(testing::Eq("value1")));
+	EXPECT_EQ(settings.GetSettingValue("nonexistent"), tl::unexpected(Lite_Done));
 
-	EXPECT_TRUE(db->SetSettingValue("key1", "value2"));
-	EXPECT_THAT(db->GetSettingValue("key1"), testing::Optional(testing::Eq("value2")));
+	EXPECT_TRUE(settings.SetSettingValue("key1", "value1"));
+	EXPECT_THAT(settings.GetSettingValue("key1"), testing::Optional(testing::Eq("value1")));
 
-	EXPECT_TRUE(db->SetSettingValue("key2", "value3"));
-	EXPECT_THAT(db->GetSettingValue("key2"), testing::Optional(testing::Eq("value3")));
+	EXPECT_TRUE(settings.SetSettingValue("key1", "value2"));
+	EXPECT_THAT(settings.GetSettingValue("key1"), testing::Optional(testing::Eq("value2")));
+
+	EXPECT_TRUE(settings.SetSettingValue("key2", "value3"));
+	EXPECT_THAT(settings.GetSettingValue("key2"), testing::Optional(testing::Eq("value3")));
 }
 
 TEST(Database, InsertAndGetLot)
@@ -91,8 +98,10 @@ TEST(Database, InsertAndGetLot)
 	DatabaseManager pool;
 	EXPECT_TRUE(pool.Open(":memory:", 1)) << "Failed to initialize connection pool";
 
-	auto db = pool.AcquireLot();
+	auto db = pool.PopConnection();
 	ASSERT_TRUE(db) << "Failed to get connection";
+
+	LotTable lot_table(*db);
 
 	LotRecord lot;
 	lot.callsign = "TEST";
@@ -103,7 +112,7 @@ TEST(Database, InsertAndGetLot)
 	lot.path = "/path/to/lot";
 	lot.expire_point = std::chrono::system_clock::now() + std::chrono::hours(1);
 
-	EXPECT_TRUE(db->InsertLot(lot));
+	EXPECT_TRUE(lot_table.InsertLot(lot));
 
 	LotRecord key;
 	key.callsign = lot.callsign;
@@ -111,7 +120,7 @@ TEST(Database, InsertAndGetLot)
 	key.service = lot.service;
 	key.id = lot.id;
 
-	auto fetched_lot_ref = db->GetLot(key);
+	auto fetched_lot_ref = lot_table.GetLot(key);
 	ASSERT_TRUE(fetched_lot_ref) << "Failed to get inserted lot";
 
 	const auto &fetched_lot = fetched_lot_ref.value();

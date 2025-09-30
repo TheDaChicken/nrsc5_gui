@@ -244,10 +244,10 @@ ThemeOptions ThemeManager::GetLightTheme()
 	};
 
 	light.style.FrameRounding = light.font_small_size / 2;
-	light.style.WindowPadding = ImVec2{20, 16};
+	light.style.WindowPadding = ImVec2{25, 16};
 	light.style.FramePadding = ImVec2{12, 12};
-	light.style.ItemSpacing = ImVec2{20, 12};
-	light.style.ItemInnerSpacing = ImVec2{10, 12};
+	light.style.ItemSpacing = ImVec2{20, 15};
+	light.style.ItemInnerSpacing = ImVec2{10, 15};
 	light.style.CellPadding = ImVec2{4, 2};
 	light.style.IndentSpacing = light.font_small_size + light.style.FramePadding.x * 2.0f;
 	light.style.FrameBorderSize = 1.0f;

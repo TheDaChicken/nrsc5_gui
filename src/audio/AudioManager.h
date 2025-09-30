@@ -23,9 +23,8 @@ struct Device
 struct Track
 {
 	Track()
-	: stream(nullptr, SDL_DestroyAudioStream)
+		: stream(nullptr, SDL_DestroyAudioStream)
 	{
-
 	}
 
 	std::unique_ptr<SDL_AudioStream, decltype(&SDL_DestroyAudioStream)> stream;
@@ -36,7 +35,7 @@ struct Track
 	[[nodiscard]] std::chrono::nanoseconds Latency() const
 	{
 		return std::chrono::nanoseconds(
-			SDL_GetAudioStreamQueued(stream.get()) * 1000000000 /
+			static_cast<uint64_t>(SDL_GetAudioStreamQueued(stream.get())) * 1000000000 /
 			SDL_AUDIO_FRAMESIZE(input_spec) /
 			input_spec.freq);
 	}
@@ -48,7 +47,6 @@ class AudioManager
 		AudioManager()
 			: sdl_stream_(nullptr, SDL_DestroyAudioStream)
 		{
-
 		}
 
 		static AudioManager &GetInstance()
@@ -95,7 +93,7 @@ class AudioManager
 			return logical_id_;
 		}
 
-		const char* GetCurrentDeviceName() const
+		const char *GetCurrentDeviceName() const
 		{
 			return SDL_GetAudioDeviceName(logical_id_);
 		}
@@ -105,11 +103,12 @@ class AudioManager
 			return last_callback_;
 		}
 
-		std::shared_ptr<Track> CreateStream(const SDL_AudioSpec* spec);
+		std::shared_ptr<Track> CreateStream(const SDL_AudioSpec *spec);
+
 	private:
 		void Callback(SDL_AudioStream *stream, int additional_amount, int total_amount);
 
-		std::vector<std::shared_ptr<Track>> streams_;
+		std::vector<std::shared_ptr<Track> > streams_;
 		std::vector<float> mixer_buffer_;
 		std::atomic<std::chrono::steady_clock::time_point> last_callback_;
 
