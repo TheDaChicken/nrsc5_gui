@@ -29,7 +29,6 @@ class GainSettings : public QGroupBox
 
 	private:
 		void GainFreelyChanged(std::string_view stage, int value) const;
-		void GainChanged(int value) const;
 
 		void UpdateGainSliders();
 		void UpdateGainModes();
@@ -40,11 +39,9 @@ class GainSettings : public QGroupBox
 
 		QWidget *modes_frame_;
 		QHBoxLayout *modes_layout_;
-		QRadioButton *mode_free_gain_;
 
 		QButtonGroup *modes_button;
 		QList<TextSlider *> gain_sliders_;
-		bool freely_gain_mode_ = false;
 
 		PortSDR::Stream *stream_{nullptr};
 };

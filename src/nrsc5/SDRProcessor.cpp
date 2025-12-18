@@ -19,7 +19,7 @@ NRSC5::SDRProcessor::SDRProcessor()
 }
 
 int NRSC5::SDRProcessor::Open(
-	const std::shared_ptr<PortSDR::Device> &device,
+	const PortSDR::Device &device,
 	const std::unique_ptr<PortSDR::Stream> &stream)
 {
 	int ret;
@@ -50,20 +50,18 @@ int NRSC5::SDRProcessor::Open(
 
 int NRSC5::SDRProcessor::SetupTunerNative(const std::unique_ptr<PortSDR::Stream> &stream)
 {
-	int ret;
-
-	ret = stream->SetSampleRate(NRSC5_SAMPLE_RATE_CU8);
-	if (ret < 0)
+	auto ret = stream->SetSampleRate(NRSC5_SAMPLE_RATE_CU8);
+	if (ret != PortSDR::ErrorCode::OK)
 	{
-		Logger::Log(err, "Failed to set sample rate: " + std::to_string(ret));
-		return ret;
+		Logger::Log(err, "Failed to set sample rate: {}", static_cast<int>(ret));
+		return -1;
 	}
 
 	ret = stream->SetSampleFormat(PortSDR::SAMPLE_FORMAT_IQ_UINT8);
-	if (ret < 0)
+	if (ret != PortSDR::ErrorCode::OK)
 	{
-		Logger::Log(err, "Failed to set sample format: " + std::to_string(ret));
-		return ret;
+		Logger::Log(err, "Failed to set sample format: {}", static_cast<int>(ret));
+		return -1;
 	}
 
 	return 0;
@@ -72,7 +70,6 @@ int NRSC5::SDRProcessor::SetupTunerNative(const std::unique_ptr<PortSDR::Stream>
 int NRSC5::SDRProcessor::SetupTunerResamplerQ15(
 	const std::unique_ptr<PortSDR::Stream> &stream)
 {
-	int ret;
 	std::vector<uint32_t> sample_rates = stream->GetSampleRates();
 	if (sample_rates.empty())
 	{
@@ -96,18 +93,18 @@ int NRSC5::SDRProcessor::SetupTunerResamplerQ15(
 	}
 	const uint32_t sample_rate = *iterator;
 
-	ret = stream->SetSampleRate(sample_rate);
-	if (ret < 0)
+	auto ret = stream->SetSampleRate(sample_rate);
+	if (ret != PortSDR::ErrorCode::OK)
 	{
-		Logger::Log(err, "Failed to set sample rate: " + std::to_string(ret));
-		return ret;
+		Logger::Log(err, "Failed to set sample rate: {}", static_cast<int>(ret));
+		return -1;
 	}
 
 	ret = stream->SetSampleFormat(PortSDR::SAMPLE_FORMAT_IQ_INT16);
-	if (ret < 0)
+	if (ret != PortSDR::ErrorCode::OK)
 	{
-		Logger::Log(err, "Failed to set sample format: " + std::to_string(ret));
-		return ret;
+		Logger::Log(err, "Failed to set sample format: {}", static_cast<int>(ret));
+		return -1;
 	}
 
 	int flt_size = 64; // Number of filter taps
@@ -140,7 +137,6 @@ int NRSC5::SDRProcessor::SetupTunerResamplerQ15(
 
 int NRSC5::SDRProcessor::SetupTunerResamplerCCC(const std::unique_ptr<PortSDR::Stream> &stream)
 {
-	int ret;
 	std::vector<uint32_t> sample_rates = stream->GetSampleRates();
 	if (sample_rates.empty())
 	{
@@ -164,18 +160,18 @@ int NRSC5::SDRProcessor::SetupTunerResamplerCCC(const std::unique_ptr<PortSDR::S
 	}
 	const uint32_t sample_rate = *iterator;
 
-	ret = stream->SetSampleRate(sample_rate);
-	if (ret < 0)
+	auto ret = stream->SetSampleRate(sample_rate);
+	if (ret != PortSDR::ErrorCode::OK)
 	{
-		Logger::Log(err, "Failed to set sample rate: " + std::to_string(ret));
-		return ret;
+		Logger::Log(err, "Failed to set sample rate: {}", static_cast<int>(ret));
+		return -1;
 	}
 
 	ret = stream->SetSampleFormat(PortSDR::SAMPLE_FORMAT_IQ_INT16);
-	if (ret < 0)
+	if (ret != PortSDR::ErrorCode::OK)
 	{
-		Logger::Log(err, "Failed to set sample format: " + std::to_string(ret));
-		return ret;
+		Logger::Log(err, "Failed to set sample format: {}", static_cast<int>(ret));
+		return -1;
 	}
 
 	int flt_size = 64; // Number of filter taps
@@ -257,9 +253,9 @@ int NRSC5::SDRProcessor::Reset(float freq)
 	return 0;
 }
 
-TunerMode NRSC5::SDRProcessor::DecideTunerMode(const std::shared_ptr<PortSDR::Device> &device) const
+TunerMode NRSC5::SDRProcessor::DecideTunerMode(const PortSDR::Device &device) const
 {
-	switch (device->host->GetType())
+	switch (device.host.lock()->GetType())
 	{
 		case PortSDR::Host::RTL_SDR:
 		{

@@ -30,9 +30,9 @@ TunerPage::TunerPage(QWidget *parent)
 	device_list_ = new QComboBox(this);
 	device_layout_->addWidget(device_list_);
 
-	refresh_button_ = new QPushButton(tr("Refresh"), this);
-	refresh_button_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-	device_layout_->addWidget(refresh_button_);
+	// refresh_button_ = new QPushButton(tr("Refresh"), this);
+	// refresh_button_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+	// device_layout_->addWidget(refresh_button_);
 
 	gain_settings = new GainSettings(this);
 
@@ -48,10 +48,10 @@ TunerPage::TunerPage(QWidget *parent)
 	        &QComboBox::currentIndexChanged,
 	        this,
 	        &TunerPage::DeviceChanged);
-	connect(refresh_button_,
-	        &QPushButton::clicked,
-	        this,
-	        &TunerPage::RefreshDevices);
+	// connect(refresh_button_,
+	//         &QPushButton::clicked,
+	//         this,
+	//         &TunerPage::RefreshDevices);
 
 	device_list_->setModel(getApp()->GetTunerDevicesModel());
 }
@@ -73,11 +73,11 @@ void TunerPage::DeviceChanged(const int index)
 	else
 	{
 		const QModelIndex modelIndex = device_list_->model()->index(index, 0);
-		const std::shared_ptr<PortSDR::Device> device = getApp()->GetTunerDevicesModel()->GetDevice(modelIndex);
+		const TunerDevice device = getApp()->GetTunerDevicesModel()->GetDevice(modelIndex);
 
-		getApp()->GetRadioController().SetSDRDevice(device);
+		getApp()->GetRadioController().SetSDRDevice(device.device);
 
-		Logger::Log(debug, "Device changed to: {}", device->name);
+		Logger::Log(debug, "Device changed to: {}", device.info.name);
 	}
 }
 

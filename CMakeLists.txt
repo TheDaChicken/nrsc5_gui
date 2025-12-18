@@ -46,7 +46,7 @@ FetchContent_Declare(json
 )
 FetchContent_Declare(PortSDR
         GIT_REPOSITORY https://github.com/thedachicken/PortSDR.git
-        GIT_TAG master
+        GIT_TAG 84d667c1ec66db19db16f99543aea913530435be
         EXCLUDE_FROM_ALL
 )
 

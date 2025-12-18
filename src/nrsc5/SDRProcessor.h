@@ -29,7 +29,7 @@ class SDRProcessor
 	public:
 		SDRProcessor();
 
-		int Open(const std::shared_ptr<PortSDR::Device> &device,
+		int Open(const PortSDR::Device &device,
 		         const std::unique_ptr<PortSDR::Stream> &stream);
 		void Process(const void *data, size_t size);
 
@@ -41,7 +41,7 @@ class SDRProcessor
 		int Reset(float freq);
 
 	private:
-		[[nodiscard]] TunerMode DecideTunerMode(const std::shared_ptr<PortSDR::Device> &device) const;
+		[[nodiscard]] TunerMode DecideTunerMode(const PortSDR::Device &device) const;
 		int SetupTunerNative(const std::unique_ptr<PortSDR::Stream> &stream);
 		int SetupTunerResamplerQ15(const std::unique_ptr<PortSDR::Stream> &stream);
 		int SetupTunerResamplerCCC(const std::unique_ptr<PortSDR::Stream> &stream);

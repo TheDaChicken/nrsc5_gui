@@ -160,7 +160,7 @@ UTILS::StatusCodes HybridRadio::ClearSDRDevice()
 }
 
 UTILS::StatusCodes HybridRadio::SetSDRDevice(
-	const std::shared_ptr<PortSDR::Device> &device)
+	const PortSDR::Device &device)
 {
 	emit TunerStatus(TunerAction::Opening, UTILS::StatusCodes::Ok);
 

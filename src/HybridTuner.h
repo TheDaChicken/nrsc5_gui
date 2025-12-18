@@ -25,7 +25,7 @@ class HybridTuner final : public QObject
 		HybridTuner();
 		~HybridTuner();
 
-		bool Open(const std::shared_ptr<PortSDR::Device> &device);
+		bool Open(const PortSDR::Device &device);
 		void Close();
 
 		bool Start();

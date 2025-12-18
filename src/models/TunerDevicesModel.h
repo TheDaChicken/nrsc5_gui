@@ -8,6 +8,12 @@
 #include <PortSDR.h>
 #include <QAbstractTableModel>
 
+struct TunerDevice
+{
+  PortSDR::DeviceInfo info;
+  PortSDR::Device device;
+};
+
 class TunerDevicesModel final : public QAbstractListModel
 {
   public:
@@ -19,10 +25,10 @@ class TunerDevicesModel final : public QAbstractListModel
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     [[nodiscard]] Qt::ItemFlags flags(const QModelIndex &index) const override;
 
-    [[nodiscard]] std::shared_ptr<PortSDR::Device> GetDevice(const QModelIndex &index) const;
+    [[nodiscard]] TunerDevice GetDevice(const QModelIndex &index) const;
   private:
     std::weak_ptr<PortSDR::PortSDR> m_sdr;
-    std::vector<std::shared_ptr<PortSDR::Device> > m_devices;
+    std::vector<TunerDevice > m_devices;
 };
 
 #endif //TUNERDEVICESMODEL_H

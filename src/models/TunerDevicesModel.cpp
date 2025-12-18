@@ -19,16 +19,19 @@ void TunerDevicesModel::BuildDevices(const bool refresh)
 
 	m_devices.clear();
 
+	std::unique_ptr<PortSDR::Stream> stream;
+
 	if (const auto sdr = m_sdr.lock())
 	{
 		for (const auto &host : sdr->GetHosts())
 		{
-			if (refresh)
-				host->RefreshDevices();
-
-			for (const auto &device : host->Devices())
+			for (const auto &device : host->AvailableDevices())
 			{
-				m_devices.push_back(device);
+				const auto ret = device.CreateStream(stream);
+				if (ret != PortSDR::ErrorCode::OK)
+					continue;
+
+				m_devices.push_back({stream->GetUSBStrings(), device});
 			}
 		}
 	}
@@ -36,7 +39,7 @@ void TunerDevicesModel::BuildDevices(const bool refresh)
 	endResetModel();
 }
 
-std::shared_ptr<PortSDR::Device> TunerDevicesModel::GetDevice(const QModelIndex &index) const
+TunerDevice TunerDevicesModel::GetDevice(const QModelIndex &index) const
 {
 	return m_devices[index.row()];
 }
@@ -56,7 +59,7 @@ QVariant TunerDevicesModel::data(const QModelIndex &index, int role) const
 
 	if (role == Qt::DisplayRole)
 	{
-		return QString::fromStdString(m_devices[index.row()]->name);
+		return QString::fromStdString(m_devices[index.row()].info.name);
 	}
 
 	return {};
@@ -70,7 +73,7 @@ Qt::ItemFlags TunerDevicesModel::flags(const QModelIndex &index) const
 	if (index.row() >= m_devices.size())
 		return {};
 
-	const std::shared_ptr<PortSDR::Device> device = m_devices[index.row()];
+	//const PortSDR::DeviceInfo device = m_devices[index.row()];
 
-	return device->unavailable ? Qt::NoItemFlags : (Qt::ItemIsSelectable|Qt::ItemIsEnabled);
+	return Qt::ItemIsSelectable|Qt::ItemIsEnabled;
 }

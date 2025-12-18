@@ -54,7 +54,7 @@ class HybridRadio final : public QObject
 		UTILS::StatusCodes Start();
 		UTILS::StatusCodes Stop();
 
-		UTILS::StatusCodes SetSDRDevice(const std::shared_ptr<PortSDR::Device> &device);
+		UTILS::StatusCodes SetSDRDevice(const PortSDR::Device &device);
 
 		UTILS::StatusCodes ClearSDRDevice();
 		UTILS::StatusCodes SetAudioDevice(const std::shared_ptr<PortAudio::Device> &device);

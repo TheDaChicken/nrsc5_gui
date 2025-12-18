@@ -26,31 +26,12 @@ GainSettings::GainSettings(QWidget *parent) : QGroupBox(parent)
 	modes_layout_->setObjectName("GainModesLayout");
 	modes_layout_->setContentsMargins(0, 0, 0, 0);
 
-	// Add a button for free gain. (For all gain stages)
-	mode_free_gain_ = new QRadioButton(modes_frame_);
-	mode_free_gain_->setText("Free");
-	mode_free_gain_->setCheckable(true);
-	mode_free_gain_->setAutoExclusive(true);
-
-	modes_layout_->addWidget(mode_free_gain_);
-
 	main_layout_->addWidget(modes_frame_);
 
 	modes_button = new QButtonGroup(modes_frame_);
 	modes_button->setExclusive(true);
-	modes_button->addButton(mode_free_gain_);
 
 	modes_frame_->hide();
-
-	connect(mode_free_gain_,
-	        &QRadioButton::toggled,
-	        this,
-	        [this](bool checked)
-	        {
-		        freely_gain_mode_ = true;
-		        UpdateGainSliders();
-		        Logger::Log(info, "Gain mode changed to: Free");
-	        });
 }
 
 GainSettings::~GainSettings()
@@ -64,6 +45,21 @@ void GainSettings::UpdateTunerStream(PortSDR::Stream *stream)
 	UpdateGainSliders();
 }
 
+std::string ConvertModeToSTR(const PortSDR::GainMode gain_mode)
+{
+	switch (gain_mode)
+	{
+		case PortSDR::GAIN_MODE_FREE:
+			return "Free";
+		case PortSDR::GAIN_MODE_LINEARITY:
+			return "Linearity";
+		case PortSDR::GAIN_MODE_SENSITIVITY:
+			return "Sensitivity";
+		default:
+			return "";
+	}
+}
+
 void GainSettings::UpdateGainModes()
 {
 	ClearGainModes();
@@ -72,13 +68,14 @@ void GainSettings::UpdateGainModes()
 		return;
 
 	// Create buttons for each gain mode
-	for (const std::string &modes : stream_->GetGainModes())
+	for (const PortSDR::GainMode &mode : stream_->GetGainModes())
 	{
-		QRadioButton *gain_mode = new QRadioButton(this);
+		const auto gain_mode = new QRadioButton(this);
 
-		gain_mode->setText(QString::fromStdString(modes));
+		gain_mode->setText(QString::fromStdString(ConvertModeToSTR(mode)));
 		gain_mode->setCheckable(true);
 		gain_mode->setAutoExclusive(true);
+		gain_mode->setChecked(mode == stream_->GetGainMode());
 
 		modes_layout_->addWidget(gain_mode);
 		modes_button->addButton(gain_mode);
@@ -86,17 +83,17 @@ void GainSettings::UpdateGainModes()
 		connect(gain_mode,
 		        &QRadioButton::toggled,
 		        this,
-		        [this, modes](bool checked)
+		        [this, mode](bool checked)
 		        {
-			        int ret = stream_->SetGainModes(modes);
-			        if (ret < 0)
+		        	auto str = ConvertModeToSTR(mode);
+			        const auto ret = stream_->SetGainMode(mode);
+			        if (ret != PortSDR::ErrorCode::OK)
 			        {
-				        Logger::Log(err, "Failed to set gain mode: {}", modes);
+				        Logger::Log(err, "Failed to set gain mode: {}", str);
 				        return;
 			        }
-		        	freely_gain_mode_ = false;
 			        UpdateGainSliders();
-			        Logger::Log(info, "Gain mode changed to: {}", modes);
+			        Logger::Log(info, "Gain mode changed to: {}", str);
 		        });
 	}
 
@@ -105,10 +102,6 @@ void GainSettings::UpdateGainModes()
 		modes_frame_->show();
 	else
 		modes_frame_->hide();
-
-	// Default option is free gain
-	freely_gain_mode_ = true;
-	mode_free_gain_->setChecked(true);
 }
 
 void GainSettings::UpdateGainSliders()
@@ -118,16 +111,9 @@ void GainSettings::UpdateGainSliders()
 	if (!stream_)
 		return;
 
-	if (freely_gain_mode_)
+	for (const auto &gain : stream_->GetGainStages())
 	{
-		for (const auto &gain : stream_->GetGainStages())
-		{
-			CreateGainSlider(gain);
-		}
-	}
-	else
-	{
-		CreateGainSlider(stream_->GetGainStage());
+		CreateGainSlider(gain);
 	}
 }
 
@@ -135,8 +121,8 @@ void GainSettings::CreateGainSlider(const PortSDR::Gain &gain)
 {
 	auto *slider = new TextSlider(QString::fromStdString(gain.stage),
 	                              "db",
-	                              gain.range.min(),
-	                              gain.range.max(),
+	                              gain.range.Min(),
+	                              gain.range.Max(),
 	                              this);
 
 	gain_sliders_.push_back(slider);
@@ -147,14 +133,7 @@ void GainSettings::CreateGainSlider(const PortSDR::Gain &gain)
 	        this,
 	        [this, gain](const int value)
 	        {
-		        if (!freely_gain_mode_)
-		        {
-			        GainChanged(value);
-		        }
-		        else
-		        {
-			        GainFreelyChanged(gain.stage, value);
-		        }
+	        	GainFreelyChanged(gain.stage, value);
 	        });
 }
 
@@ -175,9 +154,6 @@ void GainSettings::ClearGainModes()
 	// Clear buttons
 	for (QAbstractButton *button : modes_button->buttons())
 	{
-		if (button == mode_free_gain_)
-			continue;
-
 		modes_layout_->removeWidget(button);
 		modes_button->removeButton(button);
 
@@ -187,8 +163,8 @@ void GainSettings::ClearGainModes()
 
 void GainSettings::GainFreelyChanged(std::string_view stage, int value) const
 {
-	int ret = stream_->SetGain(value, stage);
-	if (ret < 0)
+	const auto ret = stream_->SetGain(value, stage);
+	if (ret != PortSDR::ErrorCode::OK)
 	{
 		Logger::Log(err, "Failed to set gain stage: {} value: {}", stage, value);
 		return;
@@ -196,16 +172,3 @@ void GainSettings::GainFreelyChanged(std::string_view stage, int value) const
 
 	Logger::Log(info, "Gain stage: {} value: {}", stage, value);
 }
-
-void GainSettings::GainChanged(const int value) const
-{
-	int ret = stream_->SetGain(value);
-	if (ret < 0)
-	{
-		Logger::Log(err, "Failed to set gain value: {}", value);
-		return;
-	}
-
-	Logger::Log(info, "Gain changed to value: {}", value);
-}
-

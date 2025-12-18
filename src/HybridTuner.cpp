@@ -14,18 +14,12 @@ HybridTuner::~HybridTuner()
 {
 }
 
-bool HybridTuner::Open(const std::shared_ptr<PortSDR::Device> &device)
+bool HybridTuner::Open(const PortSDR::Device &device)
 {
-	if (!device)
-	{
-		Logger::Log(err, "Device is null");
-		return false;
-	}
-
 	sdr_stream_.reset();
 
-	int ret = device->CreateStream(sdr_stream_);
-	if (ret < 0)
+	auto errc = device.CreateStream(sdr_stream_);
+	if (errc != PortSDR::ErrorCode::OK)
 	{
 		return false;
 	}
@@ -35,12 +29,12 @@ bool HybridTuner::Open(const std::shared_ptr<PortSDR::Device> &device)
 		SDRCallback(transfer);
 	});
 
-	ret = nrsc5_decoder_.Open(device, sdr_stream_);
+	int ret = nrsc5_decoder_.Open(device, sdr_stream_);
 	if (ret < 0)
 	{
 		sdr_stream_.reset();
 
-		Logger::Log(err, "Failed to setup tuner: " + std::to_string(ret));
+		Logger::Log(err, "Failed to setup tuner: {}", ret);
 		return false;
 	}
 
@@ -58,10 +52,10 @@ void HybridTuner::Close()
 
 bool HybridTuner::Start()
 {
-	int ret = sdr_stream_->Start();
-	if (ret < 0)
+	auto ret = sdr_stream_->Start();
+	if (ret != PortSDR::ErrorCode::OK)
 	{
-		Logger::Log(err, "Failed to start SDR stream: {}", ret);
+		Logger::Log(err, "Failed to start SDR stream: {}", static_cast<int>(ret));
 		return false;
 	}
 
@@ -70,10 +64,10 @@ bool HybridTuner::Start()
 
 bool HybridTuner::Stop()
 {
-	int ret = sdr_stream_->Stop();
-	if (ret < 0)
+	auto ret = sdr_stream_->Stop();
+	if (ret != PortSDR::ErrorCode::OK)
 	{
-		Logger::Log(err, "Failed to stop SDR stream: {}", ret);
+		Logger::Log(err, "Failed to stop SDR stream: {}", static_cast<int>(ret));
 		return false;
 	}
 	return true;
@@ -84,10 +78,10 @@ UTILS::StatusCodes HybridTuner::SetTunerOptions(const TunerOpts &tunerOpts)
 	if (sdr_stream_->GetCenterFrequency() == tunerOpts.freq)
 		return UTILS::StatusCodes::Empty;
 
-	if (int ret = sdr_stream_->SetCenterFrequency(tunerOpts.freq, 0);
-		ret < 0)
+	if (auto ret = sdr_stream_->SetCenterFrequency(tunerOpts.freq);
+		ret != PortSDR::ErrorCode::OK)
 	{
-		Logger::Log(err, "Failed to set SDR frequency {}: {}", ret, tunerOpts.freq);
+		Logger::Log(err, "Failed to set SDR frequency {}: {}", static_cast<int>(ret), tunerOpts.freq);
 		return UTILS::StatusCodes::TunerError;
 	}
 
