@@ -11,8 +11,6 @@ option(ENABLE_TESTS "Enable tests" OFF)
 include(FetchContent)
 include(ExternalProject)
 
-# set(LINKER_FLAGS "-static-libgcc -static-libstdc++")
-
 find_package(RTLSDR REQUIRED)
 find_package(FFTW REQUIRED COMPONENTS FLOAT_LIB)
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Concurrent PrintSupport Svg Sql OpenGL)
