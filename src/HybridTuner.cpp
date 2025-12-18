@@ -52,6 +52,9 @@ void HybridTuner::Close()
 
 bool HybridTuner::Start()
 {
+	if (!sdr_stream_)
+		return true;
+
 	auto ret = sdr_stream_->Start();
 	if (ret != PortSDR::ErrorCode::OK)
 	{
@@ -64,6 +67,9 @@ bool HybridTuner::Start()
 
 bool HybridTuner::Stop()
 {
+	if (!sdr_stream_)
+		return true;
+
 	auto ret = sdr_stream_->Stop();
 	if (ret != PortSDR::ErrorCode::OK)
 	{
