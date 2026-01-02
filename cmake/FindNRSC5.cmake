@@ -18,7 +18,7 @@ find_path(NRSC5_INCLUDE_DIR
 )
 
 find_library(NRSC5_FAAD2
-        NAMES libfaad_hdc.a libfaad_hdc.dll.a
+        NAMES libfaad_hdc
         DOC "NRSC5 FAAD2 library location"
 )
 
