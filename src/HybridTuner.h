@@ -13,7 +13,7 @@
 #include "RadioChannel.h"
 #include "dsp/ArbResampler.h"
 #include "nrsc5/Decoder.h"
-#include "nrsc5/SDRProcessor.h"
+#include "nrsc5/Processor.h"
 #include "utils/Error.h"
 #include "utils/MessageQueue.h"
 
@@ -31,9 +31,9 @@ class HybridTuner final : public QObject
 		bool Start();
 		bool Stop();
 
-		void SetCallbackNRSC5(nrsc5_callback_t callback, void *opaque)
+		void SetCallbackNRSC5(const nrsc5_callback_t callback, void *opaque)
 		{
-			nrsc5_decoder_.SetCallback(callback, opaque);
+			decoder_.SetCallback(callback, opaque);
 		}
 
 		UTILS::StatusCodes SetTunerOptions(const TunerOpts &tunerOpts);
@@ -59,11 +59,11 @@ class HybridTuner final : public QObject
 	private:
 		void SDRCallback(PortSDR::SDRTransfer &sdr_transfer);
 		void ProcessThread();
-		int SetupTunerNative(std::unique_ptr<PortSDR::Stream> &stream);
-		int SetupTunerResampler(const std::unique_ptr<PortSDR::Stream> &stream);
 
 		std::mutex mutex_;
-		NRSC5::SDRProcessor nrsc5_decoder_;
+		NRSC5::Processor processor_;
+		NRSC5::Decoder decoder_;
+		TunerMode tuner_mode_;
 		std::unique_ptr<PortSDR::Stream> sdr_stream_;
 		TunerOpts tuner_opts_;
 };

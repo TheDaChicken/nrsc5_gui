@@ -10,7 +10,7 @@
 
 #include "Firdes.h"
 
-#include <math.h>
+#include <cmath>
 
 std::vector<float> firdes::low_pass_2(double gain,
                                       double sampling_freq, // Hz

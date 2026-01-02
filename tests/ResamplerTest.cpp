@@ -135,14 +135,15 @@ TEST(ResamplerTest, TestOutput)
 		input[i] = cfloat_t(real, imag);
 	}
 
-	ArbResamplerCCC resampler(rrate, taps, nfilts);
+	ArbResampler<cfloat_t, cfloat_t> resampler(rrate, taps, nfilts);
 
-	int delay = resampler.group_delay();
-	float phase = resampler.phase_offset(freq, fs);
+	int delay = resampler.GroupDelay();
+	float phase = resampler.PhaseOffset(freq, fs);
 
 	std::vector<cfloat_t> output(N * rrate + 152);
 
-	int resampled_size = resampler.Process(output.data(), input.data(), N);
+	int p;
+	int resampled_size = resampler.ProcessBlock(output.data(), input.data(), N, p);
 	ASSERT_GT(resampled_size, 0) << "Resampling failed";
 
 	std::vector<cfloat_t> expected_floats(resampled_size);

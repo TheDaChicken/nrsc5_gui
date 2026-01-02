@@ -8,6 +8,7 @@
 
 HybridTuner::HybridTuner()
 {
+	decoder_.OpenPipe();
 }
 
 HybridTuner::~HybridTuner()
@@ -29,13 +30,45 @@ bool HybridTuner::Open(const PortSDR::Device &device)
 		SDRCallback(transfer);
 	});
 
-	int ret = nrsc5_decoder_.Open(device, sdr_stream_);
-	if (ret < 0)
-	{
-		sdr_stream_.reset();
+	NRSC5::StreamCapabilities capabilities;
+	capabilities.native = device.host.lock()->GetType() == PortSDR::Host::RTL_SDR;
+	capabilities.sample_rates = sdr_stream_->GetSampleRates();
+	capabilities.sample_formats = sdr_stream_->GetSampleFormats();
 
-		Logger::Log(err, "Failed to setup tuner: {}", ret);
+	NRSC5::StreamSupported supported = NRSC5::Processor::SelectStream(capabilities);
+
+	tuner_mode_ = supported.tuner_mode;
+
+	auto perret = sdr_stream_->SetSampleFormat(supported.sample_format);
+	if (perret != PortSDR::ErrorCode::OK)
+	{
+		Logger::Log(err,
+		            "Failed to set sample format {}: {}",
+		            static_cast<int>(supported.sample_format),
+		            static_cast<int>(perret));
 		return false;
+	}
+
+	perret = sdr_stream_->SetSampleRate(supported.sample_rate);
+	if (perret != PortSDR::ErrorCode::OK)
+	{
+		Logger::Log(err,
+		            "Failed to set sample rate {}: {}",
+		            supported.sample_rate,
+		            static_cast<int>(perret));
+		return false;
+	}
+
+	if (tuner_mode_ == TunerMode::ArbResampler)
+	{
+		int ret = processor_.Open(supported);
+		if (ret < 0)
+		{
+			sdr_stream_.reset();
+
+			Logger::Log(err, "Failed to setup tuner: {}", ret);
+			return false;
+		}
 	}
 
 	emit TunerStream(sdr_stream_.get());
@@ -81,6 +114,9 @@ bool HybridTuner::Stop()
 
 UTILS::StatusCodes HybridTuner::SetTunerOptions(const TunerOpts &tunerOpts)
 {
+	if (!sdr_stream_)
+		return UTILS::StatusCodes::UnknownError;
+
 	if (sdr_stream_->GetCenterFrequency() == tunerOpts.freq)
 		return UTILS::StatusCodes::Empty;
 
@@ -93,7 +129,16 @@ UTILS::StatusCodes HybridTuner::SetTunerOptions(const TunerOpts &tunerOpts)
 
 	std::lock_guard lock(mutex_);
 
-	if (int ret = nrsc5_decoder_.Reset(tunerOpts.freq) < 0)
+	if (tuner_mode_ != TunerMode::Native)
+	{
+		if (int ret = processor_.Reset() < 0)
+		{
+			Logger::Log(err, "Failed to reset NRSC5 processor: {}", ret);
+			return UTILS::StatusCodes::TunerError;
+		}
+	}
+
+	if (int ret = decoder_.SetFrequency(tunerOpts.freq) < 0)
 	{
 		Logger::Log(err, "Failed to reset NRSC5 decoder: {}", ret);
 		return UTILS::StatusCodes::TunerError;
@@ -115,5 +160,13 @@ void HybridTuner::SDRCallback(
 
 	std::lock_guard lock(mutex_);
 
-	nrsc5_decoder_.Process(sdr_transfer.data, sdr_transfer.frame_size);
+	if (tuner_mode_ == TunerMode::Native)
+	{
+		decoder_.SendIQ(static_cast<const uint8_t *>(sdr_transfer.data), sdr_transfer.frame_size * 2.0);
+	}
+	else
+	{
+		auto out = processor_.Process(sdr_transfer.data, sdr_transfer.frame_size);
+		decoder_.SendIQ(static_cast<const int16_t *>(out.data), out.size * 2.0);
+	}
 }
