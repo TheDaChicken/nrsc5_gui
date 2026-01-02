@@ -15,7 +15,7 @@ namespace ListView
 struct Item
 {
 	std::string_view name;
-	const GPU::Texture* image;
+	std::shared_ptr<GUI::ITexture> image;
 };
 
 bool RenderItem(const Item &item, bool selected);

@@ -4,6 +4,11 @@
 
 #include "SchemaTable.h"
 
+extern "C"
+{
+#include "nrsc5.h"
+	}
+
 constexpr int SCHEMA_VERSION = 1;
 
 constexpr auto kCreateSchemaTable = R"(
@@ -52,7 +57,7 @@ constexpr auto kGetSchema = R"(
 
 tl::expected<void, SQLiteError> SchemaTable::CreateSchemaTable()
 {
-	const SQLiteError ret = conn_->execAll({kCreateSchemaTable});
+	const SQLiteError ret = conn_->ExecuteAll({kCreateSchemaTable});
 	if (ret != Lite_Ok)
 	{
 		Logger::Log(err, "SQLite: Unable to create database schema");
@@ -63,7 +68,7 @@ tl::expected<void, SQLiteError> SchemaTable::CreateSchemaTable()
 
 tl::expected<void, SQLiteError> SchemaTable::CreateSchema()
 {
-	const SQLiteError ret = conn_->execAll({
+	const SQLiteError ret = conn_->ExecuteAll({
 		kCreateSettingsTable,
 		kCreateLOTTable,
 		fmt::format(kCreateStationLogoUniqueLOTIndex, NRSC5_MIME_STATION_LOGO)
@@ -78,7 +83,7 @@ tl::expected<void, SQLiteError> SchemaTable::CreateSchema()
 
 tl::expected<int, SQLiteError> SchemaTable::GetSchemaVersion()
 {
-	return QueryData<int>(kGetSchema,
+	return conn_->QueryData<int>(kGetSchema,
 	                      [](const SQLite::StatementHandle &stmt, int &out)
 	                      {
 		                      out = stmt->GetColumnInt(0);
@@ -87,7 +92,7 @@ tl::expected<int, SQLiteError> SchemaTable::GetSchemaVersion()
 
 tl::expected<void, SQLiteError> SchemaTable::SetSchemaVersion(int version)
 {
-	return InsertData(kInsertSchema, std::make_pair(":version", version));
+	return conn_->InsertData(kInsertSchema, std::make_pair(":version", version));
 }
 
 int SchemaTable::GetSupportedSchema() const

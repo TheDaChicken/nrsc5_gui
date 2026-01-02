@@ -7,12 +7,11 @@
 
 #include <SDL3/SDL_init.h>
 
+#include "AppState.h"
 #include "gui/MainWindow.h"
-#include "gui/wrappers/GPUContext.h"
-#include "hybrid/external/HybridExternal.h"
-#include "hybrid/HybridInput.h"
-#include "hybrid/HybridSessionManager.h"
+#include "gui/platform/sdl/SDLPlatformContext.h"
 #include "models/FavoriteList.h"
+#include "nrsc5/LotManager.h"
 #include "sql/DatabaseManager.h"
 
 class Application final
@@ -21,7 +20,7 @@ class Application final
 		Application();
 		~Application();
 
-		SDL_AppResult Initialize();
+		bool Initialize();
 
 		[[nodiscard]] bool IsQuit() const
 		{
@@ -35,20 +34,20 @@ class Application final
 
 		void Render() const;
 		void ProcessEvent(const SDL_Event *event) const;
-
 	private:
 		SDL_AppResult quit = SDL_APP_CONTINUE;
 
-		std::shared_ptr<HybridExternal> external_service_;
-		std::shared_ptr<GPU::GPUContext> gpu_context_;
-		std::shared_ptr<ImageManager> image_manager_;
+		std::shared_ptr<GUI::SDLPlatformContext> gpu_context_;
+		std::shared_ptr<GUI::ImageManager> image_manager_;
+		std::shared_ptr<AppContext> app_context_;
+
+		//std::shared_ptr<HybridExternal> external_service_;
+		//std::shared_ptr<HybridHost> hybrid_host_;
 
 		DatabaseManager sql_manager;
 
 		LotManager lot_manager_;
 		FavoriteList favorite_list_;
-
-		HybridInput input_;
 
 		std::unique_ptr<MainWindow> main_window_{};
 };

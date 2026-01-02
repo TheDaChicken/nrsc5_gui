@@ -5,13 +5,15 @@
 #ifndef SCHEMAMANAGER_H
 #define SCHEMAMANAGER_H
 
-#include "Table.h"
+#include <memory>
 
-class SchemaTable final : public Table
+#include "connection/Connection.h"
+
+class SchemaTable
 {
 	public:
-		explicit SchemaTable(std::shared_ptr<SQLite::Connection> db) : Table(std::move(db)) {}
-		~SchemaTable() override = default;
+		explicit SchemaTable(std::shared_ptr<SQLite::Connection> db) : conn_(std::move(db)) {}
+		~SchemaTable() = default;
 
 		tl::expected<void, SQLiteError> CreateSchemaTable();
 		tl::expected<void, SQLiteError> CreateSchema();
@@ -20,6 +22,8 @@ class SchemaTable final : public Table
 		tl::expected<void, SQLiteError> SetSchemaVersion(int version);
 
 		int GetSupportedSchema() const;
+	private:
+		std::shared_ptr<SQLite::Connection> conn_;
 };
 
 #endif //SCHEMAMANAGER_H

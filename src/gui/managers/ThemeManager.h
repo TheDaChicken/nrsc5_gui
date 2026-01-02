@@ -80,7 +80,7 @@ struct Theme
 
 	std::array<ImFont *, static_cast<int>(FontType::COUNT)> fonts;
 	std::array<std::shared_ptr<GUI::SVGImage>, static_cast<int>(IconType::COUNT)> icons = {};
-	std::array<std::shared_ptr<GPU::Texture>, static_cast<int>(ImageType::COUNT)> images = {};
+	std::array<std::shared_ptr<GUI::ITexture>, static_cast<int>(ImageType::COUNT)> images = {};
 
 	[[nodiscard]] std::shared_ptr<GUI::SVGImage> GetIcon(IconType type) const
 	{
@@ -93,7 +93,7 @@ struct Theme
 		return icons[index];
 	}
 
-	[[nodiscard]] const std::shared_ptr<GPU::Texture>& GetImage(ImageType type) const
+	[[nodiscard]] const std::shared_ptr<GUI::ITexture>& GetImage(ImageType type) const
 	{
 		const int index = static_cast<int>(type);
 		if (index < 0 || index >= icons.size())
@@ -113,8 +113,8 @@ struct Theme
 class ThemeManager
 {
 	public:
-		explicit ThemeManager(std::shared_ptr<GPU::TextureUploader> device)
-			: uploader_(std::move(device))
+		explicit ThemeManager(std::shared_ptr<GUI::IPlatformContext> context)
+			: gpu_(std::move(context))
 		{
 		}
 
@@ -134,10 +134,10 @@ class ThemeManager
 	private:
 		static ThemeOptions GetLightTheme();
 
-		std::shared_ptr<GPU::TextureUploader> uploader_;
+		std::shared_ptr<GUI::IPlatformContext> gpu_;
 
 		Cache<std::string, GUI::SVGImage> svg_cache_;
-		Cache<std::string, GPU::Texture> images_cache_;
+		Cache<std::string, GUI::ITexture> images_cache_;
 
 		std::unordered_map<std::string, Theme> themes_;
 		Theme current_theme_ = {};

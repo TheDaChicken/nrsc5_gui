@@ -16,12 +16,12 @@ bool GUI::IconButton::Render(const bool checked) const
 	if (!icon)
 		return false;
 
-	const GPU::Texture &image = icon->UpdateSize(ImGui::GetFontSize());
+	const auto &image = icon->UpdateSize(ImGui::GetFontSize());
 
 	if (ImGui::InvisibleButton(id.c_str(),
 	                           {
-		                           static_cast<float>(image.height * 2),
-		                           static_cast<float>(image.height * 2)
+		                           static_cast<float>(image->GetHeight() * 2),
+		                           static_cast<float>(image->GetHeight() * 2)
 	                           }))
 		updated = true;
 
@@ -41,11 +41,11 @@ bool GUI::IconButton::Render(const bool checked) const
 	}
 
 	draw_list->AddImage(
-		(intptr_t)image.ptr.get(),
-		ImVec2(center_pos.x - static_cast<float>(image.width) * 0.5f,
-		       center_pos.y - image.height * 0.5f),
-		ImVec2(center_pos.x + static_cast<float>(image.width) * 0.5f,
-		       center_pos.y + image.height * 0.5f));
+		image->GetPtr(),
+		ImVec2(center_pos.x - static_cast<float>(image->GetWidth()) * 0.5f,
+		       center_pos.y - image->GetHeight() * 0.5f),
+		ImVec2(center_pos.x + static_cast<float>(image->GetWidth()) * 0.5f,
+		       center_pos.y + image->GetHeight() * 0.5f));
 
 	return updated;
 }

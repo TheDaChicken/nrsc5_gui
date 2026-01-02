@@ -6,10 +6,10 @@
 
 #include "gui/widgets/Navigation.h"
 
-bool RadioBackView::RenderNavigation(const Theme &theme)
+bool RadioBackView::RenderNavigation(const RenderContext &theme)
 {
 	if (Navigation::RenderHeader(
-		theme,
+		theme.theme,
 		IconType::Back,
 		"Back"))
 		return true;
@@ -17,7 +17,7 @@ bool RadioBackView::RenderNavigation(const Theme &theme)
 	return false;
 }
 
-bool RadioBackView::RenderCenter(const Theme &theme)
+bool RadioBackView::RenderCenter(const RenderContext &theme)
 {
-	return tune_panel_.Render(theme);
+	return tune_panel_.Render(theme.theme);
 }

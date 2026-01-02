@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <optional>
 
-#include "gui/image_decoders/ImageBuffer.h"
+#include "images/ImageBuffer.h"
 #include "utils/Expected.hpp"
 
 namespace GUI

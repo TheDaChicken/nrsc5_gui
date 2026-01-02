@@ -7,7 +7,10 @@
 
 #include <filesystem>
 
-#include "Table.h"
+#include "connection/Connection.h"
+#include "connection/ConnectionPool.h"
+#include "connection/SqliteHelper.h"
+#include "utils/Expected.hpp"
 
 class DatabaseManager
 {

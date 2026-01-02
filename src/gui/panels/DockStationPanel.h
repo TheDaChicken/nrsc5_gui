@@ -5,53 +5,53 @@
 #ifndef DOCKSTATIONPANEL_H
 #define DOCKSTATIONPANEL_H
 
+#include "DockInputPanel.h"
 #include "gui/managers/ThemeManager.h"
-#include "hybrid/HybridInput.h"
+#include "gui/view/IView.h"
 
-class DockStationPanel
+class DockStationPanel final : public IView
 {
 	public:
-		explicit DockStationPanel(
-			HybridInput &input,
-			const std::weak_ptr<HybridSession> &session);
+		explicit DockStationPanel(const std::shared_ptr<UISession> &session);
 
-		void Render(const Theme &theme);
+		void Render(RenderContext &context) override;
 
 	private:
-		static std::shared_ptr<GPU::Texture> FirstLoadedTexture(
-			const std::initializer_list<std::reference_wrapper<const TextureHandle> > images,
-			const std::shared_ptr<GPU::Texture> &fallback)
+		static std::shared_ptr<GUI::ITexture> FirstLoadedTexture(
+			const std::initializer_list<std::reference_wrapper<const GUI::TextureHandle> > images,
+			const std::shared_ptr<GUI::ITexture> &fallback)
 		{
 			for (const auto &img : images)
 			{
 				if (img.get().IsLoaded())
-					return img.get().get();
+					return img.get().Get();
 			}
 			return fallback;
 		}
 
-		void RenderStationHeader(const Theme &theme);
-		void RenderRadioInfo(const Theme &theme) const;
+		// static void RenderStationHeader(
+		// 	const Theme &theme, const HybridState &state);
+		// static void RenderStationDetails(
+		// 	const Theme &theme,
+		// 	const HybridState &state,
+		// 	const NRSC5::Program &program);
+		//
+		// static void RenderRadioInfo(const Theme &theme, const HybridState &state);
+		//
+		// static void RenderImage(
+		// 	const std::shared_ptr<GUI::ITexture> &texture, float height);
+		// static void RenderStationImage(const Theme &theme, const HybridState &state);
+		// static void RenderPrimaryImage(const Theme &theme, const HybridState &state);
+		// static void RenderID3(const Theme &theme, const NRSC5::ID3 &id3);
+		//
+		// static void RenderProgramList(
+		// 	const Theme &theme, const HybridState &state);
+		static void RenderProgramNumbers(
+			const std::map<unsigned int, NRSC5::Program> &programs, unsigned int currId);
 
-		void RenderStationLogo(
-			const Theme &theme) const;
-		void RenderStationDetails(
-			const Theme &theme) const;
-		void RenderProgramList(
-			const Theme &theme);
-		void RenderProgramNumbers(
-			const std::map<unsigned int, ProgramState> &programs) const;
-
-		void RenderPrimaryImage(const Theme &theme) const;
-		static void RenderID3(const Theme &theme, const NRSC5::ID3 &id3);
 		void RenderControls(const Theme &theme) const;
 
-		const HybridInput &input_;
-		const std::weak_ptr<HybridSession> session_;
-
-		HybridState frame_state_;
-		ProgramState frame_program_;
-		std::map<unsigned int, ProgramState> frame_programs_;
+		std::shared_ptr<UISession> session_;
 };
 
 #endif //DOCKSTATIONPANEL_H

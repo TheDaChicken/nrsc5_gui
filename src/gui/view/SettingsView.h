@@ -8,27 +8,28 @@
 #include "IView.h"
 #include "gui/panels/DockInputPanel.h"
 #include "gui/managers/ThemeManager.h"
-#include "gui/panels/DockAudioPanel.h"
 
-class SettingsView : public IView
+class SettingsView final : public IView
 {
 	public:
-		explicit SettingsView(
-			DockInputPanel &input_panel,
-			DockAudioPanel &audio_panel)
-			: input_panel(input_panel),
-			  audio_panel(audio_panel)
+		explicit SettingsView()
 		{
 		}
 
-		void Render(const Theme &theme) override;
+		void AddView(const std::string &name, const std::shared_ptr<IView> &view)
+		{
+			views_.emplace_back(name, view);
+		}
+
+		void Render(RenderContext &context) override;
 
 		void RenderSettingList(const Theme &theme);
-		void RenderCenter(const Theme &theme);
+		void RenderCenter(RenderContext &theme);
+
 	private:
-		DockInputPanel &input_panel;
-		DockAudioPanel &audio_panel;
 		int selected_setting_ = 0;
+
+		std::vector<std::pair<std::string, std::shared_ptr<IView> > > views_;
 };
 
 #endif //SETTINGSVIEW_H

@@ -18,24 +18,31 @@ SQLiteError SQLite::Connection::Open(
 	const std::filesystem::path &path,
 	const int flags)
 {
-	return static_cast<SQLiteError>(sqlite3_open_v2(path.string().data(), &db_, flags, nullptr));
+	return static_cast<SQLiteError>(
+		sqlite3_open_v2(
+			path.string().c_str(),
+			&db_,
+			flags,
+			nullptr));
 }
 
 tl::expected<SQLite::StatementHandle, SQLiteError> SQLite::Connection::Prepare(const std::string &sql)
 {
 	assert(db_ != nullptr);
 
-	auto iter = prepared_statements_.find(sql);
-	if (iter == prepared_statements_.end())
+	const auto iter = prepared_statements_.find(sql);
+	if (iter != prepared_statements_.end())
 	{
-		sqlite3_stmt *stmt = nullptr;
-
-		int ret = sqlite3_prepare_v2(db_, sql.data(), sql.size(), &stmt, nullptr);
-		if (ret != SQLITE_OK)
-			return tl::unexpected(static_cast<SQLiteError>(ret));
-
-		iter = prepared_statements_.emplace(sql,stmt).first;
+		return StatementHandle(iter->second);
 	}
 
-	return StatementHandle(iter->second);
+	auto stmt = std::make_shared<PreparedStatement>();
+
+	int ret = stmt->Create(db_, sql);
+	if (ret != SQLITE_OK)
+		return tl::unexpected(static_cast<SQLiteError>(ret));
+
+	prepared_statements_[sql] = stmt;
+
+	return StatementHandle(std::move(stmt));
 }

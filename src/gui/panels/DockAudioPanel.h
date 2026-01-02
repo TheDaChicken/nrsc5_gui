@@ -5,17 +5,15 @@
 #ifndef DOCKAUDIOPANEL_H
 #define DOCKAUDIOPANEL_H
 
-#include "gui/managers/ThemeManager.h"
+#include "AppState.h"
+#include "gui/view/IView.h"
 
-class DockAudioPanel
+class DockAudioPanel final : public IView
 {
 	public:
 		explicit DockAudioPanel();
 
-		void Render(const Theme &theme);
-
-	private:
-		void RenderAudioCombo();
+		void Render(RenderContext &context) override;
 };
 
 #endif //DOCKAUDIOPANEL_H

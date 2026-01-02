@@ -1,17 +1,19 @@
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fPIE -pie -g")
 
 add_library(${PROJECT_NAME}-lib STATIC
+
+        images/ImageDecoder.cpp
+        images/PNGDecoder.cpp
+        images/PNGDecoder.h
+        images/ImageBuffer.h
+        images/SVGDecoder.cpp
+        images/JPEGDecoder.cpp
+        images/JPEGDecoder.h
+
         gui/widgets/IconButton.cpp
-        gui/wrappers/Texture.cpp
-        gui/image_decoders/ImageDecoder.cpp
-        gui/image_decoders/PNGDecoder.cpp
-        gui/image_decoders/PNGDecoder.h
-        gui/image_decoders/ImageBuffer.h
-        gui/image_decoders/SVGDecoder.cpp
+        gui/platform/sdl/SDLTexture.cpp
         gui/managers/AssetsManager.cpp
         gui/managers/AssetsManager.h
-        gui/image_decoders/JPEGDecoder.cpp
-        gui/image_decoders/JPEGDecoder.h
         gui/widgets/Navigation.cpp
         gui/widgets/Navigation.h
         gui/widgets/DualIconButton.cpp
@@ -38,6 +40,8 @@ add_library(${PROJECT_NAME}-lib STATIC
         gui/panels/DockInputPanel.h
         gui/managers/EventsDispatcher.cpp
         gui/managers/EventsDispatcher.h
+        gui/UISession.cpp
+        gui/UISession.h
 
         utils/Log.h
         utils/Log.cpp
@@ -47,19 +51,20 @@ add_library(${PROJECT_NAME}-lib STATIC
         sql/sqlite/sqlite3.c
 
         nrsc5/LotManager.cpp
+        nrsc5/LotManager.h
         nrsc5/Station.cpp
+        nrsc5/Station.h
         nrsc5/Processor.cpp
+        nrsc5/Processor.h
+        nrsc5/Decoder.cpp
+        nrsc5/Decoder.h
 
         dsp/Firdes.cpp
         dsp/Window.cpp
         dsp/resampler/ArbResampler.h
 
-        hybrid/external/HybridExternal.cpp
-        hybrid/external/HybridExternal.h
-        hybrid/HybridSessionManager.cpp
-        hybrid/HybridSessionManager.h
-        hybrid/HybridController.cpp
-        hybrid/HybridController.h
+        hybrid/HybridDecoder.cpp
+        hybrid/HybridDecoder.h
 
         models/FavoriteList.cpp
         models/FavoriteList.h
@@ -77,8 +82,6 @@ add_library(${PROJECT_NAME}-lib STATIC
         input/SDRInput.cpp
         input/SDRInput.h
         input/RadioInput.h
-        hybrid/HybridInput.cpp
-        hybrid/HybridInput.h
         sql/SchemaTable.cpp
         sql/SchemaTable.h
         sql/SettingsTable.cpp
@@ -88,28 +91,64 @@ add_library(${PROJECT_NAME}-lib STATIC
 
         hybrid/HybridState.h
 
-        audio/AudioManager.cpp
-        audio/AudioManager.h
+        gui/platform/sdl/SDLAudioManager.cpp
+        gui/platform/sdl/SDLAudioManager.h
         dsp/resampler/IFilterBlock.h
         dsp/resampler/IFilterStream.h
 
-        gui/wrappers/TextureUploader.cpp
-        gui/wrappers/TextureUploader.h
-        gui/wrappers/GPUContext.cpp
-        gui/wrappers/GPUContext.h
-        hybrid/external/services/LotService.cpp
-        hybrid/external/services/LotService.h
-        hybrid/external/HybridServiceUtil.h
-        hybrid/HybridSession.cpp
-        hybrid/HybridSession.h
+        gui/platform/sdl/SDLTextureManager.cpp
+        gui/platform/sdl/SDLTextureManager.h
+        gui/platform/sdl/SDLPlatformContext.cpp
+        gui/platform/sdl/SDLPlatformContext.h
+        external/LotService.cpp
+        external/LotService.h
 
         gui/view/radio/RadioHomeView.cpp
         gui/view/radio/RadioHomeView.h
         gui/view/radio/RadioBackView.cpp
         gui/view/radio/RadioBackView.h
-        gui/SDLWindow.cpp
-        gui/SDLWindow.h
+        gui/platform/sdl/SDLWindow.cpp
+        gui/platform/sdl/SDLWindow.h
         gui/view/IView.h
+
+        gui/MainWindow.cpp
+        gui/MainWindow.h
+        gui/Util.h
+        gui/utils/TextRender.cpp
+        gui/utils/TextRender.h
+        gui/panels/SDRSettings.cpp
+        gui/panels/SDRSettings.h
+        hybrid/HybridMetadata.cpp
+        hybrid/HybridMetadata.h
+        gui/controllers/StationController.cpp
+        gui/controllers/StationController.h
+        gui/controllers/StationController.cpp
+        gui/controllers/StationController.h
+        gui/controllers/Events.h
+        gui/HybridAudio.cpp
+        gui/HybridAudio.h
+        gui/controllers/FavoritesController.cpp
+        gui/controllers/FavoritesController.h
+        utils/Frame.h
+        gui/platform/ITexture.h
+        gui/controllers/SDRController.cpp
+        gui/controllers/SDRController.h
+        utils/ThreadSafeQueue.h
+        hybrid/HybridDecoder.cpp
+        hybrid/HybridDecoder.h
+        hybrid/HybridReceiver.cpp
+        hybrid/HybridReceiver.h
+
+        gui/platform/IGPUContext.h
+
+        gui/managers/SessionManager.cpp
+        gui/managers/SessionManager.h
+        hybrid/HybridSession.cpp
+        hybrid/HybridSession.h
+        gui/panels/DeviceList.cpp
+        gui/panels/DeviceList.h
+        input/SDRHost.cpp
+        input/SDRHost.h
 )
 
 target_link_libraries(${PROJECT_NAME}-lib PUBLIC
@@ -131,11 +170,7 @@ add_executable(${PROJECT_NAME}
         main.cpp
         Application.cpp
         Application.h
-        gui/MainWindow.cpp
-        gui/MainWindow.h
-        gui/Util.h
-        gui/utils/TextRender.cpp
-        gui/utils/TextRender.h
+        AppState.h
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

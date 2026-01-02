@@ -59,7 +59,7 @@ class Cache
 		}
 
 		template<typename... Args>
-		std::pair<bool, std::shared_ptr<Value>> TryInsert(const Key &key, std::size_t size, Args &&... args)
+		std::pair<bool, std::shared_ptr<Value>> TryInsert(const Key &key, std::size_t size, std::shared_ptr<Value> value)
 		{
 			ReduceTo(max_size_ - size);
 
@@ -69,7 +69,7 @@ class Cache
 
 			item_list.emplace_front(
 				key,
-				CacheEntry{std::make_shared<Value>(std::forward<Args>(args)...), size}
+				CacheEntry{value, size}
 			);
 			item_map[key] = item_list.begin();
 			curr_size_ += size;

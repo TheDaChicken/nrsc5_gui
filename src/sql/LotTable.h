@@ -5,7 +5,11 @@
 #ifndef LOTMANAGER_H
 #define LOTMANAGER_H
 
-#include "Table.h"
+#include <cstdint>
+#include <filesystem>
+#include <string>
+
+#include "connection/Connection.h"
 
 struct LotRecord
 {
@@ -19,13 +23,14 @@ struct LotRecord
 	std::chrono::system_clock::time_point expire_point;
 };
 
-class LotTable final : public Table
+class LotTable
 {
 	public:
-		explicit LotTable(std::shared_ptr<SQLite::Connection> db) : Table(std::move(db))
+		explicit LotTable(std::shared_ptr<SQLite::Connection> db)
+			: conn_(std::move(db))
 		{
 		}
-		~LotTable() override = default;
+		~LotTable() = default;
 
 		tl::expected<void, SQLiteError> InsertLot(const LotRecord &key);
 		tl::expected<void, SQLiteError> DeleteLot(const LotRecord &key);
@@ -35,6 +40,8 @@ class LotTable final : public Table
 
 	private:
 		static void ConvertToLot(const SQLite::StatementHandle &stmt, LotRecord &lot);
+
+		std::shared_ptr<SQLite::Connection> conn_;
 };
 
 #endif //LOTMANAGER_H

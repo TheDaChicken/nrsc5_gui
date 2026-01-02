@@ -5,6 +5,8 @@
 #include "DockTunePanel.h"
 
 #include "gui/Util.h"
+#include "input/SDRInput.h"
+#include "utils/Band.h"
 
 static int64_t numDigits(const int64_t n)
 {
@@ -22,7 +24,7 @@ static int64_t removeDigits(const int64_t n, const int64_t digits)
 	return n / static_cast<int64_t>(pow(10, digits));
 }
 
-DockTunePanel::DockTunePanel(HybridInput &input)
+DockTunePanel::DockTunePanel(const std::shared_ptr<UISession> &input)
 	: state_(), input_(input)
 {
 	UpdateState(Band::FM);
@@ -57,8 +59,10 @@ void DockTunePanel::UpdateState(const Band::Type selected)
 	state_.scale = static_cast<uint32_t>(powf(10, static_cast<float>(info.decimal_places)));
 	state_.freq_scale_den = info.scale;
 
-	state_.freq_min = static_cast<int64_t>(info.minFrequency * (state_.scale / state_.freq_scale_den));
-	state_.freq_max = static_cast<int64_t>(info.maxFrequency * (state_.scale / state_.freq_scale_den));
+	const float scale = state_.scale / state_.freq_scale_den;
+
+	state_.freq_min = static_cast<int64_t>(info.minFrequency * scale);
+	state_.freq_max = static_cast<int64_t>(info.maxFrequency * scale);
 
 	selected_band_ = selected;
 }
@@ -183,7 +187,8 @@ void DockTunePanel::RenderFreq() const
 bool DockTunePanel::RenderTuneButton()
 {
 	bool selected_tuned = false;
-	const bool finished = state_.selected_freq >= state_.freq_min && state_.selected_freq <= state_.freq_max;
+	const bool finished = state_.selected_freq >= state_.freq_min
+			&& state_.selected_freq <= state_.freq_max;
 
 	if (!finished)
 		ImGui::BeginDisabled();
@@ -197,7 +202,7 @@ bool DockTunePanel::RenderTuneButton()
 		station.mode = selected_band_;
 		station.program_id = 0; // default to HD1
 
-		input_.SetChannel(station);
+		input_->SetChannel(station);
 
 		state_.selected_freq = 0;
 		selected_tuned = true;

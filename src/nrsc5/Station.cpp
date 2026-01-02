@@ -8,50 +8,6 @@
 #include <cassert>
 #include <nrsc5.h>
 
-NRSC5::ID3::ID3(const nrsc5_event_t *event)
-{
-	assert(event);
-	assert(event->event == NRSC5_EVENT_ID3);
-
-	program_id = event->id3.program;
-
-	if (event->id3.title)
-		title = event->id3.title;
-	if (event->id3.artist)
-		artist = event->id3.artist;
-	if (event->id3.album)
-		album = event->id3.album;
-	if (event->id3.genre)
-		genre = event->id3.genre;
-
-	xhdr.param = static_cast<XHDR::PARAM>(event->id3.xhdr.param);
-	xhdr.mime = event->id3.xhdr.mime;
-	xhdr.lot = event->id3.xhdr.lot;
-}
-
-NRSC5::Lot::Lot(const nrsc5_event_t *evt)
-{
-	assert(evt);
-	assert(evt->event == NRSC5_EVENT_LOT || evt->event == NRSC5_EVENT_LOT_HEADER);
-
-	id = evt->lot.lot;
-	mime = evt->lot.mime;
-	name = evt->lot.name;
-
-	// Discard time is in UTC time
-	discard_utc = *evt->lot.expiry_utc;
-	expire_point = std::chrono::system_clock::from_time_t(UTILS::timegm(discard_utc));
-
-	component = DataService(evt->lot.service, evt->lot.component);
-
-	if (evt->lot.data != nullptr)
-	{
-		// Copy data
-		data.resize(evt->lot.size);
-		memcpy(data.data(), evt->lot.data, evt->lot.size);
-	}
-}
-
 std::string_view NRSC5::ID3::XHDR::ParamName() const
 {
 	switch (param)
@@ -64,7 +20,9 @@ std::string_view NRSC5::ID3::XHDR::ParamName() const
 	}
 }
 
-NRSC5::DataService::DataService(const nrsc5_sig_service_t *sig_service, const nrsc5_sig_component_t *component)
+NRSC5::DataService::DataService(
+	const nrsc5_sig_service_t *sig_service,
+	const nrsc5_sig_component_t *component)
 {
 	assert(sig_service);
 	assert(component);

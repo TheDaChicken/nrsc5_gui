@@ -5,41 +5,31 @@
 #ifndef DOCKINPUTPANEL_H
 #define DOCKINPUTPANEL_H
 
-#include "gui/managers/ThemeManager.h"
-#include "hybrid/HybridInput.h"
-#include "hybrid/HybridSessionManager.h"
+#include "AppState.h"
+#include "SDRSettings.h"
 
-struct TunerState
-{
-	std::vector<PortSDR::Gain> gainStages;
-
-	std::vector<std::string> gainModes;
-	std::string currentGainMode;
-
-	PortSDR::Gain currentGain;
-	std::map<std::string, float> currentGains;
-};
-
-class DockInputPanel
+class DockInputPanel final : public IView
 {
 	public:
-		explicit DockInputPanel(HybridInput &input);
+		explicit DockInputPanel(const std::shared_ptr<SDRController> &rc);
 
-		void Render(const Theme &theme);
-
+		void RefreshDevice();
+		void Render(RenderContext &context) override;
 	private:
-		void RenderSDRDevices();
-		void RenderSDRGainModes();
-		void RenderGains();
+		struct Devices
+		{
+			DeviceHolder device;
+			int unique_id_;
 
-		void RenderSDRGain(const PortSDR::Gain &gain);
+			UTILS::Future<int, void> open_device_future;
+		} m_context;
 
-		HybridInput &input_;
+		SDRSettings panel_;
+		InputDevicesState state_;
+		SDRHost api_;
+		UTILS::Future<void, int> devices_future_;
 
-		std::vector<std::shared_ptr<PortSDR::Device>> available_devices_;
-		std::shared_ptr<PortSDR::Device> selected_device_;
-		PortSDR::PortSDR sdr;
-		bool freely_gain = true;
+		const std::shared_ptr<SDRController> rc_;
 };
 
 #endif //DOCKINPUTPANEL_H

@@ -9,14 +9,43 @@
 #include <filesystem>
 #include <optional>
 
-extern "C" {
-#include <nrsc5.h>
-}
+#include "utils/Band.h"
+
+struct nrsc5_sig_service_t;
+struct nrsc5_sig_component_t;
+
+// extern "C" {
+// #include <nrsc5.h>
+// }
 
 #include <nlohmann/json.hpp>
 
 namespace NRSC5
 {
+
+struct NameFrame
+{
+	std::string name;
+};
+
+struct IdFrame
+{
+	std::string country_code;
+	unsigned int id{0};
+};
+
+struct ProgramFrame
+{
+	unsigned int id{0};
+	unsigned int type;
+};
+
+struct AudioFrame
+{
+	unsigned int program_id{0};
+	std::vector<int16_t> data;
+};
+
 struct Ber
 {
 	void Add(float cber);
@@ -26,16 +55,12 @@ struct Ber
 	float min{1};
 	float max{0};
 
-	private:
-		float sum{0};
-		float count{0};
+	float sum{0};
+	float count{0};
 };
 
 struct ID3
 {
-	ID3() = default;
-	explicit ID3(const nrsc5_event_t *event);
-
 	unsigned int program_id{0};
 	std::string title;
 	std::string artist;
@@ -76,6 +101,11 @@ struct ID3
 		{
 			return param == rhs.param && mime == rhs.mime && lot == rhs.lot;
 		}
+
+		bool operator!=(const XHDR &rhs) const
+		{
+			return !(rhs == *this);
+		}
 	} xhdr;
 
 	bool operator==(const ID3 &rhs) const
@@ -98,9 +128,11 @@ struct ID3
 struct Program
 {
 	unsigned int id{0};
-	unsigned int type = NRSC5_PROGRAM_TYPE_UNDEFINED;
+	unsigned int type = 0;
 
 	std::string name;
+
+	ID3 id3_;
 };
 
 struct DataService
@@ -113,8 +145,8 @@ struct DataService
 	uint32_t mime{0};
 	uint16_t port{100};
 
-	unsigned int channel;
-	std::optional<unsigned int> programId;
+	unsigned int channel{1};
+	std::optional<unsigned int> programId{0};
 };
 
 /**
@@ -122,9 +154,6 @@ struct DataService
  */
 struct Lot
 {
-	explicit Lot(const nrsc5_event_t *evt);
-	Lot() = default;
-
 	DataService component;
 
 	unsigned int id{0};

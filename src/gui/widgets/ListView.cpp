@@ -54,7 +54,7 @@ bool ListView::RenderItem(
 	{
 		const float image_center = (content_size.y - icon_space.y) / 2.0f;
 
-		draw_list->AddImage((intptr_t)item.image->ptr.get(),
+		draw_list->AddImage(item.image->GetPtr(),
 		                    ImVec2{pos.x, pos.y + image_center},
 		                    ImVec2{
 			                    pos.x + icon_space.x,

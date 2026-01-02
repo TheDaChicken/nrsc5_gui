@@ -43,7 +43,6 @@ void Navigation::BeginCenter()
 {
 	ImGui::TableNextColumn();
 
-	ImGui::PushStyleVarY(ImGuiStyleVar_WindowPadding, ImGui::GetStyle().ItemSpacing.y);
 	ImGui::BeginChild("Center",
 	                  {0, 0},
 	                  ImGuiChildFlags_AlwaysUseWindowPadding);
@@ -52,7 +51,6 @@ void Navigation::BeginCenter()
 void Navigation::EndNav()
 {
 	ImGui::EndChild();
-	ImGui::PopStyleVar();
 	ImGui::EndTable();
 }
 

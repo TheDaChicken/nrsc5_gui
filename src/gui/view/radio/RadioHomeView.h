@@ -12,24 +12,17 @@
 class RadioHomeView
 {
 	public:
-		RadioHomeView(const std::shared_ptr<HybridExternal> &external,
-		              FavoriteList &favorites,
-		              HybridInput &input,
-		              const std::shared_ptr<HybridSession> &stream)
-			: favorites_panel_(external, favorites),
-			  station_panel_(input, stream),
-			  input_(input)
+		explicit RadioHomeView(const std::shared_ptr<UISession> &stream)
+			: station_panel_(stream)
 		{
 		}
 
-		bool RenderNavigation(const Theme &theme);
-		void RenderCenter(const Theme &theme);
+		bool RenderNavigation(const RenderContext &theme);
+		void RenderCenter(RenderContext &theme);
 
 	private:
 		DockFavoritesPanel favorites_panel_;
 		DockStationPanel station_panel_;
-
-		HybridInput &input_;
 };
 
 #endif //RADIOHOMEVIEW_H

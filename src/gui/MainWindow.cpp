@@ -6,58 +6,71 @@
 
 #include <SDL3/SDL_timer.h>
 
-SDL_AppResult MainWindow::InitWindow(const std::shared_ptr<GPU::GPUContext> &gpu_device)
+#include "panels/DockAudioPanel.h"
+#include "view/SettingsView.h"
+#include "widgets/IconButton.h"
+
+bool MainWindow::InitWindow(const std::shared_ptr<GUI::SDLPlatformContext> &platform)
 {
-	if (!sdl_imgui.CreateWindow(
-		gpu_device,
+	m_window_ = platform->CreateWindow();
+	if (!m_window_)
+	{
+		Logger::Log(err, "Failed to create Window object");
+		return false;
+	}
+
+	if (!m_window_->CreateWindow(
 		"nrsc5_gui",
 		1180,
 		576))
 	{
-		Logger::Log(err, "Failed to create main window");
-		return SDL_APP_FAILURE;
+		Logger::Log(err, "Failed to create window");
+		return false;
 	}
 
-	SDL_SetPreferredSystemTheme(SDL_SYSTEM_THEME_LIGHT);
+	platform->SetDefaultTheme();
 
-	theme_manager_ = std::make_unique<ThemeManager>(gpu_device->GetUploader());
-	session_ = std::make_shared<HybridSession>(external_);
-
+	theme_manager_ = std::make_unique<ThemeManager>(platform);
 	if (!theme_manager_->Init())
 	{
 		Logger::Log(err, "Failed to initialize theme manager");
-		return SDL_APP_FAILURE;
+		return false;
 	}
+
+	//sdr_host_ = std::make_shared<SDRHost>();
+	session_ = std::make_shared<UISession>();
+	dock_input_panel_ = std::make_shared<DockInputPanel>(app_context_->rc);
+
+	auto settings = std::make_unique<SettingsView>();
+
+	settings->AddView("Input", dock_input_panel_);
+	settings->AddView("Audio", std::make_unique<DockAudioPanel>());
+
+	apps_list_[2].view = std::move(settings);
+	apps_list_[0].view = std::make_unique<RadioView>(
+		session_);
 
 	if (!session_->OpenAudio())
 	{
 		Logger::Log(err, "Failed to open audio on player");
-		return SDL_APP_FAILURE;
+		return false;
 	}
 
-	input_.Sessions().Subscribe(session_);
-
-	apps_list_[0].view = std::make_unique<RadioView>(
-		external_,
-		favorite_list_,
-		input_,
-		session_);
-	apps_list_[2].view = std::make_unique<SettingsView>(
-		dock_input_panel_,
-		dock_audio_panel_);
-	return SDL_APP_CONTINUE;
+	context_.selected_host = 0;
+	context_.app = app_context_;
+	return true;
 }
 
 void MainWindow::Render()
 {
-	if (sdl_imgui.isMinimized())
+	if (m_window_->IsMinimized())
 	{
 		SDL_Delay(10);
 		return;
 	}
 
 	session_->Process();
-	sdl_imgui.BeginFrame();
+	m_window_->BeginFrame();
 
 	ImGuiWindowFlags flags = 0;
 	const ImGuiViewport *viewport = ImGui::GetMainViewport();
@@ -77,11 +90,12 @@ void MainWindow::Render()
 	// ImGui::ShowMetricsWindow();
 	ImGui::ShowDemoWindow();
 
-	sdl_imgui.SubmitFrame();
+	m_window_->SubmitFrame();
 }
 
 void MainWindow::ProcessEvent(const SDL_Event *event)
 {
+	// TODO: Why is this here?
 	ImGui_ImplSDL3_ProcessEvent(event);
 }
 
@@ -91,9 +105,15 @@ void MainWindow::RenderLayout()
 
 	RenderButtons(theme);
 
+	context_.theme = theme;
+
+	SessionUi &session = context_.session;
+
+	//context_.app->rc->PollDevice(session);
+
 	ImGui::SameLine(0.0f, 0.0f);
 
-	RenderCenter(theme);
+	RenderCenter(context_);
 }
 
 void MainWindow::RenderButtons(const Theme &theme)
@@ -114,7 +134,8 @@ void MainWindow::RenderButtons(const Theme &theme)
 			(ImGui::GetContentRegionAvail().x - ImGui::GetFontSize() * 2) / 2.0f);
 		ImGui::BeginGroup();
 
-		const bool checked = input_.GetStatus() == Playing;
+		SessionUi &session = context_.session;
+		const bool checked = session.running;
 		const GUI::IconButton play_button = {
 			"PlayButton",
 			checked
@@ -123,10 +144,15 @@ void MainWindow::RenderButtons(const Theme &theme)
 		};
 		if (play_button.Render(checked))
 		{
+			// TODO: check session_id.
 			if (!checked)
-				input_.Play();
+			{
+				//context_.app->rc->StartSession(session);
+			}
 			else
-				input_.Stop();
+			{
+				//context_.app->rc->StopSession(session);
+			}
 		}
 
 		for (int i = 0; i < apps_list_.size(); i++)
@@ -150,7 +176,7 @@ void MainWindow::RenderButtons(const Theme &theme)
 	ImGui::PopFont();
 }
 
-void MainWindow::RenderCenter(const Theme &theme) const
+void MainWindow::RenderCenter(RenderContext &theme) const
 {
 	if (auto &view = apps_list_[left_buttons_id].view)
 	{

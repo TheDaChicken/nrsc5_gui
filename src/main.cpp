@@ -8,7 +8,7 @@
 #include <SDL3/SDL_main.h>
 
 #include "Application.h"
-#include "audio/AudioManager.h"
+#include "gui/platform/sdl/SDLAudioManager.h"
 #include "utils/Log.h"
 #include "utils/ThreadPool.h"
 
@@ -20,19 +20,12 @@ SDL_AppResult SDL_Fail()
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
-	// init the library, here we make a window so we only need the Video capabilities.
+	// init the library.
 	if (not SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD))
 		return SDL_Fail();
 
-	ThreadPool::GetInstance().Start(2);
-	if (!AUDIO::AudioManager::GetInstance().Initialize())
-	{
-		Logger::Log(err, "Failed to initialize audio manager");
-		return SDL_Fail();
-	}
-
 	const auto app = new Application();
-	if (app->Initialize() != SDL_APP_CONTINUE)
+	if (!app->Initialize())
 	{
 		delete app;
 		return SDL_APP_FAILURE;
@@ -71,8 +64,6 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
 	if (const auto *application = static_cast<Application *>(appstate))
 		delete application;
-
-	AUDIO::AudioManager::GetInstance().Uninitialize();
 
 	SDL_Quit();
 }

@@ -2,8 +2,6 @@
 // Created by TheDaChicken on 8/25/2025.
 //
 
-#include "sql/Table.h"
-
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
@@ -11,6 +9,10 @@
 #include "sql/LotTable.h"
 #include "sql/SchemaTable.h"
 #include "sql/SettingsTable.h"
+
+extern "C" {
+#include <nrsc5.h>
+}
 
 TEST(ConnectionPool, Init)
 {

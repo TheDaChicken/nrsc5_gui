@@ -5,19 +5,24 @@
 #ifndef SETTINGSMANAGER_H
 #define SETTINGSMANAGER_H
 
-#include "Table.h"
+#include <memory>
 
-class SettingsTable final : public Table
+#include "connection/Connection.h"
+
+class SettingsTable final
 {
 	public:
 		explicit SettingsTable(std::shared_ptr<SQLite::Connection> conn)
-			: Table(std::move(conn))
+			: conn_(std::move(conn))
 		{
 		}
-		~SettingsTable() override = default;
+		~SettingsTable() = default;
 
 		tl::expected<std::string, SQLiteError> GetSettingValue(std::string_view key);
 		tl::expected<void, SQLiteError> SetSettingValue(std::string_view key, std::string_view value);
+
+	private:
+		std::shared_ptr<SQLite::Connection> conn_;
 };
 
 #endif //SETTINGSMANAGER_H

@@ -7,53 +7,19 @@
 #include "gui/managers/ThemeManager.h"
 #include "gui/widgets/ListView.h"
 
-DockFavoritesPanel::DockFavoritesPanel(
-	const std::shared_ptr<HybridExternal> &external,
-	FavoriteList &favorite_model)
-	: favorite_model_(favorite_model), external_service_(external)
-{
-	favorite_model_.on_update = [this]
-	{
-		m_items.resize(favorite_model_.GetChannelCount());
-
-		for (int i = 0; i < favorite_model_.GetChannelCount(); ++i)
-		{
-			const Station &fav_station = favorite_model_.GetChannel(i);
-			FavoriteItem &item = m_items[i];
-
-			item.station = &fav_station;
-			item.name = item.station->GetShort();
-
-			if (external_service_)
-			{
-				const MetadataQuery query{
-					item.station->identity.country_code,
-					item.station->identity.name,
-					MimeQuery::StationLogo,
-					item.station->program_id
-				};
-
-				item.icon = external_service_->FetchImageAsync(query);
-			}
-		}
-
-		// Keep selection valid
-		if (m_selectedItem >= favorite_model_.GetChannelCount())
-			m_selectedItem = 0;
-	};
-}
-
-bool DockFavoritesPanel::Render(const Theme &theme)
+bool DockFavoritesPanel::Render(const RenderContext &context)
 {
 	ImGui::BeginChild("FavoritesList",
 	                  {0, 0});
 
-	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_medium_size);
+	ImGui::PushFont(
+		context.theme.GetFont(FontType::Semibold),
+		context.theme.font_medium_size);
 	ImGui::PushStyleVarY(ImGuiStyleVar_ItemInnerSpacing, 0);
 	ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, 0);
 
-	RenderHeader(theme);
-	const bool changed = RenderItems(theme);
+	RenderHeader(context.theme);
+	const bool changed = RenderItems(context);
 
 	ImGui::PopStyleVar(2);
 	ImGui::PopFont();
@@ -109,29 +75,31 @@ void DockFavoritesPanel::RenderHeader(const Theme &theme)
 		ImGui::GetColorU32(ImGuiCol_Separator));
 }
 
-bool DockFavoritesPanel::RenderItems(const Theme &theme)
+bool DockFavoritesPanel::RenderItems(const RenderContext &context) const
 {
 	bool changed = false;
+	auto &items = context.app->fc->GetFavorites();
+	int selected = context.app->fc->GetSelectedIndex();
 
-	for (int i = 0; i < m_items.size(); ++i)
+	for (int i = 0; i < items.size(); ++i)
 	{
-		const FavoriteItem &favorite_item = m_items[i];
-
-		const std::shared_ptr<GPU::Texture> &icon =
+		const FavoritesController::FavoriteItem &favorite_item = items[i];
+		const std::shared_ptr<GUI::ITexture> &icon =
 				favorite_item.icon.IsLoaded()
-					? favorite_item.icon.get()
-					: theme.GetImage(ImageType::ChannelDefault);
+					? favorite_item.icon.Get()
+					: context.theme.GetImage(ImageType::ChannelDefault);
 
 		ListView::Item item;
 		item.name = favorite_item.name;
-		item.image = icon.get();
+		item.image = icon;
 
-		if (ListView::RenderItem(item, i == m_selectedItem))
+		if (ListView::RenderItem(item, i == selected))
 		{
 			changed = true;
-			m_selectedItem = i;
+			selected = i;
 		}
 	}
 
+	context.app->fc->SetSelectedIndex(selected);
 	return changed;
 }

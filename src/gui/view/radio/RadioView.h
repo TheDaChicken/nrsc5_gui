@@ -21,33 +21,25 @@ class RadioView final : public IView
 {
 	public:
 		explicit RadioView(
-			const std::shared_ptr<HybridExternal> &external,
-			FavoriteList &favorites,
-			HybridInput &input,
-			const std::shared_ptr<HybridSession> &stream
+			const std::shared_ptr<UISession> &session
 		)
-			: radio_home_(external, favorites, input, stream),
-			  radio_back_(external, favorites, input, stream),
-			  input_(input)
+			: radio_home_(session),
+			  radio_back_(session),
+			  session_(session)
 		{
 		}
 
-		[[nodiscard]] bool ShouldRenderNavigation() const
-		{
-			return input_.GetStatus() == Playing;
-		}
-
-		void Render(const Theme &theme);
-		void RenderNavigation(const Theme &theme);
+		void Render(RenderContext &context) override;
+		void RenderNavigation(const RenderContext &theme);
 		void RenderCenter(const Theme &theme);
 
 	private:
-		void RenderRadio(const Theme &theme);
+		void RenderRadio(RenderContext &theme);
 
 		Page current_page_ = Home;
 		RadioHomeView radio_home_;
 		RadioBackView radio_back_;
-		HybridInput &input_;
+		const std::shared_ptr<UISession> &session_;
 };
 
 #endif //RADIOVIEW_H

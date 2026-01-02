@@ -4,12 +4,12 @@
 
 #include "ThreadPool.h"
 
-ThreadPool::~ThreadPool()
+UTILS::ThreadPool::~ThreadPool()
 {
 	Stop();
 }
 
-void ThreadPool::Start(uint32_t n)
+void UTILS::ThreadPool::Start(uint32_t n)
 {
 	if (n == 0)
 		n = std::thread::hardware_concurrency(); // Default to max # of threads the system supports
@@ -20,7 +20,7 @@ void ThreadPool::Start(uint32_t n)
 	}
 }
 
-void ThreadPool::Stop()
+void UTILS::ThreadPool::Stop()
 {
 	{
 		std::unique_lock lock(mutex_);
@@ -34,7 +34,7 @@ void ThreadPool::Stop()
 	workers.clear();
 }
 
-void ThreadPool::QueueJob(const std::function<void()> &job)
+void UTILS::ThreadPool::QueueJob(const std::function<void()> &job)
 {
 	{
 		std::unique_lock lock(mutex_);
@@ -43,7 +43,7 @@ void ThreadPool::QueueJob(const std::function<void()> &job)
 	condition_.notify_one();
 }
 
-bool ThreadPool::Busy()
+bool UTILS::ThreadPool::Busy()
 {
 	bool busy;
 	{
@@ -53,7 +53,7 @@ bool ThreadPool::Busy()
 	return busy;
 }
 
-void ThreadPool::ThreadLoop()
+void UTILS::ThreadPool::ThreadLoop()
 {
 	while (true)
 	{
@@ -68,7 +68,7 @@ void ThreadPool::ThreadLoop()
 			if (stop)
 				break;
 
-			job = jobs.front();
+			job = std::move(jobs.front());
 			jobs.pop();
 		}
 		job();

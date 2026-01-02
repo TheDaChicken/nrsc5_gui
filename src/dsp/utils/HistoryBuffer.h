@@ -7,8 +7,6 @@
 
 #include <volk/volk_alloc.hh>
 
-#include "utils/Log.h"
-
 template<class T>
 class HistoryBuffer
 {
@@ -23,7 +21,7 @@ class HistoryBuffer
 		void Reset()
 		{
 			if (m_history == 0)
-				throw std::runtime_error("History size is not set");
+				return;
 
 			read_idx = 0;
 			write_idx = m_history - 1;
@@ -116,7 +114,7 @@ void HistoryBuffer<T>::Consume(const size_t n)
 	if (read_idx >= m_history)
 	{
 		// Shift the buffer to the left to make space for new data
-		std::copy(m_buffer + read_idx, m_buffer + write_idx, m_buffer);
+		std::move(m_buffer + read_idx, m_buffer + write_idx, m_buffer);
 
 		write_idx -= read_idx;
 		read_idx = 0;

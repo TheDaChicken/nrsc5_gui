@@ -37,8 +37,19 @@ void SQLite::ConnectionPool::AllocateConnections(const int num)
 
 	for (int i = min_connections; i < num; i++)
 	{
-		std::shared_ptr<Connection> &connection = idle_connections.emplace(std::make_shared<Connection>());
-		CreateConnection(connection);
+		const std::shared_ptr<Connection> &connection = idle_connections.emplace(
+			std::make_shared<Connection>());
+
+		if (const int ret = connection->Open(
+				path_,
+				SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE |
+				SQLITE_OPEN_NOMUTEX);
+			ret != SQLITE_OK)
+		{
+			Logger::Log(err, "Failed to open database: {}", static_cast<int>(ret));
+		}
+
+		sqlite3_busy_timeout(connection->GetSq(), SQLITE_BUSY_TIME);
 	}
 }
 
@@ -66,20 +77,6 @@ void SQLite::ConnectionPool::ReturnBack(const std::shared_ptr<Connection> &&conn
 	condition.notify_all();
 }
 
-void SQLite::ConnectionPool::CreateConnection(const std::shared_ptr<Connection> &connection)
-{
-	if (const int ret = connection->Open(
-			path_,
-			SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE |
-			SQLITE_OPEN_NOMUTEX);
-		ret != SQLITE_OK)
-	{
-		Logger::Log(err, "Failed to open database: {}", static_cast<int>(ret));
-	}
-
-	sqlite3_busy_timeout(connection->GetSq(), SQLITE_BUSY_TIME);
-}
-
 tl::expected<std::shared_ptr<SQLite::Connection>, SQLiteError> SQLite::ConnectionPool::PopConnection()
 {
 	if (idle_connections.empty())
@@ -91,7 +88,8 @@ tl::expected<std::shared_ptr<SQLite::Connection>, SQLiteError> SQLite::Connectio
 
 	return std::shared_ptr<Connection>(
 		connection.get(),
-		[this, connection](Connection*) {
+		[this, connection](Connection *)
+		{
 			this->ReturnBack(std::move(connection));
 		}
 	);

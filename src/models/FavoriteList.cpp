@@ -4,6 +4,8 @@
 
 #include "FavoriteList.h"
 
+#include "sql/SettingsTable.h"
+
 constexpr auto kSettingKey = "favorite_channels";
 
 FavoriteList::FavoriteList(
@@ -16,11 +18,14 @@ bool FavoriteList::Update()
 {
 	bool result = true;
 
-	auto pool = db_manager_.PopConnection();
-	if (!pool)
+	auto conn = db_manager_.PopConnection();
+	if (!conn)
+	{
+		Logger::Log(err, "Failed to pop a db connection");
 		return false;
+	}
 
-	SettingsTable table(*pool);
+	SettingsTable table(*conn);
 
 	auto value = table.GetSettingValue(kSettingKey);
 	if (!value)
@@ -46,20 +51,6 @@ bool FavoriteList::Update()
 
 bool FavoriteList::Submit()
 {
-	// nlohmann::json channels = nlohmann::json::array();
-	// for (const auto &item : channels_)
-	// {
-	// 	channels.push_back(item.channel);
-	// }
-	//
-	// const std::string value = channels.dump();
-	//
-	// if (SqliteError ret = db_.SetSettingValue(kSettingKey, value);
-	// 	ret != SqliteError::Ok)
-	// {
-	// 	Logger::Log(err, "Failed to save favorite channels: {}", static_cast<int>(ret));
-	// 	return false;
-	// }
-
+	// TODO: Implement saving favorites back to database
 	return true;
 }

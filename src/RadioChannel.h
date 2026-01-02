@@ -22,9 +22,9 @@ struct MetadataQuery
 {
 	std::string country_code;
 	std::string name;
+	unsigned int program_id = 0;
 
 	MimeQuery type;
-	unsigned int program_id = 0;
 	int xhr_id = 0;
 };
 

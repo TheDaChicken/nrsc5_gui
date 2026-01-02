@@ -5,7 +5,7 @@
 #ifndef IVIEW_H
 #define IVIEW_H
 
-#include "gui/managers/ThemeManager.h"
+#include "AppState.h"
 
 class IView
 {
@@ -14,7 +14,7 @@ class IView
 		{
 		}
 
-		virtual void Render(const Theme &theme) = 0;
+		virtual void Render(RenderContext &context) = 0;
 };
 
 #endif //IVIEW_H

@@ -5,30 +5,25 @@
 #ifndef RADIOBACKVIEW_H
 #define RADIOBACKVIEW_H
 
+#include "AppState.h"
 #include "gui/managers/ThemeManager.h"
 #include "gui/panels/DockTunePanel.h"
-#include "hybrid/HybridInput.h"
-#include "hybrid/HybridSession.h"
+#include "gui/UISession.h"
 #include "models/FavoriteList.h"
 
 class RadioBackView
 {
 	public:
-		RadioBackView(const std::shared_ptr<HybridExternal> &external,
-		              FavoriteList &favorites,
-		              HybridInput &input,
-		              const std::shared_ptr<HybridSession> &stream)
-			: tune_panel_(input),
-			  input_(input)
+		explicit RadioBackView(const std::shared_ptr<UISession>& input)
+			: tune_panel_(input)
 		{
 		}
 
-		bool RenderNavigation(const Theme &theme);
-		bool RenderCenter(const Theme &theme);
+		bool RenderNavigation(const RenderContext &theme);
+		bool RenderCenter(const RenderContext &theme);
 
 	private:
 		DockTunePanel tune_panel_;
-		HybridInput &input_;
 };
 
 #endif //RADIOBACKVIEW_H

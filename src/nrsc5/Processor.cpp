@@ -6,8 +6,13 @@
 
 #include <fstream>
 
+extern "C" {
+#include <nrsc5.h>
+}
+
 #include "dsp/Firdes.h"
 #include "dsp/Window.h"
+#include "utils/Log.h"
 
 // TODO: make this custom maybe?
 constexpr int FILTER_TAP_COUNT = 64;
@@ -20,7 +25,7 @@ inline int16_t FloatToQ15(const float x)
 tl::expected<NRSC5::StreamSupported, NRSC5::StreamStatus> NRSC5::Processor::SelectStream(
 	const StreamCapabilities &params)
 {
-	switch (params.type)
+	switch (params.native)
 	{
 		case PortSDR::Host::RTL_SDR:
 			return NativeStream(params);

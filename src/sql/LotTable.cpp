@@ -50,7 +50,7 @@ tl::expected<void, SQLiteError> LotTable::InsertLot(
 		key.expire_point.time_since_epoch()).count();
 	const auto str = key.path.string(); // Keep this in scope to avoid dangling pointer in sqlite
 
-	return InsertData(
+	return conn_->InsertData(
 		kInsertHDRadioLot,
 		std::make_pair(":callSign", key.callsign),
 		std::make_pair(":channel", key.channel),
@@ -65,7 +65,7 @@ tl::expected<void, SQLiteError> LotTable::InsertLot(
 tl::expected<void, SQLiteError> LotTable::DeleteLot(
 	const LotRecord &key)
 {
-	return InsertData(
+	return conn_->InsertData(
 		kDeleteHDRadioLot,
 		std::make_pair(":callSign", key.callsign),
 		std::make_pair(":channel", key.channel),
@@ -81,7 +81,7 @@ tl::expected<LotRecord, SQLiteError> LotTable::GetLot(
 	assert(key.channel > 0);
 	assert(key.service > 0);
 
-	return QueryData<LotRecord>(
+	return conn_->QueryData<LotRecord>(
 		kGetHDRadioLot,
 		[](const SQLite::StatementHandle &stmt, LotRecord &value)
 		{
@@ -99,7 +99,7 @@ tl::expected<LotRecord, SQLiteError> LotTable::GetLotSpecial(
 {
 	assert(key.channel > 0);
 
-	return QueryData<LotRecord>(
+	return conn_->QueryData<LotRecord>(
 		kGetSpecialHDRadioLot,
 		[](const SQLite::StatementHandle &stmt, LotRecord &value)
 		{

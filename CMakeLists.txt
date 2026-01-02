@@ -24,7 +24,7 @@ elseif (APPLE)
     set(PROJECT_RESOURCE_DIR "")
 elseif (LINUX)
     set(PROJECT_RESOURCE_DIR "share/${PROJECT_NAME}")
-elseif ()
+else ()
     # Unsupported platform
     message(FATAL_ERROR "Unsupported platform for resource installation.")
 endif ()
@@ -57,7 +57,7 @@ FetchContent_Declare(spdlog_external
 )
 FetchContent_Declare(portsdr_external
         GIT_REPOSITORY https://github.com/thedachicken/portsdr.git
-        GIT_TAG master
+        GIT_TAG 829fe2d515651fd98a76fe22b7e8a1beb9575c23
         EXCLUDE_FROM_ALL
 )
 

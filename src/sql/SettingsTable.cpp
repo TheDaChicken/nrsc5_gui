@@ -15,7 +15,7 @@ static constexpr auto kGetSettingValue = R"(
 tl::expected<std::string, SQLiteError> SettingsTable::GetSettingValue(
 	const std::string_view key)
 {
-	return QueryData<std::string>(
+	return conn_->QueryData<std::string>(
 		kGetSettingValue,
 		[](const SQLite::StatementHandle &stmt, std::string &lot)
 		{
@@ -29,7 +29,7 @@ tl::expected<void, SQLiteError> SettingsTable::SetSettingValue(
 	const std::string_view key,
 	const std::string_view value)
 {
-	return InsertData(
+	return conn_->InsertData(
 		kInsertSetting,
 		std::make_pair(":key", key),
 		std::make_pair(":value", value)

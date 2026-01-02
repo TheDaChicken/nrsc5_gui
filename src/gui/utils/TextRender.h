@@ -18,8 +18,11 @@ struct TextBlock
 class TextRender
 {
 	public:
-		TextRender(ImVec2 size);
+		TextRender();
 		~TextRender();
+
+		void BeginRender(ImVec2 size);
+		void EndRender();
 
 		void DrawBlock(const TextBlock &block);
 

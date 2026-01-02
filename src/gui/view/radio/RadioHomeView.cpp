@@ -6,24 +6,24 @@
 
 #include "gui/widgets/Navigation.h"
 
-bool RadioHomeView::RenderNavigation(const Theme &theme)
+bool RadioHomeView::RenderNavigation(const RenderContext &context)
 {
 	if (Navigation::RenderHeader(
-		theme,
+		context.theme,
 		IconType::Back,
 		"Radio",
-		input_.Sessions().GetState().frequency_text))
+		""))
 		return true;
 
-	if (favorites_panel_.Render(theme))
+	if (favorites_panel_.Render(context))
 	{
-		const auto &station = favorites_panel_.GetSelectedStation();
-		input_.SetChannel(station);
+		const auto &station = context.app->fc->GetSelectedStation();
+		//session_->SetChannel(station);
 	}
 	return false;
 }
 
-void RadioHomeView::RenderCenter(const Theme &theme)
+void RadioHomeView::RenderCenter(RenderContext &theme)
 {
 	station_panel_.Render(theme);
 }

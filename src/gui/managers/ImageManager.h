@@ -5,65 +5,57 @@
 #ifndef IMAGEMANAGER_H
 #define IMAGEMANAGER_H
 
-#include <imgui.h>
 #include <mutex>
 #include <queue>
 
-#include "gui/image_decoders/ImageBuffer.h"
+#include "images/ImageBuffer.h"
 #include "gui/utils/Cache.h"
-#include "gui/wrappers/Texture.h"
-#include "gui/wrappers/TextureUploader.h"
+#include "gui/platform/IGPUContext.h"
 #include "utils/ThreadPool.h"
 
+namespace GUI
+{
+/**
+ * A handle for holding queued textures.
+ */
 class TextureHandle
 {
 	public:
 		TextureHandle() = default;
-		explicit TextureHandle(std::shared_ptr<GPU::Texture> texture)
+		explicit TextureHandle(std::shared_ptr<ITexture> texture)
 			: texture(std::move(texture))
 		{
-
 		}
 
-		[[nodiscard]] int Width() const
+		[[nodiscard]] bool IsLoaded() const
 		{
-			if (!texture)
-				return 0;
-			return texture->width;
+			return texture != nullptr && texture->IsAllocated();
 		}
 
-		[[nodiscard]] int Height() const
-		{
-			if (!texture)
-				return 0;
-			return texture->height;
-		}
-
-		bool IsLoaded() const
-		{
-			return texture != nullptr && texture->ptr != nullptr;
-		}
-
-		[[nodiscard]] std::shared_ptr<GPU::Texture> get() const
+		[[nodiscard]] std::shared_ptr<ITexture> Get() const
 		{
 			return texture;
 		}
 
 	private:
-		std::shared_ptr<GPU::Texture> texture;
+		std::shared_ptr<ITexture> texture;
 };
 
+/**
+ * An easy-to-use manager for queueing up images
+ * to be loaded later on render thread.
+ */
 class ImageManager
 {
 	public:
 		struct LoadRequest
 		{
-			GUI::ImageBuffer image;
+			ImageBuffer image;
 			std::string key;
 		};
 
-		explicit ImageManager(const std::shared_ptr<GPU::TextureUploader> &uploader)
-			: image_cache_(100), uploader_(uploader)
+		explicit ImageManager(const std::shared_ptr<IPlatformContext> &uploader)
+			: uploader_(uploader), image_cache_(100)
 		{
 		}
 
@@ -72,7 +64,7 @@ class ImageManager
 		ImageManager(const ImageManager &) = delete;
 		ImageManager &operator=(const ImageManager &) = delete;
 
-		std::pair<bool, TextureHandle > CreateImageCache(
+		std::pair<bool, TextureHandle> CreateImage(
 			const std::string &key);
 
 		bool ContainsImage(const std::string &key) const
@@ -80,15 +72,16 @@ class ImageManager
 			return image_cache_.Contains(key);
 		}
 
-		void QueueImage(const std::string &key, const GUI::ImageBuffer &image);
+		void QueueImage(const std::string &key, const ImageBuffer &image);
 		void Process();
 
 	private:
+		const std::shared_ptr<IPlatformContext> uploader_;
+
 		std::mutex queue_mutex_;
 		std::queue<LoadRequest> load_queue_;
-		Cache<std::string, GPU::Texture> image_cache_;
-
-		std::shared_ptr<GPU::TextureUploader> uploader_;
+		Cache<std::string, ITexture> image_cache_;
 };
+}
 
 #endif //IMAGEMANAGER_H

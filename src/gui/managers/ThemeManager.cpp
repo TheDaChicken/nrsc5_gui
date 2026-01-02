@@ -4,7 +4,9 @@
 
 #include "ThemeManager.h"
 
-#include "gui/image_decoders/ImageDecoder.h"
+#include <SDL3/SDL_video.h>
+
+#include "images/ImageDecoder.h"
 #include "utils/Log.h"
 
 std::unordered_map<std::string, ImFont *> fonts;
@@ -115,7 +117,8 @@ bool ThemeManager::LoadTheme(const ThemeOptions &opt)
 			return false;
 		}
 
-		auto [success, svg_image] = svg_cache_.TryInsert(icon_name, 1, uploader_);
+		auto [success, svg_image] = svg_cache_.TryInsert(
+			icon_name, 1, std::make_shared<GUI::SVGImage>(gpu_));
 		if (!svg_image)
 		{
 			Logger::Log(err,
@@ -150,7 +153,10 @@ bool ThemeManager::LoadTheme(const ThemeOptions &opt)
 			return false;
 		}
 
-		auto [success, texture] = images_cache_.TryInsert(image_name, 1, uploader_->CreateTexture());
+		auto se = gpu_->CreateTexture();
+
+		auto [success, texture] = images_cache_.TryInsert(
+			image_name, 1, std::move(se));
 		if (!texture)
 		{
 			Logger::Log(err,
@@ -172,7 +178,7 @@ bool ThemeManager::LoadTheme(const ThemeOptions &opt)
 
 			image_buffer.uri = image_path->string();
 
-			uploader_->LoadImage(*texture, image_buffer);
+			texture->LoadImage(image_buffer);
 		}
 
 		theme.images[i] = texture;
@@ -197,6 +203,7 @@ bool ThemeManager::SetCurrentTheme(const std::string &theme_name)
 
 void ThemeManager::ApplyTheme(const Theme &theme)
 {
+	// TODO: uhhhhh??? is there a better way to do this?
 	const float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 
 	// Setup scaling
@@ -244,7 +251,7 @@ ThemeOptions ThemeManager::GetLightTheme()
 	};
 
 	light.style.FrameRounding = light.font_small_size / 2;
-	light.style.WindowPadding = ImVec2{25, 16};
+	light.style.WindowPadding = ImVec2{25, 10};
 	light.style.FramePadding = ImVec2{12, 12};
 	light.style.ItemSpacing = ImVec2{20, 15};
 	light.style.ItemInnerSpacing = ImVec2{10, 15};

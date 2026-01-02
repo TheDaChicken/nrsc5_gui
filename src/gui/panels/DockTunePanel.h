@@ -6,12 +6,12 @@
 #define DOCKTUNEPANEL_H
 
 #include "gui/managers/ThemeManager.h"
-#include "hybrid/HybridInput.h"
+#include "gui/UISession.h"
 
 class DockTunePanel
 {
 	public:
-		explicit DockTunePanel(HybridInput &input);
+		explicit DockTunePanel(const std::shared_ptr<UISession>& input);
 
 		bool Render(const Theme &theme);
 
@@ -36,7 +36,7 @@ class DockTunePanel
 			int decimal_places;
 		} state_;
 
-		HybridInput &input_;
+		std::shared_ptr<UISession> input_;
 		Band::Type selected_band_ = Band::FM;
 };
 

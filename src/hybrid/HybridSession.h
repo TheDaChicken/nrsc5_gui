@@ -1,73 +1,38 @@
 //
-// Created by TheDaChicken on 9/9/2025.
+// Created by TheDaChicken on 12/12/2025.
 //
 
-#ifndef HYBRIDSESSION_H
-#define HYBRIDSESSION_H
+#ifndef NRSC5_GUI_HYBRIDSESSION_H
+#define NRSC5_GUI_HYBRIDSESSION_H
 
 #include <memory>
-
-#include "HybridController.h"
-#include "HybridState.h"
-#include "audio/AudioManager.h"
-#include "external/HybridExternal.h"
-#include "gui/managers/EventsDispatcher.h"
-
-struct ProgramChangeFrame final : EventData
-{
-	explicit ProgramChangeFrame()
-		: EventData(PROGRAM_CHANGE)
-	{
-	}
-
-	ProgramState state;
-};
+#include "input/RadioInput.h"
 
 class HybridSession
 {
 	public:
-		explicit HybridSession(const std::shared_ptr<HybridExternal> &external);
+		HybridSession();
 
-		bool OpenAudio();
+		// Disable copy
+		HybridSession(const HybridSession&) = delete;
+		HybridSession& operator=(const HybridSession&) = delete;
 
-		void SendEvent(std::unique_ptr<EventData> &&event);
-		void SendAudio(const std::unique_ptr<StationAudioFrame> &audio_frame);
+		void PushInput(std::shared_ptr<IRadioInput>&& input);
+		InputStatus SetFrequency(Band::Type type, uint32_t freq);
 
-		void Process();
+		InputStatus Start() const;
+		InputStatus Stop() const;
 
-		void SendProgram(const ProgramState& state)
+		IRadioInput::ISDRControl* GetSDRControl()
 		{
-			auto new_frame = std::make_unique<ProgramChangeFrame>();
-			new_frame->state = state;
-			frame_dispatcher.PushFrame(std::move(new_frame));
+			if (!input_)
+				return {};
+			return input_->GetISDRControl();
 		}
 
-		void SendStation(const StationIdentity &identity);
-		void FetchStationImage();
-		void FetchPrimaryImage(int xhdr);
-
-		int GetCurrentProgramId() const
-		{
-			return program_.id;
-		}
-
-		ProgramState &GetState()
-		{
-			return program_;
-		}
 	private:
-		void UpdateProgramName();
-		void OnProgramUpdate(const StationProgramFrame *ptr);
-		void OnProgramStateChange(const ProgramChangeFrame *frame);
-		void OnId3Update(const StationId3Frame *frame);
-
-		ProgramState program_;
-		StationIdentity identity_;
-
-		EventsDispatcher frame_dispatcher;
-		std::shared_ptr<AUDIO::Track> output_audio;
-
-		std::shared_ptr<HybridExternal> external_service_;
+		std::shared_ptr<IRadioInput> input_;
+		HybridDecoder decoder;
 };
 
-#endif //HYBRIDSESSION_H
+#endif //NRSC5_GUI_HYBRIDSESSION_H

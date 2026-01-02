@@ -5,13 +5,14 @@
 #ifndef FAVORITEMODEL_H
 #define FAVORITEMODEL_H
 
-#include "../hybrid/external/HybridExternal.h"
-#include "sql/SettingsTable.h"
+//#include "external/HybridExternal.h"
+#include "RadioChannel.h"
+#include "sql/DatabaseManager.h"
 
 class FavoriteList
 {
 	public:
-		std::function <void()> on_update;
+		std::function<void()> on_update;
 
 		explicit FavoriteList(
 			DatabaseManager &db_manager);

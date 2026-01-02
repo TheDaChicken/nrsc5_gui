@@ -10,6 +10,7 @@
 #include <complex>
 
 using cfloat_t = std::complex<float>;
+using cuint8_t = std::complex<uint8_t>;
 using cint16_t = std::complex<int16_t>;
 using cint32_t = std::complex<int32_t>;
 using cint64_t = std::complex<int64_t>;

@@ -6,27 +6,32 @@
 
 #include "gui/widgets/Navigation.h"
 
-void RadioView::Render(const Theme &theme)
+void RadioView::Render(RenderContext &context)
 {
-	if (input_.GetStatus() == Playing)
+	const SessionUi& session = context.session;
+
+	// TODO: Should logic be in here? Maybe it should be.
+	//  Subviews should be split up though
+	//  Each subview needs to be able to switch around ?
+	if (session.running)
 	{
-		if (Navigation::BeginNavigation(theme, "SettingsNav"))
+		if (Navigation::BeginNavigation(context.theme, "RadioNav"))
 		{
 			Navigation::BeginNavList();
-			RenderNavigation(theme);
+			RenderNavigation(context);
 			Navigation::BeginCenter();
-			RenderCenter(theme);
+			RenderCenter(context.theme);
 
 			Navigation::EndNav();
 		}
 	}
 	else
 	{
-		RenderCenter(theme);
+		RenderCenter(context.theme);
 	}
 }
 
-void RadioView::RenderNavigation(const Theme &theme)
+void RadioView::RenderNavigation(const RenderContext &theme)
 {
 	if (current_page_ == Home)
 	{
@@ -42,37 +47,40 @@ void RadioView::RenderNavigation(const Theme &theme)
 
 void RadioView::RenderCenter(const Theme &theme)
 {
-	switch (input_.GetStatus())
-	{
-		case Playing:
-		{
-			RenderRadio(theme);
-			break;
-		}
-		case Idle:
-		{
-			ImGui::Text("No Tuner Connected");
-			break;
-		}
-		case Stopping:
-		{
-			break;
-		}
-		case Starting:
-		{
-			break;
-		}
-		case Error:
-		{
-			ImGui::Text("Error");
-			break;
-		}
-		default:
-			break;
-	}
+	// TODO: make better styling
+	// switch (session_->GetStatus())
+	// {
+	// 	case Playing:
+	// 	{
+	// 		RenderRadio(theme);
+	// 		break;
+	// 	}
+	// 	case Waiting:
+	// 	{
+	// 		ImGui::Text("Tuner not selected");
+	// 		break;
+	// 	}
+	// 	case Stopping:
+	// 	{
+	// 		ImGui::Text("Stopping");
+	// 		break;
+	// 	}
+	// 	case Starting:
+	// 	{
+	// 		ImGui::Text("Starting");
+	// 		break;
+	// 	}
+	// 	case Error:
+	// 	{
+	// 		ImGui::Text("Error");
+	// 		break;
+	// 	}
+	// 	default:
+	// 		break;
+	// }
 }
 
-void RadioView::RenderRadio(const Theme &theme)
+void RadioView::RenderRadio(RenderContext &theme)
 {
 	if (current_page_ == Home)
 		radio_home_.RenderCenter(theme);

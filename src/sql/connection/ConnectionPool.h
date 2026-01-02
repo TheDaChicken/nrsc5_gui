@@ -14,7 +14,6 @@
 
 namespace SQLite
 {
-
 class PooledConnection;
 
 /**
@@ -38,36 +37,38 @@ class ConnectionPool
 			std::lock_guard lock(mutex);
 			return static_cast<int>(idle_connections.size());
 		}
+
 	private:
-		void CreateConnection(const std::shared_ptr<Connection> &connection);
 		tl::expected<std::shared_ptr<Connection>, SQLiteError> PopConnection();
 
-		//std::stack<std::shared_ptr<Connection> > all_connections;
+		std::filesystem::path path_;
 		std::stack<std::shared_ptr<Connection> > idle_connections;
 		std::mutex mutex;
 		std::condition_variable condition;
-		std::filesystem::path path_;
 };
 
-class PooledConnection {
+class PooledConnection
+{
 	public:
-		PooledConnection(std::shared_ptr<Connection> conn, ConnectionPool* pool)
+		PooledConnection(std::shared_ptr<Connection> conn, ConnectionPool *pool)
 			: conn_(std::move(conn)), pool_(pool)
 		{
 			assert(conn_);
 		}
 
-		~PooledConnection() {
+		~PooledConnection()
+		{
 			if (conn_)
 				pool_->ReturnBack(std::move(conn_));
 		}
 
-		PooledConnection(const PooledConnection&) = delete;            // no copy
-		PooledConnection& operator=(const PooledConnection&) = delete; // no copy-
-		PooledConnection(PooledConnection&&) = default;                // allow move construction
-		PooledConnection& operator=(PooledConnection&& other) noexcept
+		PooledConnection(const PooledConnection &) = delete; // no copy
+		PooledConnection &operator=(const PooledConnection &) = delete; // no copy-
+		PooledConnection(PooledConnection &&) = default; // allow move construction
+		PooledConnection &operator=(PooledConnection &&other) noexcept
 		{
-			if (this != &other) {
+			if (this != &other)
+			{
 				if (conn_)
 					pool_->ReturnBack(std::move(conn_));
 				conn_ = std::move(other.conn_);
@@ -76,19 +77,15 @@ class PooledConnection {
 			return *this;
 		}
 
-		Connection* operator ->() const
+		Connection *operator ->() const
 		{
-			if (!conn_)
-				throw std::runtime_error("PooledConnection: Attempt to use moved-from connection");
 			return conn_.get();
 		}
 
 	private:
 		std::shared_ptr<Connection> conn_;
-		ConnectionPool* pool_;
+		ConnectionPool *pool_;
 };
-
-
 }
 
 #endif //SQLITEDATABASEMANAGER_H

@@ -8,15 +8,15 @@
 #include "gui/widgets/ListView.h"
 #include "gui/widgets/Navigation.h"
 
-void SettingsView::Render(const Theme &theme)
+void SettingsView::Render(RenderContext &context)
 {
-	if (Navigation::BeginNavigation(theme, "SettingsNav"))
+	if (Navigation::BeginNavigation(context.theme, "SettingsNav"))
 	{
 		Navigation::BeginNavList();
-		RenderSettingList(theme);
+		RenderSettingList(context.theme);
 
 		Navigation::BeginCenter();
-		RenderCenter(theme);
+		RenderCenter(context);
 
 		Navigation::EndNav();
 	}
@@ -26,21 +26,17 @@ void SettingsView::RenderSettingList(const Theme &theme)
 {
 	Navigation::RenderHeader(theme, IconType::UNKNOWN, "Settings");
 
-	const ListView::Item items[] = {
-		{"Tuner"},
-		{"Audio"},
-		{"Network"},
-		{"About"},
-	};
-
 	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_medium_size);
 
 	ImGui::BeginChild("Settings", ImVec2(0, 0));
 	ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, 0);
 
-	for (int i = 0; i < 4; ++i)
+	for (int i = 0; i < views_.size(); ++i)
 	{
-		if (ListView::RenderItem(items[i], i == selected_setting_))
+		ListView::Item item;
+		item.name = views_[i].first;
+
+		if (ListView::RenderItem(item, i == selected_setting_))
 			selected_setting_ = i;
 	}
 
@@ -50,21 +46,14 @@ void SettingsView::RenderSettingList(const Theme &theme)
 	ImGui::PopFont();
 }
 
-void SettingsView::RenderCenter(const Theme &theme)
+void SettingsView::RenderCenter(RenderContext &theme)
 {
-	switch (selected_setting_)
-	{
-		case 0:
-		{
-			input_panel.Render(theme);
-			break;
-		}
-		case 1:
-		{
-			audio_panel.Render(theme);
-			break;
-		}
-		default:
-			break;
-	}
+	if (views_.empty())
+		return;
+
+	auto&[name, view] = views_[selected_setting_];
+
+	assert(view);
+
+	view->Render(theme);
 }

@@ -4,14 +4,14 @@
 
 #include "EventsDispatcher.h"
 
-void EventsDispatcher::PushFrame(std::unique_ptr<EventData> &&frame)
+void EventsTimerDispatcher::PushFrame(std::unique_ptr<EventData> &&frame)
 {
-	std::lock_guard lock(mutex_);
+	std::scoped_lock lock(mutex_);
 
 	events_.push(std::move(frame));
 }
 
-std::chrono::seconds::rep EventsDispatcher::Tick(
+std::chrono::seconds::rep EventsTimerDispatcher::Tick(
 	const std::function<void(std::unique_ptr<EventData>)> &callback)
 {
 	while (true)

@@ -13,56 +13,48 @@ Application::~Application()
 {
 }
 
-SDL_AppResult Application::Initialize()
+bool Application::Initialize()
 {
-	gpu_context_ = std::make_shared<GPU::GPUContext>();
+	UTILS::ThreadPool::GetInstance().Start(2);
+
+	gpu_context_ = std::make_shared<GUI::SDLPlatformContext>();
 	if (!gpu_context_->OpenDevice())
 	{
 		Logger::Log(err, "Failed to open GPU device");
-		return SDL_APP_FAILURE;
+		return false;
 	}
 
-	image_manager_ = std::make_unique<ImageManager>(gpu_context_->GetUploader());
+	image_manager_ = std::make_unique<GUI::ImageManager>(gpu_context_);
 
 	const auto ret = sql_manager.Open("database.db", 3);
 	if (!ret)
 	{
 		Logger::Log(err, "Failed to open database");
-		return SDL_APP_FAILURE;
+		return false;
 	}
 
-	lot_manager_.SetImageFolder("HDImages");
+	app_context_ = std::make_shared<AppContext>();
+	app_context_->am = std::make_unique<AUDIO::SDLAudioManager>();
+	app_context_->fc = std::make_unique<FavoritesController>(favorite_list_);
+	app_context_->rc = std::make_unique<SDRController>();
 
-	external_service_ = std::make_shared<HybridExternal>(image_manager_, sql_manager);
-	main_window_ = std::make_unique<MainWindow>(
-		external_service_,
-		input_,
-		favorite_list_);
-
-	input_.on_lot = [this](const NRSC5::Lot &lot)
+	if (!app_context_->am->OpenAudioDevice(nullptr))
 	{
-		StationIdentity identity = input_.Sessions().GetIdentity();
+		Logger::Log(err, "Failed to open default audio device");
+		return false;
+	}
 
-		ThreadPool::GetInstance().QueueJob([lot, this, identity]
-		{
-			if (lot.component.programId)
-				external_service_->ReceivedLotImage(identity, lot);
+	main_window_ = std::make_unique<MainWindow>(
+		app_context_);
 
-			if (!lot_manager_.LotReceived(identity, lot))
-			{
-				Logger::Log(err, "Failed to process received lot");
-			}
-		});
-	};
-
-	if (main_window_->InitWindow(gpu_context_) != SDL_APP_CONTINUE)
+	if (!main_window_->InitWindow(gpu_context_))
 	{
 		Logger::Log(err, "Failed to create main window");
-		return SDL_APP_FAILURE;
+		return false;
 	}
 
 	favorite_list_.Update();
-	return SDL_APP_CONTINUE;
+	return true;
 }
 
 void Application::Render() const

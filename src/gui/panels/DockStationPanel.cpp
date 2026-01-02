@@ -6,308 +6,325 @@
 
 #include <imgui.h>
 
+extern "C" {
+#include <nrsc5.h>
+}
+
 #include "gui/Util.h"
 #include "gui/managers/ThemeManager.h"
 #include "gui/utils/TextRender.h"
 #include "gui/widgets/DualIconButton.h"
 
-constexpr float kStationLogoScale = 2.5f;
+constexpr float kStationLogoScale = 3.0f;
 constexpr int MAX_LINES = 2;
 
-DockStationPanel::DockStationPanel(
-	HybridInput &input,
-	const std::weak_ptr<HybridSession> &session)
-	: input_(input),
-	  session_(session)
+DockStationPanel::DockStationPanel(const std::shared_ptr<UISession> &session)
+	: session_(session)
 {
 }
 
-void DockStationPanel::Render(const Theme &theme)
+void DockStationPanel::Render(RenderContext &context)
 {
-	const auto session = session_.lock();
-
-	frame_state_ = input_.Sessions().GetState();
-	frame_program_ = session ? session->GetState() : ProgramState{};
-	frame_programs_ = input_.Sessions().GetPrograms();
-
-	RenderStationHeader(theme);
-
-	ImGui::PushFont(theme.GetFont(FontType::Semibold),
-	                theme.font_very_large_size);
-	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ImGui::GetFontSize() / 2);
-
-	const float footer_height = ImGui::GetFrameHeightWithSpacing();
-
-	if (ImGui::BeginChild(
-		"##RadioInfo",
-		ImVec2(0, -footer_height),
-		ImGuiChildFlags_AlwaysUseWindowPadding))
-	{
-		RenderRadioInfo(theme);
-	}
-	ImGui::EndChild();
-
-	// Create a border only on bottom and top
-	ImDrawList *draw_list = ImGui::GetWindowDrawList();
-	const ImVec2 min = ImGui::GetItemRectMin();
-	const ImVec2 max = ImGui::GetItemRectMax();
-	draw_list->AddRectFilled(
-		ImVec2(min.x, max.y - theme.separator_thickness),
-		ImVec2(max.x, max.y),
-		ImGui::GetColorU32(ImGuiCol_Border));
-	draw_list->AddRectFilled(
-		ImVec2(min.x, min.y - theme.separator_thickness),
-		ImVec2(max.x, min.y),
-		ImGui::GetColorU32(ImGuiCol_Border));
-
-	if (ImGui::BeginChild(
-		"##Footer",
-		ImVec2(0, 0)))
-	{
-		ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetColorU32(ImGuiCol_Separator));
-
-		RenderControls(theme);
-
-		ImGui::PopStyleColor();
-	}
-	ImGui::EndChild();
-
-	ImGui::PopStyleVar();
-	ImGui::PopFont();
+	// const auto state = session_->GetHybridState();
+	//
+	// RenderStationHeader(context.theme, state);
+	//
+	// ImGui::PushFont(context.theme.GetFont(FontType::Semibold),
+	//                 context.theme.font_very_large_size);
+	// ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ImGui::GetFontSize() / 2);
+	//
+	// const float footer_height = ImGui::GetFrameHeightWithSpacing();
+	//
+	// if (ImGui::BeginChild(
+	// 	"##RadioInfo",
+	// 	ImVec2(0, ImGui::GetContentRegionAvail().y - footer_height),
+	// 	ImGuiChildFlags_AlwaysUseWindowPadding))
+	// {
+	// 	RenderRadioInfo(context.theme, state);
+	// }
+	// ImGui::EndChild();
+	//
+	// // Create a border only on bottom and top
+	// ImDrawList *draw_list = ImGui::GetWindowDrawList();
+	// const ImVec2 min = ImGui::GetItemRectMin();
+	// const ImVec2 max = ImGui::GetItemRectMax();
+	// draw_list->AddRectFilled(
+	// 	ImVec2(min.x, max.y - context.theme.separator_thickness),
+	// 	ImVec2(max.x, max.y),
+	// 	ImGui::GetColorU32(ImGuiCol_Border));
+	// draw_list->AddRectFilled(
+	// 	ImVec2(min.x, min.y - context.theme.separator_thickness),
+	// 	ImVec2(max.x, min.y),
+	// 	ImGui::GetColorU32(ImGuiCol_Border));
+	//
+	// if (ImGui::BeginChild(
+	// 	"##Footer",
+	// 	ImVec2(0, 0)))
+	// {
+	// 	ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetColorU32(ImGuiCol_Separator));
+	//
+	// 	RenderControls(context.theme);
+	//
+	// 	ImGui::PopStyleColor();
+	// }
+	// ImGui::EndChild();
+	//
+	// ImGui::PopStyleVar();
+	// ImGui::PopFont();
 }
 
-void DockStationPanel::RenderStationHeader(const Theme &theme)
-{
-	ImGui::PushStyleVarX(ImGuiStyleVar_ItemSpacing, ImGui::GetStyle().ItemSpacing.x * 0.5f);
-	ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, ImGui::GetStyle().ItemSpacing.y * 0.5f);
-
-	RenderStationLogo(theme);
-	ImGui::SameLine();
-	RenderStationDetails(theme);
-	ImGui::SameLine();
-
-	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_medium_size);
-	ImGui::PushStyleVarX(ImGuiStyleVar_ItemSpacing, ImGui::GetStyle().ItemSpacing.x * 0.7f);
-	{
-		const auto &texture = theme.GetIcon(IconType::HDLogo)->UpdateSize(
-			ImGui::GetFontSize());
-
-		// Render HD on right side
-		ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
-			std::max(0.0f,
-			         ImGui::GetContentRegionAvail().x -
-			         static_cast<float>(texture.width)));
-		RenderProgramList(theme);
-	}
-	ImGui::PopStyleVar();
-	ImGui::PopFont();
-
-	ImGui::PopStyleVar(2);
-}
-
-void DockStationPanel::RenderRadioInfo(const Theme &theme) const
-{
-	ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, ImGui::GetStyle().ItemSpacing.y * 2.0f);
-
-	RenderPrimaryImage(theme);
-	ImGui::SameLine();
-	RenderID3(theme, frame_program_.id3);
-
-	ImGui::PopStyleVar();
-}
-
-void DockStationPanel::RenderStationLogo(const Theme &theme) const
-{
-	ImGui::PushFont(
-		theme.GetFont(FontType::Semibold),
-		theme.font_medium_size * kStationLogoScale);
-	const float station_logo_height = ImGui::GetFontSize();
-
-	const std::shared_ptr<GPU::Texture> station_image = FirstLoadedTexture(
-		{frame_program_.station_logo},
-		theme.GetImage(ImageType::ChannelDefault));
-
-	const ImVec2 size = {
-		static_cast<float>(station_image->width) *
-		station_logo_height / static_cast<float>(station_image->height),
-		station_logo_height
-	};
-
-	ImGui::Image(reinterpret_cast<intptr_t>(station_image->ptr.get()), size);
-	ImGui::PopFont();
-}
-
-void DockStationPanel::RenderStationDetails(const Theme &theme) const
-{
-	const char *longest_str;
-	float header_height = 0;
-
-	ImGui::PushFont(theme.GetFont(FontType::Bold), theme.font_large_size);
-	header_height += ImGui::GetTextLineHeightWithSpacing();
-	ImGui::PopFont();
-
-	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_medium_size);
-	header_height += MAX_LINES * ImGui::GetTextLineHeightWithSpacing();
-	ImGui::PopFont();
-
-	nrsc5_program_type_name(
-		NRSC5_PROGRAM_TYPE_SPECIAL_READING_SERVICES,
-		&longest_str
-	);
-
-	const float header_width = ImGui::CalcTextSize(longest_str).x;
-
-	TextRender render({header_width, header_height});
-
-	render.DrawBlock({
-		theme.GetFont(FontType::Bold),
-		theme.font_large_size,
-		frame_state_.frequency_text
-	});
-
-	if (!frame_program_.formatted_name.empty())
-	{
-		render.DrawBlock({
-			theme.GetFont(FontType::Semibold),
-			theme.font_medium_size,
-			frame_program_.formatted_name,
-		});
-	}
-
-	if (frame_program_.type != NRSC5_PROGRAM_TYPE_UNDEFINED)
-	{
-		const char *program_type_str;
-		nrsc5_program_type_name(
-			frame_program_.type,
-			&program_type_str
-		);
-
-		render.DrawBlock({
-			theme.GetFont(FontType::Semibold),
-			theme.font_medium_size,
-			program_type_str,
-		});
-	}
-}
-
-void DockStationPanel::RenderProgramList(const Theme &theme)
-{
-	const auto &hd_logo = theme.GetIcon(IconType::HDLogo)->GetTexture();
-	const ImVec2 hd_size(static_cast<float>(hd_logo.width), static_cast<float>(hd_logo.height));
-
-	// Push smaller font just for text
-	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_small_size);
-
-	ImGui::BeginGroup();
-	{
-		ImGui::Image((intptr_t)hd_logo.ptr.get(), hd_size);
-
-		// Center the program numbers below the logo
-		const float text_width =
-				ImGui::CalcTextSize("1").x * frame_programs_.size() +
-				ImGui::GetStyle().ItemSpacing.x * (frame_programs_.size() - 1);
-
-		ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
-			Center(hd_size.x, text_width));
-
-		RenderProgramNumbers(frame_programs_);
-	}
-	ImGui::EndGroup();
-
-	ImGui::PopFont();
-}
-
-void DockStationPanel::RenderProgramNumbers(
-	const std::map<unsigned int, ProgramState> &programs) const
-{
-	if (programs.size() <= 1)
-	{
-		ImGui::TextUnformatted(""); // Placeholder for alignment
-		return;
-	}
-
-	ImGui::BeginGroup();
-
-	const auto program_frame = programs.begin();
-
-	for (const auto &[id, program] : programs)
-	{
-		if (id != program_frame->first)
-			ImGui::SameLine();
-
-		if (id == frame_program_.id)
-			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 165, 0, 255));
-
-		std::string number = fmt::format(
-			"{}",
-			NRSC5::FriendlyProgramId(id)
-		);
-
-		ImGui::TextUnformatted(number.data(), number.data() + number.size());
-
-		if (id == frame_program_.id)
-			ImGui::PopStyleColor();
-	}
-
-	ImGui::EndGroup();
-}
-
-void DockStationPanel::RenderPrimaryImage(const Theme &theme) const
-{
-	const std::shared_ptr<GPU::Texture> primary_image = FirstLoadedTexture(
-		{frame_program_.primary_image, frame_program_.station_logo},
-		theme.GetImage(ImageType::PrimaryDefault));
-
-	ImGui::Image((intptr_t)primary_image->ptr.get(), {300, 300});
-}
-
-void DockStationPanel::RenderID3(const Theme &theme, const NRSC5::ID3 &id3)
-{
-	ImGui::BeginGroup();
-	{
-		ImGui::PushFont(theme.GetFont(FontType::Bold), theme.font_large_size);
-		ImGui::TextWrapped("%s", id3.title.c_str());
-		ImGui::PopFont();
-
-		ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_medium_size);
-		ImGui::TextWrapped("%s", id3.artist.c_str());
-		ImGui::TextWrapped("%s", id3.album.c_str());
-		ImGui::TextWrapped("%s", id3.genre.c_str());
-		ImGui::PopFont();
-	}
-	ImGui::EndGroup();
-}
-
-void DockStationPanel::RenderControls(const Theme &theme) const
-{
-	// ImGui::SetCursorPosY(ImGui::GetCursorPosY() +
-	// 	std::max(0.0f, (ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeight()) * 0.5f));
-	ImGui::BeginGroup();
-
-	const GUI::DualIconButton channel_button{
-		"ChannelButton",
-		"Ch",
-		{"ChannelLeft", theme.GetIcon(IconType::Minus)},
-		{"ChannelRight", theme.GetIcon(IconType::Plus)}
-	};
-
-	switch (channel_button.Render())
-	{
-		case GUI::DualIconButton::Result::Left:
-		{
-			if (const auto &session = session_.lock())
-				input_.PreviousChannel(session);
-			break;
-		}
-		case GUI::DualIconButton::Result::Right:
-		{
-			if (const auto &session = session_.lock())
-				input_.NextChannel(session);
-			break;
-		}
-		default:
-			break;
-	}
-
-	ImGui::EndGroup();
-}
+// void DockStationPanel::RenderStationHeader(
+// 	const Theme &theme,
+// 	const HybridState &state)
+// {
+// 	ImGui::PushStyleVarX(ImGuiStyleVar_ItemSpacing, ImGui::GetStyle().ItemSpacing.x * 0.5f);
+// 	ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, ImGui::GetStyle().ItemSpacing.y * 0.5f);
+//
+// 	NRSC5::Program program;
+//
+// 	// const auto program_iter = state.data.programs.find(state.ui.program_id);
+// 	// if (program_iter != state.data.programs.end())
+// 	// 	program = program_iter->second;
+//
+// 	RenderStationImage(theme, state);
+// 	ImGui::SameLine();
+// 	RenderStationDetails(theme, state, program);
+// 	ImGui::SameLine();
+//
+// 	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_medium_size);
+// 	ImGui::PushStyleVarX(ImGuiStyleVar_ItemSpacing, ImGui::GetStyle().ItemSpacing.x * 0.7f);
+//
+// 	const auto &texture = theme.GetIcon(IconType::HDLogo)->UpdateSize(
+// 		ImGui::GetFontSize());
+// 	// Render HD on right side
+// 	ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+// 		std::max(0.0f,
+// 		         ImGui::GetContentRegionAvail().x -
+// 		         static_cast<float>(texture->GetWidth())));
+// 	RenderProgramList(theme, state);
+//
+// 	ImGui::PopStyleVar();
+// 	ImGui::PopFont();
+//
+// 	ImGui::PopStyleVar(2);
+// }
+//
+// void DockStationPanel::RenderRadioInfo(
+// 	const Theme &theme,
+// 	const HybridState &state)
+// {
+// 	RenderPrimaryImage(theme, state);
+// 	ImGui::SameLine();
+//
+// 	// const auto program_iter = state.data.programs.find(state.ui.program_id);
+// 	// if (program_iter != state.data.programs.end())
+// 	// 	RenderID3(theme, program_iter->second.id3_);
+// }
+//
+// void DockStationPanel::RenderImage(
+// 	const std::shared_ptr<GUI::ITexture> &texture,
+// 	const float height)
+// {
+// 	const ImVec2 size = {
+// 		static_cast<float>(texture->GetWidth()) * height
+// 		/ static_cast<float>(texture->GetHeight()),
+// 		height
+// 	};
+//
+// 	ImGui::Image(texture->GetPtr(), size);
+// }
+//
+// void DockStationPanel::RenderStationImage(
+// 	const Theme &theme,
+// 	const HybridState &state)
+// {
+// 	ImGui::PushFont(
+// 		theme.GetFont(FontType::Semibold),
+// 		theme.font_large_size * kStationLogoScale);
+//
+// 	const std::shared_ptr<GUI::ITexture> station_image = FirstLoadedTexture(
+// 		{state.ui.station_logo_},
+// 		theme.GetImage(ImageType::ChannelDefault));
+//
+// 	RenderImage(station_image, ImGui::GetFontSize());
+// 	ImGui::PopFont();
+// }
+//
+// void DockStationPanel::RenderPrimaryImage(
+// 	const Theme &theme,
+// 	const HybridState &state)
+// {
+// 	const std::shared_ptr<GUI::ITexture> primary_image = FirstLoadedTexture(
+// 		{state.ui.primary_logo_, state.ui.station_logo_},
+// 		theme.GetImage(ImageType::PrimaryDefault));
+//
+// 	RenderImage(primary_image, 250);
+// }
+//
+// void DockStationPanel::RenderStationDetails(
+// 	const Theme &theme,
+// 	const HybridState &state,
+// 	const NRSC5::Program &program)
+// {
+// 	const std::string_view longest_str = NRSC5::Decoder::GetProgramTypeName(
+// 		NRSC5_PROGRAM_TYPE_SPECIAL_READING_SERVICES);
+// 	float header_height = 0;
+//
+// 	ImGui::PushFont(theme.GetFont(FontType::Bold), theme.font_large_size);
+// 	header_height += ImGui::GetTextLineHeightWithSpacing();
+// 	ImGui::PopFont();
+//
+// 	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_medium_size);
+// 	header_height += MAX_LINES * ImGui::GetTextLineHeightWithSpacing();
+// 	ImGui::PopFont();
+//
+// 	const float header_width = ImGui::CalcTextSize(
+// 		longest_str.data(),
+// 		longest_str.data() + longest_str.size()).x;
+//
+// 	TextRender render;
+//
+// 	render.BeginRender({header_width, header_height});
+//
+// 	render.DrawBlock({
+// 		theme.GetFont(FontType::Bold),
+// 		theme.font_large_size,
+// 		state.ui.frequency_text
+// 	});
+//
+// 	if (!state.ui.formatted_name.empty())
+// 	{
+// 		render.DrawBlock({
+// 			theme.GetFont(FontType::Semibold),
+// 			theme.font_medium_size,
+// 			state.ui.formatted_name,
+// 		});
+// 	}
+//
+// 	if (program.type != NRSC5_PROGRAM_TYPE_UNDEFINED)
+// 	{
+// 		const std::string_view program_type =
+// 				NRSC5::Decoder::GetProgramTypeName(program.type);
+//
+// 		render.DrawBlock({
+// 			theme.GetFont(FontType::Semibold),
+// 			theme.font_medium_size,
+// 			program_type,
+// 		});
+// 	}
+//
+// 	render.EndRender();
+// }
+//
+// void DockStationPanel::RenderProgramList(
+// 	const Theme &theme,
+// 	const HybridState &state)
+// {
+// 	const auto &hd_logo = theme.GetIcon(IconType::HDLogo)->GetTexture();
+// 	const ImVec2 hd_size(static_cast<float>(hd_logo->GetWidth()), static_cast<float>(hd_logo->GetHeight()));
+//
+// 	// Push smaller font just for text
+// 	ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_small_size);
+//
+// 	ImGui::BeginGroup();
+//
+// 	ImGui::Image(hd_logo->GetPtr(), hd_size);
+//
+// 	// // Center the program numbers below the logo
+// 	// const float text_width =
+// 	// 		ImGui::CalcTextSize("1").x * state.data.programs.size() +
+// 	// 		ImGui::GetStyle().ItemSpacing.x * (state.data.programs.size() - 1);
+//
+// 	//ImGui::SetCursorPosX(ImGui::GetCursorPosX() + Center(hd_size.x, text_width));
+//
+// 	//RenderProgramNumbers(state.data.programs, state.ui.program_id);
+//
+// 	ImGui::EndGroup();
+//
+// 	ImGui::PopFont();
+// }
+//
+// void DockStationPanel::RenderProgramNumbers(
+// 	const std::map<unsigned int, NRSC5::Program> &programs,
+// 	const unsigned int currId)
+// {
+// 	if (programs.size() <= 1)
+// 	{
+// 		ImGui::TextUnformatted(""); // Placeholder for alignment
+// 		return;
+// 	}
+//
+// 	ImGui::BeginGroup();
+//
+// 	const auto program_frame = programs.begin();
+//
+// 	for (const auto &[id, program] : programs)
+// 	{
+// 		if (id != program_frame->first)
+// 			ImGui::SameLine();
+//
+// 		if (id == currId)
+// 			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 165, 0, 255));
+//
+// 		std::string number = fmt::format(
+// 			"{}",
+// 			NRSC5::FriendlyProgramId(id)
+// 		);
+//
+// 		ImGui::TextUnformatted(number.data(), number.data() + number.size());
+//
+// 		if (id == currId)
+// 			ImGui::PopStyleColor();
+// 	}
+//
+// 	ImGui::EndGroup();
+// }
+//
+// void DockStationPanel::RenderID3(const Theme &theme, const NRSC5::ID3 &id3)
+// {
+// 	ImGui::BeginGroup();
+// 	ImGui::PushTextWrapPos(0.0f);
+// 	{
+// 		ImGui::PushFont(theme.GetFont(FontType::Bold), theme.font_large_size);
+// 		ImGui::TextUnformatted(id3.title.c_str());
+// 		ImGui::PopFont();
+//
+// 		ImGui::PushFont(theme.GetFont(FontType::Semibold), theme.font_medium_size);
+// 		ImGui::TextUnformatted(id3.artist.c_str());
+// 		ImGui::TextUnformatted(id3.album.c_str());
+// 		ImGui::TextUnformatted(id3.genre.c_str());
+// 		ImGui::PopFont();
+// 	}
+// 	ImGui::PopTextWrapPos();
+// 	ImGui::EndGroup();
+// }
+//
+// void DockStationPanel::RenderControls(const Theme &theme) const
+// {
+// 	ImGui::BeginGroup();
+//
+// 	const GUI::DualIconButton channel_button{
+// 		"ChannelButton",
+// 		"Ch",
+// 		{"ChannelLeft", theme.GetIcon(IconType::Minus)},
+// 		{"ChannelRight", theme.GetIcon(IconType::Plus)}
+// 	};
+//
+// 	switch (channel_button.Render())
+// 	{
+// 		case GUI::DualIconButton::Result::Left:
+// 		{
+// 			session_->PreviousChannel();
+// 			break;
+// 		}
+// 		case GUI::DualIconButton::Result::Right:
+// 		{
+// 			session_->NextChannel();
+// 			break;
+// 		}
+// 		default:
+// 			break;
+// 	}
+//
+// 	ImGui::EndGroup();
+// }

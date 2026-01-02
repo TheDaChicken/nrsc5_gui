@@ -11,6 +11,7 @@ include(GoogleTest)
 add_executable(${PROJECT_NAME}-test
         Cache.cpp
         Table.cpp
+        Radio.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}-test

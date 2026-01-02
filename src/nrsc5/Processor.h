@@ -11,11 +11,7 @@
 
 #include "utils/Band.h"
 
-extern "C" {
-#include <nrsc5.h>
-}
-
-#include "../dsp/resampler/ArbResampler.h"
+#include "dsp/resampler/ArbResampler.h"
 #include "dsp/resampler/IFilterStream.h"
 #include "utils/Expected.hpp"
 #include "utils/Types.h"
@@ -37,9 +33,9 @@ namespace NRSC5
 {
 struct StreamCapabilities
 {
-	PortSDR::Host::HostType type;
-	std::vector<uint32_t> sample_rates{};
-	std::vector<PortSDR::SampleFormat> sample_formats{};
+	bool native;
+	std::vector<uint32_t> sample_rates;
+	std::vector<PortSDR::SampleFormat> sample_formats;
 };
 
 struct StreamSupported
